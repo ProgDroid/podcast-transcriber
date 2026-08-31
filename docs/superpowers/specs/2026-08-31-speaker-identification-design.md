@@ -125,6 +125,13 @@ transcripts supply labels and timestamps; only the names change. This is the
 backfill the original design deferred, and it is affordable precisely because
 text rules need no audio.
 
+**It must be volume-driven, not feed-driven.** Six early Jacob Shapiro episodes
+have aged off the front of their feed and are invisible to the feed-iterating
+planner (Spec A §4.6). A feed-driven re-embed would silently leave those six
+carrying `SPEAKER_XX` while every other episode gained names — and the
+reconciliation would report the corpus complete, because they are complete,
+just not renamed.
+
 ## 3. Phase B2 — the voice model, gated
 
 ### Why it is gated rather than built

@@ -137,20 +137,39 @@ already on the volume, and the old records survive as permanent reconciliation
 extras. `parse_all_episodes` compounds this with a naive `strftime`, so a
 pubDate timezone change shifts the date by a day.
 
-The guid is the prune key when present, the triple otherwise. It is **optional**
-by necessity: 355 Jacob Shapiro transcripts are on the volume against 350 feed
-entries, so at least 5 episodes can never be assigned one. Reconciliation
-reports guid coverage. Adding this later would be a second corpus rewrite;
-adding it during a migration already running is nearly free.
+**The guids are opaque identifiers, verified, not permalinks.** RSS
+`<guid isPermaLink>` defaults to *true*, so a guid can be a URL — and this
+publisher demonstrably rewrites URLs (zero enclosure URLs are shared between the
+two feeds carrying the same audio). Measured across all 433 feed entries:
+`guidislink` is `False` for every one, none matches `^https?://`, and all are
+distinct within their feed (76/76, 350/350, 7/7). Captivate issues UUIDs
+(`b4a9c88b-9dbf-46b7-9dc1-a7812a9bde65`), Substack issues namespaced post ids
+(`substack:post:202743637`). A guid that *were* link-derived would have to be
+treated as absent; none is.
+
+The guid is **optional by necessity** — 432 of 438 volume episodes can be
+assigned one, and 6 cannot (§4.6). Adding it later would be a second corpus
+rewrite; adding it during a migration already running is nearly free.
 
 ### 2. Writes: upsert first, then prune
 
 ```
 new_ids = [f"{episode_id_prefix(...)}-{i}" for i in range(len(chunks))]
-upsert(new_ids, ...)                       # batched at 250
-stale = paged_get(where=<guid or triple>).ids - set(new_ids)
+upsert(new_ids, ...)                                     # batched at 250
+stale = ( paged_get(where=guid).ids                      # union, not either/or
+        | paged_get(where=triple, guid absent or mine).ids
+        ) - set(new_ids)
 delete(ids=stale)
 ```
+
+**The prune is a union of both keys, never "guid if present else triple".**
+Every record written before this change is triple-keyed with no guid, so the
+first guid-keyed prune would match nothing and leave the entire old record set
+behind — the same orphan the design exists to kill, reached from the other
+direction. The triple arm is restricted to records carrying no guid or this
+episode's own guid, so a neighbour whose guid was backfilled can never be caught
+by it. One extra query, monotone, and it degrades correctly throughout the mixed
+period.
 
 **Not delete-then-upsert.** A new episode's delete matches nothing, so the
 trickle case has no window at all — but the very next phase re-embeds all 438
@@ -223,12 +242,33 @@ that file has no `@app.function` decorator, it is a local script, and
 chunks; the phase-B1 archive re-embed is ~29,894. Measure BGE-large CPU
 throughput before splitting the tier.
 
-### 6. Bidirectional reconciliation
+### 6. Bidirectional reconciliation, and the feed-unreachable class
 
 Assert all of: no volume episode missing from Chroma; no Chroma triple absent
 from the volume; chunk indices contiguous from 0 per episode; no ID prefix
 shared by two episodes; excluded triples hold **zero** records. A
 one-directional check keeps passing while the corpus rots.
+
+**Report volume files with no feed entry as their own class.** The planner
+iterates feed entries, so anything absent from its feed is invisible to the
+self-healing branch — permanently. Six such files exist today, all early Jacob
+Shapiro episodes that have aged off the front of a feed which now starts
+2022-05-30:
+
+```
+The Jacob Shapiro Podcast - Episode 1 - 2022-05-02      Episode 4 - 2022-05-16
+                            Episode 2 - 2022-05-06      Episode 5 - 2022-05-20
+                            Episode 3 - 2022-05-13      Episode 6 - 2022-05-27
+```
+
+All six are currently complete in Chroma, so nothing is broken — but if any ever
+became incomplete, no automated path would repair it, and this class only grows
+as feeds truncate.
+
+Two consequences. **`bulk_embed` is kept, not deleted as superseded** — it
+iterates the volume rather than the feed and is the documented manual path for
+these. And **any full-archive re-embed must be volume-driven**, including phase
+B1's, or it silently skips these six.
 
 ### 7. ID migration: copy, validate, swap
 
