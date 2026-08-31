@@ -54,6 +54,14 @@ def test_unparseable_transcript_is_terminal_not_a_re_embed_loop():
     )
 
 
+def test_missing_transcript_is_transcribed_even_if_it_would_not_parse():
+    # UNPARSEABLE is terminal and means "a transcript exists on disk that will
+    # never produce chunks". With no transcript at all the answer is TRANSCRIBE
+    # -- go fetch it. Ordering these the other way round would permanently
+    # foreclose transcription for an episode that merely needs transcribing.
+    assert _decide(transcript_exists=False, parses_to_chunks=False) is Action.TRANSCRIBE
+
+
 def test_exclusion_beats_unparseable():
     assert _decide(excluded=True, parses_to_chunks=False) is Action.EXCLUDE
 
