@@ -2,6 +2,8 @@ import modal
 import os
 import re
 
+from corpus.chunking import build_chunks, build_chunks_from_text
+
 image = (
     modal.Image.from_registry(
         "nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04", add_python="3.12"
@@ -18,6 +20,7 @@ image = (
         "sentence-transformers",
         "chromadb",
     )
+    .add_local_python_source("corpus")
 )
 
 app = modal.App("podcast-transcriber", image=image)
@@ -27,10 +30,6 @@ model_cache = modal.Volume.from_name("whisperx-model-cache", create_if_missing=T
 
 VOLUME_PATH = "/transcripts"
 MODEL_PATH = "/models"
-
-# Max words per chunk — BGE large handles 512 tokens, ~400 words is a safe proxy
-MAX_CHUNK_WORDS = 400
-CHUNK_OVERLAP_WORDS = 50
 
 
 def parse_all_episodes(feed_url: str):
@@ -77,95 +76,6 @@ def parse_all_episodes(feed_url: str):
             )
 
     return episodes
-
-
-def build_chunks(
-    segments: list,
-    show_name: str,
-    episode_number: str,
-    episode_title: str,
-    date_str: str,
-):
-    """
-    Group consecutive segments from the same speaker into chunks,
-    splitting at MAX_CHUNK_WORDS. Overlaps the last CHUNK_OVERLAP_WORDS
-    words into the next chunk for context continuity.
-    """
-    chunks = []
-    current_speaker = None
-    current_words = []
-    current_start = 0.0
-
-    def flush_chunk(speaker, words, start):
-        if not words:
-            return
-        text = " ".join(words)
-        chunks.append(
-            {
-                "text": f"[{speaker}] {text}",
-                "metadata": {
-                    "show": show_name,
-                    "episode_number": episode_number,
-                    "episode_title": episode_title,
-                    "date": date_str,
-                    "speaker": speaker,
-                    "start_time": start,
-                    "date_ts": int(date_str.replace("-", ""))
-                    if date_str != "Unknown Date"
-                    else 0,
-                },
-            }
-        )
-
-    for segment in segments:
-        speaker = segment.get("speaker", "UNKNOWN")
-        text = segment.get("text", "").strip()
-        start = segment.get("start", 0.0)
-        words = text.split()
-
-        if speaker != current_speaker and current_words:
-            flush_chunk(current_speaker, current_words, current_start)
-            current_words = current_words[-CHUNK_OVERLAP_WORDS:]
-            current_start = start
-
-        if not current_words:
-            current_start = start
-
-        current_speaker = speaker
-        current_words.extend(words)
-
-        while len(current_words) >= MAX_CHUNK_WORDS:
-            flush_chunk(current_speaker, current_words[:MAX_CHUNK_WORDS], current_start)
-            current_words = current_words[-CHUNK_OVERLAP_WORDS:]
-            current_start = start
-
-    flush_chunk(current_speaker, current_words, current_start)
-    return chunks
-
-
-def build_chunks_from_text(
-    text: str, show_name: str, episode_number: str, episode_title: str, date_str: str
-):
-    """
-    Parse a saved transcript text file into chunks.
-    Handles the [SPEAKER_XX] timestamp format written by the transcribe function.
-    """
-    segments = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        # Format: [SPEAKER_00] 12.3s - Some text here
-        m = re.match(r"\[([^\]]+)\]\s+([\d.]+)s\s+-\s+(.*)", line)
-        if m:
-            segments.append(
-                {
-                    "speaker": m.group(1),
-                    "start": float(m.group(2)),
-                    "text": m.group(3),
-                }
-            )
-    return build_chunks(segments, show_name, episode_number, episode_title, date_str)
 
 
 def embed_and_store(chunks: list, embedding_model, chroma_collection):
