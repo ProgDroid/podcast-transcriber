@@ -55,8 +55,19 @@ modal secret create podcast-secrets \
   CHROMA_API_KEY=<your chroma api key> \
   CHROMA_TENANT=<your chroma tenant uuid> \
   CHROMA_DATABASE=<your chroma database name> \
-  HF_TOKEN=<your huggingface token>
+  HF_TOKEN=<your huggingface token> \
+  MCP_ALLOWED_HOST=<filled in after the first deploy, see below>
 ```
+
+`MCP_ALLOWED_HOST` is required and there is a deliberate chicken-and-egg to it:
+it must equal the hostname clients actually connect to, which you only learn
+once `modal deploy mcp_server.py` prints the endpoint URL. So deploy once, take
+the hostname out of that URL, set the key, and deploy again.
+
+**Get it wrong and every authenticated request returns `421 invalid host
+header`**, which reads like a client bug rather than a config one. The MCP
+transport uses this value for DNS-rebinding protection, so it is not merely a
+bind address.
 
 > ⚠️ `modal secret create --force` **overwrites the whole secret rather than
 > merging into it**, and Modal never lets you read a secret's values back. So to

@@ -131,26 +131,31 @@ class PodcastSearch:
 def mcp_server():
     from mcp.server.fastmcp import FastMCP
 
-    # A `host=` kwarg used to be passed here, hardcoded to this deployment's
-    # own *.modal.run name. It was doing nothing, and it is dropped rather than
-    # parameterised. FastMCP stores it on Settings.host, which is only read by
-    # run() when it binds uvicorn itself. Modal owns the serving, we hand it the
-    # ASGI app from streamable_http_app(), and that method never looks at
-    # settings.host.
+    # `host` IS load-bearing here. In the mcp version this image installs, it
+    # becomes the allowed-Host value for the transport's DNS-rebinding
+    # protection, so it must match the Host header clients actually send or
+    # every request comes back 421 "invalid host header". It is not merely a
+    # uvicorn bind address.
     #
-    # It is specifically NOT the allowed-Host value for DNS-rebinding
-    # protection, which is easy to assume. That lives in a separate
-    # `transport_security` argument, and TransportSecurityMiddleware disables
-    # protection outright when none is passed, whatever the field default on
-    # TransportSecuritySettings says.
+    # Verified the hard way: removing it on the belief it was inert took the
+    # endpoint down with 421s. The belief came from introspecting the mcp
+    # package installed on the DEV machine, where TransportSecurityMiddleware
+    # defaults protection off. That is a different version from the one in this
+    # image, so the local reading said nothing about the deployed behaviour.
     #
-    # Access control here is Modal proxy auth, above. If host allowlisting is
-    # ever wanted as well, pass transport_security=TransportSecuritySettings(
-    # enable_dns_rebinding_protection=True, allowed_hosts=[...]) explicitly.
+    # WARNING: `mcp` is pip-installed unpinned in the image above, so a future
+    # image rebuild can resolve a version where this kwarg no longer feeds
+    # validation, silently changing behaviour. Pin `mcp` before relying on this.
+    #
+    # Required, with no default on purpose. A wrong-but-present default fails as
+    # a 421 on every request, which reads like a client problem; a missing key
+    # fails loudly at startup instead. Set it to this deployment's own
+    # *.modal.run hostname. See README.
     mcp = FastMCP(
         "Podcast Transcript Search",
         stateless_http=True,
         json_response=True,
+        host=os.environ["MCP_ALLOWED_HOST"],
     )
     searcher = PodcastSearch()
 
