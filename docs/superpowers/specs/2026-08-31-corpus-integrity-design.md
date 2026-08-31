@@ -303,10 +303,48 @@ needs on every record.
    `rules_version`; upsert into v2 **in batches of 250**.
 4. Validate v2 against v1 through the ID map: counts, then per-record documents,
    metadata, uris, embeddings (`allclose`, `atol=1e-4`).
-5. **Deploy the new write path and the collection constant atomically**, then
-   confirm search.
-6. Delete v1 only after explicit confirmation. Unlike the July EU→US migration,
+5. **Deploy the new write path and the collection constant atomically.**
+6. **Probe the deployed endpoint.** One `search_podcasts` call through the
+   proxy-authed production route; `n_chunks` populated in the result proves v2.
+7. **If the probe says v1: `modal app stop podcast-mcp-server`, redeploy, probe
+   again.** Cutover is not done until the probe is v2-shaped.
+8. Delete v1 only after explicit confirmation. Unlike the July EU→US migration,
    a rollback path exists until then.
+
+### Cutover is the highest-risk step, and it has no natural alarm
+
+Not the migration — that keeps v1 as a rollback. The cutover fails silently in
+two **disjoint** ways:
+
+- **Wrong name at startup.** Covered by `get_collection` (§4.8), which raises
+  instead of creating an empty third collection.
+- **Right name, never re-read.** A `PodcastSearch` container that entered
+  `load()` before cutover holds a `Collection` handle bound to v1 and keeps
+  serving from it, correctly and silently, for as long as it stays warm. There
+  is no name to re-resolve, so nothing can raise and `get_collection` does not
+  help at all.
+
+Step 7 exists because container draining is a timing property that cannot be
+observed from here. "I redeployed, so it must have cycled" is an inference from
+intent rather than state; brief downtime on a personal tool is cheaper than an
+unnoticed split brain.
+
+**The positive control has to be metadata, because content cannot discriminate.**
+Validation proves v1 and v2 identical in count, documents, metadata-on-old-keys
+and embeddings, so any content-shaped probe passes against both. The migration's
+added fields are the only difference, so `search()` gains `n_chunks` and
+`episode_guid` in its output dict alongside `speaker` and `start_time`.
+
+Two tempting alternatives are rejected: a sentinel record pollutes the
+collection and reconciliation would correctly flag it as an extra; and echoing
+`self.collection.id` from a new `@modal.method()` creates a second code path
+that can pass while the tool path fails.
+
+**The writer side is not covered by any of this.** `get_chroma_collection`
+(`transcribe.py:196-207`) calls `get_or_create_collection` on a hardcoded
+literal and cannot raise. Its saving grace is that `scheduled_job` spawns fresh
+containers nightly, so it has no warm-container exposure — the environment
+variable with no default is the whole of the fix there.
 
 **Two blocking gaps in the existing tooling, both shallow.**
 `create_dest_collection` takes the destination name from `src_col.name` and
