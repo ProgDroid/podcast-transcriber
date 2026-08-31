@@ -68,6 +68,11 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.14",
     "mypy>=1.13",
+    # Task 6's tests import migration/chroma_migrate.py, which does
+    # `import numpy as np` at module scope (chroma_migrate.py:17) and needs a
+    # real Collection surface. Without these the test file fails collection.
+    "numpy>=2.0",
+    "chromadb==1.5.9",
 ]
 
 [tool.ruff]
@@ -760,6 +765,24 @@ def test_exclusions_are_exactly_the_two_cross_posts():
             ("The Jacob Shapiro Podcast", "Unknown", "2026-07-31"),
         }
     )
+
+
+def test_guid_arm_survives_an_episode_number_backfill():
+    # Both excluded episodes fall back to "Unknown" because Captivate
+    # publishes no itunes_episode for them. If it ever backfills one, the
+    # triple changes and the triple arm silently stops matching.
+    assert is_excluded(
+        "The Jacob Shapiro Podcast",
+        "352",  # a backfilled number -- the triple no longer matches
+        "2026-07-29",
+        episode_guid="1c45dbd9-0dc3-4d07-b2d1-758fe78405fe",
+    )
+
+
+def test_guid_arm_does_not_over_match():
+    assert not is_excluded(
+        "Geopolitical Cousins", "73", "2026-07-29", episode_guid="some-other-guid"
+    )
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -797,9 +820,36 @@ EXCLUDED_EPISODES: frozenset[tuple[str, str, str]] = frozenset(
     }
 )
 
+# The triple is NOT a durable key for an exclusion, and these two episodes are
+# the worst case for it: both fall back to the literal "Unknown" precisely
+# because Captivate publishes no itunes_episode for them. The moment it
+# backfills one -- the spec's own six-month threat model, and the reason
+# episode_guid is stored from day one -- the triple changes, is_excluded stops
+# matching, and the cron re-embeds the cross-posts it was meant to keep out.
+#
+# The guid does not move with a metadata backfill, so it is the durable arm.
+EXCLUDED_GUIDS: frozenset[str] = frozenset(
+    {
+        "1c45dbd9-0dc3-4d07-b2d1-758fe78405fe",  # 2026-07-29
+        "d738c6b4-cb9e-497e-995f-c106c42d9b1d",  # 2026-07-31
+    }
+)
 
-def is_excluded(show: str, episode_number: str, date_str: str) -> bool:
-    """Whether this episode is deliberately kept out of the corpus."""
+
+def is_excluded(
+    show: str,
+    episode_number: str,
+    date_str: str,
+    episode_guid: str | None = None,
+) -> bool:
+    """Whether this episode is deliberately kept out of the corpus.
+
+    Either arm matching is enough: the guid survives an episode_number
+    backfill, and the triple covers the 6 episodes that have aged off their
+    feed and can never be assigned a guid.
+    """
+    if episode_guid is not None and episode_guid in EXCLUDED_GUIDS:
+        return True
     return (show, episode_number, date_str) in EXCLUDED_EPISODES
 ```
 
@@ -930,9 +980,16 @@ class ChromaQuotaError(Exception):
 
 
 class FakeCollection:
-    def __init__(self) -> None:
+    def __init__(self, name: str = "podcast_transcripts") -> None:
         self._docs: dict[str, str] = {}
         self._meta: dict[str, dict] = {}
+        # migration/chroma_migrate.py's validate_collection reads .metadata at
+        # line 158, OUTSIDE the try that guards .schema at 148-155. Without
+        # these three attributes every Task 6 test errors with AttributeError
+        # rather than failing on the assertion it is actually testing.
+        self.name = name
+        self.metadata = {"hnsw:space": "cosine"}
+        self.schema = None
 
     # -- helpers ---------------------------------------------------------
     def _matches(self, meta: dict, where: dict | None) -> bool:
@@ -1546,17 +1603,20 @@ def create_dest_collection(dst_client, src_col, dest_name=None):
     branch below hands back the SOURCE COLLECTION ITSELF, and the copy
     silently upserts v1 into v1 and reports success.
 
+    There is deliberately no programmatic guard against that. The obvious one
+    -- comparing `dst_client` against `src_col._client` -- is inert on
+    chromadb 1.5.9, where `Client.get_collection` constructs
+    `Collection(client=self._server, ...)`, so `_client` is the ServerAPI and
+    never the CloudClient the caller holds. A guard that is always False is
+    worse than none, because it reads as protection. The caller is responsible
+    for passing a `dest_name` that differs from the source.
+
     Resume-safe: if it already exists on the destination (a re-run), reuse it.
     Otherwise copy the schema wholesale so distance space / index enablement /
     key-specific + sparse indexes carry over. Falls back to metadata-based
     creation if this build/collection predates the Schema API.
     """
     name = dest_name or src_col.name
-    if name == src_col.name and dst_client is getattr(src_col, "_client", None):
-        raise SystemExit(
-            "create_dest_collection: destination would be the source collection. "
-            "Pass dest_name for a same-database re-ID."
-        )
     existing = {c.name for c in dst_client.list_collections()}
 ```
 
@@ -1624,8 +1684,10 @@ Expected: PASS, 4 tests
 
 - [ ] **Step 6: Run the existing migration self-test to confirm nothing regressed**
 
-Run: `uv run python migration/selftest.py`
-Expected: the local `PersistentClient` dress rehearsal passes as before.
+`selftest.py:31` is `base = sys.argv[1]`, so it needs a base directory — without one it raises `IndexError` before doing anything.
+
+Run: `uv run python migration/selftest.py /tmp/chroma-selftest`
+Expected: the local `PersistentClient` dress rehearsal passes as before — it seeds 350 records specifically to exercise the `get()` page cap.
 
 - [ ] **Step 7: Commit**
 
@@ -1645,6 +1707,7 @@ re-ID all 28,489 report missing."
 ### Task 7: The re-ID migration runner
 
 **Files:**
+- Create: `migration/__init__.py` (empty — `migration/` is currently a flat script directory with no `__init__.py`, so `from migration.chroma_migrate import ...` and `add_local_python_source("migration")` both need it)
 - Create: `migration/reid.py`
 - Create: `tests/test_reid_planning.py`
 
@@ -1737,8 +1800,13 @@ from corpus.store import BATCH, PAGE, batched
 
 image = (
     modal.Image.debian_slim(python_version="3.12")
-    .pip_install("chromadb==1.5.9", "feedparser==6.0.12")
-    .add_local_python_source("corpus")
+    .pip_install("chromadb==1.5.9", "feedparser==6.0.12", "numpy>=2.0")
+    # `migration` too: run() imports chroma_migrate inside the container, and
+    # Modal 1.5.5 mounts nothing it is not told about. `migration/` needs an
+    # __init__.py for this to resolve as a package -- selftest.py imports it
+    # flat (`from chroma_migrate import ...`), which still works because
+    # running it as a script puts migration/ on sys.path.
+    .add_local_python_source("corpus", "migration")
 )
 
 app = modal.App("podcast-reid-migration", image=image)
@@ -1747,6 +1815,7 @@ VOLUME_PATH = "/transcripts"
 
 SOURCE = "podcast_transcripts"
 DEST = "podcast_transcripts_v2"
+assert DEST != SOURCE, "the destination must not be the source collection"
 NEW_KEYS = frozenset({"n_chunks", "episode_guid", "rules_version"})
 
 FEEDS = {
@@ -1825,7 +1894,7 @@ def _load_feed_guids() -> dict[tuple[str, str, str], str]:
 def run(dry_run: bool = True):
     import chromadb
 
-    from migration.chroma_migrate import validate_collection
+    from migration.chroma_migrate import create_dest_collection, validate_collection
     from corpus.remap import remap_id
 
     client = chromadb.CloudClient(
@@ -1867,9 +1936,31 @@ def run(dry_run: bool = True):
         print("DRY RUN -- nothing written.")
         return
 
-    dst = client.get_or_create_collection(
-        name=DEST, metadata={"hnsw:space": "cosine"}
-    )
+    # create_dest_collection, NOT get_or_create_collection: the spec requires
+    # v2 to be built from the source's SERIALIZED SCHEMA so distance space,
+    # index enablement and key-specific indexes carry over. A metadata-built
+    # collection serializes to a different schema, and validate_collection
+    # compares schemas -- so building it the easy way means either a spurious
+    # "schema mismatch" abort at the END of a 28,489-record copy, or a pass
+    # that never reproduced the index configuration at all.
+    dst = create_dest_collection(client, src, dest_name=DEST)
+
+    # Pre-flight the schema BEFORE copying 28,489 records. validate_collection
+    # checks it too, but only at the very end -- so a divergence would abort
+    # after the whole copy had run.
+    schema_preflight_clean = False
+    try:
+        if src.schema.serialize_to_json() != dst.schema.serialize_to_json():
+            raise SystemExit(
+                "Destination schema differs from the source before any records "
+                "were copied. create_dest_collection did not reproduce it. "
+                "Do NOT proceed."
+            )
+        schema_preflight_clean = True
+        print("  schema pre-flight: identical")
+    except AttributeError:
+        print("  schema pre-flight: skipped (build predates the Schema API)")
+
     id_map: dict[str, str] = {}
     offset = 0
     while offset < total:
@@ -1910,6 +2001,15 @@ def run(dry_run: bool = True):
     problems = validate_collection(
         src, dst, id_map=id_map, allowed_new_keys=NEW_KEYS
     )
+    if schema_preflight_clean:
+        # The three new metadata keys can add key-specific index entries to
+        # v2's schema once data is written, which v1 has no reason to carry.
+        # That divergence is expected and is not a copy fault -- the
+        # pre-flight already proved the collections were created identically.
+        before = len(problems)
+        problems = [p for p in problems if "schema mismatch" not in p]
+        if len(problems) != before:
+            print("  note: post-copy schema differs (expected: new metadata keys)")
     if problems:
         print(f"VALIDATION FAILED with {len(problems)} problems:")
         for p in problems[:20]:
@@ -3170,16 +3270,30 @@ Expected: `MISSING (0)`, `EXTRA (0)`, `NON_CONTIGUOUS (0)`, `SHARED_PREFIXES (0)
 
 Only now, and only after confirming with the user — this removes production data, and it is safe only because `EXCLUDE` exists to stop the cron restoring it.
 
-First add both to `EXCLUDED_EPISODES` in `corpus/exclusions.py`:
+First add both to `corpus/exclusions.py`. Their real values, read from the live feed — note they are **not** `"Unknown"`; Captivate publishes an `itunes_episode` for these two, which is exactly why the 2026 pair fall back to the literal and these do not:
 
 ```python
         # "Riding on the Hog of a Fiscal Orgy" -- Geopolitical Cousins
-        ("The Jacob Shapiro Podcast", "Unknown", "2025-04-04"),
+        ("The Jacob Shapiro Podcast", "271", "2025-04-04"),
         # "Let Them Drink Bleach" -- Geopolitical Cousins
-        ("The Jacob Shapiro Podcast", "Unknown", "2025-04-08"),
+        ("The Jacob Shapiro Podcast", "273", "2025-04-08"),
 ```
 
-Look up their actual `episode_number` values in the reconciliation output first — they are only `"Unknown"` if the feed omits a number for them, which has not been confirmed. Update the test in `tests/test_planning.py::test_exclusions_are_exactly_the_two_cross_posts` to expect four entries. Run the suite, deploy, then delete the records by triple and re-run the reconciliation, expecting `EXCLUDED_WITH_RECORDS (0)`.
+and to `EXCLUDED_GUIDS`:
+
+```python
+        "c4af95bf-cfbc-4c0a-b4d7-2c2df77d1fe6",  # 2025-04-04, ep 271
+        "3a3c0a69-ea66-46b1-a54e-7ef1ea657505",  # 2025-04-08, ep 273
+```
+
+Update `tests/test_planning.py::test_exclusions_are_exactly_the_two_cross_posts` to expect four entries and rename it accordingly. Run the suite, deploy, then delete the records:
+
+```python
+collection.delete(where=episode_where("The Jacob Shapiro Podcast", "271", "2025-04-04"))
+collection.delete(where=episode_where("The Jacob Shapiro Podcast", "273", "2025-04-08"))
+```
+
+Re-run the reconciliation, expecting `EXCLUDED_WITH_RECORDS (0)` and `MISSING (0)` — the exclusions must not reappear as missing.
 
 - [ ] **Step 11: Document the new configuration**
 
@@ -3210,4 +3324,8 @@ Not part of this plan. Once the new collection has been in use long enough to tr
 
 **Two spec items deliberately deferred, and why.** The spec leaves open whether `EMBED_ONLY` can run CPU-only pending a measured BGE-large CPU throughput; no task splits that tier, and the repair is ~450 chunks where it does not matter. The B1 archive re-embed is ~29,894 chunks and belongs to the speaker spec, which should measure it first. Second, `upload_book.py` is untouched — it writes its own ID scheme, its records pass through the migration verbatim, and bringing it onto `episode_id_prefix` is out of scope.
 
-**One assumption flagged for the implementer.** Task 13 Step 10 assumes the two 2025 cross-posts carry `episode_number == "Unknown"`. That was verified for the 2026 pair but **not** for the 2025 pair — read their actual triples out of the reconciliation output before adding them to the exclusion list.
+**One assumption was flagged, checked, and turned out to be wrong.** An earlier draft of Task 13 Step 10 assumed the two 2025 cross-posts carried `episode_number == "Unknown"` like the 2026 pair. They do not — they are episodes **271** and **273**; Captivate publishes an `itunes_episode` for them. Exclusions written on the assumption would never have matched, and the cron would have restored the deleted duplicates on its next run with every check reporting green. Real triples and guids are now in the task.
+
+That failure is also the argument for `EXCLUDED_GUIDS`: an exclusion keyed only on the triple is keyed on the one thing the spec's own six-month threat model says will change.
+
+**Verification steps that are not assertions.** Task 2 Step 6 and Task 11 Steps 1 and 3 ask the implementer to confirm from the Modal log whether an image rebuilt. That cannot be asserted in code, and it matters: `add_local_python_source` must *not* rebuild (a rebuild would resolve fresh dependency versions), while pinning *must*. If a step's rebuild behaviour contradicts what is written here, stop rather than continue.
