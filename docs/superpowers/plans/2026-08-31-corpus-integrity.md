@@ -677,8 +677,11 @@ permanently complete."
 **Interfaces:**
 - Consumes: `corpus.identity.RULES_VERSION`
 - Produces:
-  - `corpus.exclusions.EXCLUDED_EPISODES: frozenset[tuple[str, str, str]]`
-  - `corpus.exclusions.is_excluded(show: str, episode_number: str, date_str: str) -> bool`
+  - `corpus.exclusions.ExcludedEpisode` — a frozen dataclass with fields `show`, `episode_number`, `date`, `guid: str | None`, `reason`, and a `.triple` property
+  - `corpus.exclusions.EXCLUDED: frozenset[ExcludedEpisode]` — the single source of truth
+  - `corpus.exclusions.EXCLUDED_EPISODES: frozenset[tuple[str, str, str]]` — **derived**
+  - `corpus.exclusions.EXCLUDED_GUIDS: frozenset[str]` — **derived**
+  - `corpus.exclusions.is_excluded(show: str, episode_number: str, date_str: str, episode_guid: str | None = None) -> bool`
   - `corpus.planning.Action` — a `str` `Enum` with members `TRANSCRIBE`, `EMBED_ONLY`, `SKIP`, `EXCLUDE`, `UNPARSEABLE`
   - `corpus.planning.decide_action(*, transcript_exists: bool, complete_in_chroma: bool, stored_rules_version: str | None, excluded: bool, parses_to_chunks: bool) -> Action`
 
@@ -767,6 +770,14 @@ def test_exclusions_are_exactly_the_two_cross_posts():
     )
 
 
+def test_derived_views_cannot_drift_from_the_record_list():
+    from corpus.exclusions import EXCLUDED, EXCLUDED_GUIDS
+
+    assert EXCLUDED_EPISODES == frozenset(e.triple for e in EXCLUDED)
+    assert EXCLUDED_GUIDS == frozenset(e.guid for e in EXCLUDED if e.guid)
+    assert all(e.reason for e in EXCLUDED)
+
+
 def test_guid_arm_survives_an_episode_number_backfill():
     # Both excluded episodes fall back to "Unknown" because Captivate
     # publishes no itunes_episode for them. If it ever backfills one, the
@@ -811,28 +822,51 @@ exclusion is a decision recorded here.
 
 from __future__ import annotations
 
-EXCLUDED_EPISODES: frozenset[tuple[str, str, str]] = frozenset(
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class ExcludedEpisode:
+    show: str
+    episode_number: str
+    date: str
+    guid: str | None
+    reason: str
+
+    @property
+    def triple(self) -> tuple[str, str, str]:
+        return (self.show, self.episode_number, self.date)
+
+
+EXCLUDED: frozenset[ExcludedEpisode] = frozenset(
     {
-        # "This Is The Way The World Ends" -- Geopolitical Cousins 73
-        ("The Jacob Shapiro Podcast", "Unknown", "2026-07-29"),
-        # "Lessons Learned" -- Geopolitical Cousins 74
-        ("The Jacob Shapiro Podcast", "Unknown", "2026-07-31"),
+        ExcludedEpisode(
+            "The Jacob Shapiro Podcast",
+            "Unknown",
+            "2026-07-29",
+            "1c45dbd9-0dc3-4d07-b2d1-758fe78405fe",
+            "cross-post of Geopolitical Cousins 73, "
+            "'This Is The Way The World Ends'",
+        ),
+        ExcludedEpisode(
+            "The Jacob Shapiro Podcast",
+            "Unknown",
+            "2026-07-31",
+            "d738c6b4-cb9e-497e-995f-c106c42d9b1d",
+            "cross-post of Geopolitical Cousins 74, 'Lessons Learned'",
+        ),
     }
 )
 
-# The triple is NOT a durable key for an exclusion, and these two episodes are
-# the worst case for it: both fall back to the literal "Unknown" precisely
-# because Captivate publishes no itunes_episode for them. The moment it
-# backfills one -- the spec's own six-month threat model, and the reason
-# episode_guid is stored from day one -- the triple changes, is_excluded stops
-# matching, and the cron re-embeds the cross-posts it was meant to keep out.
-#
-# The guid does not move with a metadata backfill, so it is the durable arm.
+# Derived, never hand-maintained. Two parallel hand-written lists would drift
+# ASYMMETRICALLY: forgetting a guid still excludes correctly today and fails
+# only in the future scenario the guid was added for, so the violation is
+# invisible until exactly the moment it matters.
+EXCLUDED_EPISODES: frozenset[tuple[str, str, str]] = frozenset(
+    e.triple for e in EXCLUDED
+)
 EXCLUDED_GUIDS: frozenset[str] = frozenset(
-    {
-        "1c45dbd9-0dc3-4d07-b2d1-758fe78405fe",  # 2026-07-29
-        "d738c6b4-cb9e-497e-995f-c106c42d9b1d",  # 2026-07-31
-    }
+    e.guid for e in EXCLUDED if e.guid is not None
 )
 
 
@@ -844,9 +878,18 @@ def is_excluded(
 ) -> bool:
     """Whether this episode is deliberately kept out of the corpus.
 
-    Either arm matching is enough: the guid survives an episode_number
-    backfill, and the triple covers the 6 episodes that have aged off their
-    feed and can never be assigned a guid.
+    Either arm matching is enough. The triple is NOT durable: both excluded
+    episodes fall back to the literal "Unknown" precisely because Captivate
+    publishes no itunes_episode for them, and the moment it backfills one --
+    the spec's six-month threat model, and the reason episode_guid exists --
+    the triple changes and the triple arm silently stops matching. The guid
+    does not move with a metadata backfill.
+
+    The triple arm still earns its place: 6 episodes have aged off the front
+    of their feed and can never be assigned a guid at all.
+
+    CALLERS MUST PASS episode_guid WHERE THEY HAVE ONE. An arm that no live
+    path reaches is not protection, it is decoration.
     """
     if episode_guid is not None and episode_guid in EXCLUDED_GUIDS:
         return True
@@ -2383,7 +2426,7 @@ triple so pre-migration records are not stranded."
 - Consumes: `corpus.planning.decide_action`, `corpus.store.{episode_where, paged_get_ids, is_complete}`, `corpus.chunking.count_chunks_from_text`, `corpus.exclusions.is_excluded`
 - Produces:
   - `corpus.completeness.episode_state(collection, show, episode_number, date_str) -> tuple[list[str], int | None, str | None]` returning `(stored_ids, stored_n_chunks, stored_rules_version)`
-  - `corpus.completeness.plan_episode(collection, *, show, episode_number, date_str, transcript_text) -> Action`
+  - `corpus.completeness.plan_episode(collection, *, show, episode_number, date_str, transcript_text, episode_guid=None, expected_n_chunks=None) -> Action` — **`episode_guid` must be passed by the cron path**, or the exclusion guid arm is unreachable
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2490,6 +2533,38 @@ def test_excluded_episode_is_excluded(collection):
     )
 
 
+def test_exclusion_survives_a_backfilled_episode_number_via_the_guid(collection):
+    # THE enforcement test. Captivate backfilling itunes_episode changes the
+    # triple, so the triple arm stops matching -- and without the guid
+    # threaded through plan_episode the whole guid arm is unreachable from the
+    # cron path, present and documented and never firing.
+    assert (
+        plan_episode(
+            collection,
+            show="The Jacob Shapiro Podcast",
+            episode_number="352",  # backfilled; the triple no longer matches
+            date_str="2026-07-29",
+            transcript_text=TRANSCRIPT,
+            episode_guid="1c45dbd9-0dc3-4d07-b2d1-758fe78405fe",
+        )
+        is Action.EXCLUDE
+    )
+
+
+def test_a_normal_episode_with_a_guid_is_not_excluded(collection):
+    assert (
+        plan_episode(
+            collection,
+            show=SHOW,
+            episode_number=EP,
+            date_str=DATE,
+            transcript_text=TRANSCRIPT,
+            episode_guid="b4a9c88b-9dbf-46b7-9dc1-a7812a9bde65",
+        )
+        is not Action.EXCLUDE
+    )
+
+
 def test_a_431_chunk_episode_is_judged_complete_not_looping(collection):
     # Unpaged, the count would come back 300 against n_chunks=431 and this
     # episode would be re-embedded on every cron run forever.
@@ -2550,6 +2625,7 @@ def plan_episode(
     episode_number: str,
     date_str: str,
     transcript_text: str | None,
+    episode_guid: str | None = None,
     expected_n_chunks: int | None = None,
 ) -> Action:
     """What this episode needs.
@@ -2557,8 +2633,13 @@ def plan_episode(
     `expected_n_chunks` may be supplied by a caller that has already counted;
     otherwise it is derived from the transcript. It is NEVER taken from stored
     records, which would freeze a torn episode as permanently complete.
+
+    `episode_guid` MUST be passed by the cron path. Without it the exclusion
+    check falls back to the triple alone, and the guid arm -- which exists
+    precisely because the triple is not durable -- is unreachable from the
+    only path that runs nightly.
     """
-    excluded = is_excluded(show, episode_number, date_str)
+    excluded = is_excluded(show, episode_number, date_str, episode_guid)
     if transcript_text is None:
         return decide_action(
             transcript_exists=False,
@@ -2640,6 +2721,9 @@ In `transcribe`, replace the block that builds `pending` (currently `os.path.exi
             episode_number=episode["episode_number"],
             date_str=episode["date"],
             transcript_text=text,
+            # Load-bearing: without it the exclusion falls back to the triple
+            # alone and the guid arm never fires on the nightly path.
+            episode_guid=episode.get("guid"),
         )
         print(f"  {action.value:12s} Episode {episode['episode_number']} ({episode['date']})")
         if action in (Action.TRANSCRIBE, Action.EMBED_ONLY):
@@ -2928,6 +3012,26 @@ def test_an_excluded_episode_holding_records_is_reported():
     ) in report.excluded_with_records
 
 
+def test_a_returned_exclusion_under_a_backfilled_number_is_not_mere_extra():
+    # Same episode, backfilled episode_number, recorded guid. Without the guid
+    # arm this lands in `extra` and the alarm names the wrong problem.
+    records = [
+        (
+            "The_Jacob_Shapiro_Podcast-ep352-2026-07-29-0",
+            {
+                "show": "The Jacob Shapiro Podcast",
+                "episode_number": "352",
+                "date": "2026-07-29",
+                "episode_guid": "1c45dbd9-0dc3-4d07-b2d1-758fe78405fe",
+            },
+        )
+    ]
+    report = reconcile(VOL, records, FEED)
+    key = ("The Jacob Shapiro Podcast", "352", "2026-07-29")
+    assert key in report.excluded_with_records
+    assert key not in report.extra
+
+
 def test_an_excluded_episode_is_never_reported_as_missing():
     report = reconcile(VOL, [], FEED)
     assert (
@@ -2976,7 +3080,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from corpus.exclusions import EXCLUDED_EPISODES
+from corpus.exclusions import EXCLUDED_EPISODES, EXCLUDED_GUIDS
 
 Key = tuple[str, str, str]
 
@@ -3016,19 +3120,27 @@ def reconcile(
 
     by_key: dict[Key, list[str]] = defaultdict(list)
     prefixes: dict[str, set[Key]] = defaultdict(set)
+    guid_keys: set[Key] = set()
     for record_id, meta in chroma_records:
         key = (meta.get("show"), meta.get("episode_number"), meta.get("date"))
         by_key[key].append(record_id)
+        # An excluded episode that came back under a BACKFILLED episode_number
+        # no longer matches the triple. Without this it lands in `extra` and
+        # the alarm points at the wrong class entirely.
+        if meta.get("episode_guid") in EXCLUDED_GUIDS:
+            guid_keys.add(key)
         prefix, _, index = record_id.rpartition("-")
         if index.isdigit():
             prefixes[prefix].add(key)
 
+    excluded_present = {k for k in EXCLUDED_EPISODES if by_key.get(k)} | guid_keys
+
     expected = volume_keys - EXCLUDED_EPISODES
     report.missing = sorted(k for k in expected if k not in by_key)
-    report.extra = sorted(k for k in by_key if k not in volume_keys)
-    report.excluded_with_records = sorted(
-        k for k in EXCLUDED_EPISODES if by_key.get(k)
+    report.extra = sorted(
+        k for k in by_key if k not in volume_keys and k not in excluded_present
     )
+    report.excluded_with_records = sorted(excluded_present)
     report.feed_unreachable = sorted(volume_keys - feed_keys)
     report.shared_prefixes = sorted(p for p, keys in prefixes.items() if len(keys) > 1)
 
@@ -3270,23 +3382,27 @@ Expected: `MISSING (0)`, `EXTRA (0)`, `NON_CONTIGUOUS (0)`, `SHARED_PREFIXES (0)
 
 Only now, and only after confirming with the user — this removes production data, and it is safe only because `EXCLUDE` exists to stop the cron restoring it.
 
-First add both to `corpus/exclusions.py`. Their real values, read from the live feed — note they are **not** `"Unknown"`; Captivate publishes an `itunes_episode` for these two, which is exactly why the 2026 pair fall back to the literal and these do not:
+Add two records to `EXCLUDED` in `corpus/exclusions.py`. Their real values, read from the live feed — note they are **not** `"Unknown"`; Captivate publishes an `itunes_episode` for these two, which is exactly why the 2026 pair fall back to the literal and these do not:
 
 ```python
-        # "Riding on the Hog of a Fiscal Orgy" -- Geopolitical Cousins
-        ("The Jacob Shapiro Podcast", "271", "2025-04-04"),
-        # "Let Them Drink Bleach" -- Geopolitical Cousins
-        ("The Jacob Shapiro Podcast", "273", "2025-04-08"),
+        ExcludedEpisode(
+            "The Jacob Shapiro Podcast",
+            "271",
+            "2025-04-04",
+            "c4af95bf-cfbc-4c0a-b4d7-2c2df77d1fe6",
+            "cross-post of Geopolitical Cousins, "
+            "'Riding on the Hog of a Fiscal Orgy'",
+        ),
+        ExcludedEpisode(
+            "The Jacob Shapiro Podcast",
+            "273",
+            "2025-04-08",
+            "3a3c0a69-ea66-46b1-a54e-7ef1ea657505",
+            "cross-post of Geopolitical Cousins, 'Let Them Drink Bleach'",
+        ),
 ```
 
-and to `EXCLUDED_GUIDS`:
-
-```python
-        "c4af95bf-cfbc-4c0a-b4d7-2c2df77d1fe6",  # 2025-04-04, ep 271
-        "3a3c0a69-ea66-46b1-a54e-7ef1ea657505",  # 2025-04-08, ep 273
-```
-
-Update `tests/test_planning.py::test_exclusions_are_exactly_the_two_cross_posts` to expect four entries and rename it accordingly. Run the suite, deploy, then delete the records:
+`EXCLUDED_EPISODES` and `EXCLUDED_GUIDS` are derived, so nothing else needs editing. Update `tests/test_planning.py::test_exclusions_are_exactly_the_two_cross_posts` to expect four entries and rename it accordingly. Run the suite, deploy, then delete the records:
 
 ```python
 collection.delete(where=episode_where("The Jacob Shapiro Podcast", "271", "2025-04-04"))
