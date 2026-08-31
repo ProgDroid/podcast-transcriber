@@ -85,6 +85,30 @@ and replace coincide — and it stops being invisible the moment the speaker wor
 changes that key set. Full replacement removes the hazard rather than
 documenting it.
 
+### These semantics are version-bound, and `chromadb` is unpinned
+
+The measurements above were taken in a **freshly built** probe image, which
+resolved `chromadb 1.5.9`. Both production images `pip_install("chromadb")`
+without a version, so their layers are frozen at whatever resolved when first
+built — a fresh probe says nothing about a cached container.
+
+This is not hypothetical. Commit `4128ebe` records the same trap firing on the
+`mcp` package: `host=` was removed on the strength of introspecting the **dev
+machine's** install, which was a different version from the one in the image,
+and the endpoint went down with `421 invalid host header` on every
+authenticated call.
+
+**Checked rather than assumed.** Running the byte-identical image definition
+reused the cached layer without rebuilding, and it reports `chromadb == 1.5.9`
+with `Collection.delete` carrying a `where` parameter. The verified semantics
+therefore do describe the deployed container today.
+
+**Pin `chromadb` in both images as part of this work.** Everything in the table
+above is a property of 1.5.9, and an unpinned dependency means the next image
+rebuild can silently resolve a version where the batch caps, the `where`
+parameter, or the metadata-merge behaviour differ — with no deploy-time signal.
+Pin `mcp` at the same time, for the reason `4128ebe` already documents.
+
 ## Part 3 — Why this must precede the speaker work
 
 `build_chunks` cuts a chunk boundary at every speaker change. When `SPEAKER_00`
