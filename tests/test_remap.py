@@ -59,7 +59,9 @@ def test_an_already_migrated_id_is_left_alone():
         "date": "2026-07-29",
     }
     new = "Geopolitical_Cousins-ep73-2026-07-29-17"
-    assert remap_id(new, meta).new_id == new
+    result = remap_id(new, meta)
+    assert result.new_id == new
+    assert result.classification == "remapped"
 
 
 def test_missing_metadata_keys_pass_through():
