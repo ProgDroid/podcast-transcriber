@@ -1,10 +1,14 @@
 import pytest
 
 from corpus.store import (
+    MAX_REQUEST as STORE_MAX_REQUEST,
+)
+from corpus.store import (
     batched,
     episode_where,
     guid_where,
     is_complete,
+    paged_get,
     paged_get_ids,
     stale_ids,
 )
@@ -114,3 +118,90 @@ def test_delete_with_a_non_matching_filter_is_a_no_op(collection):
     _seed(collection, "gc73", 10)
     collection.delete(where=episode_where("Other Show", "1", "2020-01-01"))
     assert collection.count() == 10
+
+
+def test_upsert_on_existing_id_merges_metadata(collection):
+    # Verified on Cloud: an upsert on an existing id replaces the document
+    # but MERGES the metadata -- a key absent from the new write survives.
+    collection.upsert(ids=["a-0"], documents=["v1"], metadatas=[{"a": 1, "b": 2}])
+    collection.upsert(ids=["a-0"], documents=["v2"], metadatas=[{"a": 9}])
+    result = collection.get(ids=["a-0"], include=["documents", "metadatas"])
+    assert result["documents"] == ["v2"]
+    assert result["metadatas"][0]["a"] == 9
+    assert result["metadatas"][0]["b"] == 2
+
+
+def test_get_limit_above_cap_raises(collection):
+    with pytest.raises(ChromaQuotaError):
+        collection.get(limit=301)
+
+
+def test_get_limit_at_cap_does_not_raise(collection):
+    assert collection.get(limit=300)["ids"] == []
+
+
+def test_paged_get_returns_documents_and_metadatas_aligned_to_ids(collection):
+    n = 431
+    ids = [f"gc73-{i}" for i in range(n)]
+    documents = [f"doc-{i}" for i in range(n)]
+    metadatas = [
+        {
+            "show": TRIPLE[0],
+            "episode_number": TRIPLE[1],
+            "date": TRIPLE[2],
+            "n_chunks": n,
+            "index": i,
+        }
+        for i in range(n)
+    ]
+    for id_batch, doc_batch, meta_batch in zip(
+        batched(ids), batched(documents), batched(metadatas), strict=True
+    ):
+        collection.upsert(ids=id_batch, documents=doc_batch, metadatas=meta_batch)
+
+    result = paged_get(
+        collection, episode_where(*TRIPLE), include=["documents", "metadatas"]
+    )
+    assert len(result["ids"]) == n
+    assert len(result["documents"]) == n
+    assert len(result["metadatas"]) == n
+    for _id, doc, meta in zip(
+        result["ids"], result["documents"], result["metadatas"], strict=True
+    ):
+        index = int(_id.split("-")[-1])
+        assert doc == f"doc-{index}"
+        assert meta["index"] == index
+
+
+def test_unimplemented_operator_raises(collection):
+    # $ne, $in etc. are not modelled. Defaulting to True would silently
+    # misreport a filter the fake does not actually understand.
+    _seed(collection, "gc73", 5)
+    with pytest.raises(ValueError):
+        collection.get(where={"show": {"$ne": "Other Show"}})
+
+
+def test_get_with_empty_ids_list_returns_nothing(collection):
+    # ids=[] is falsy but not absent -- must not fall back to selecting
+    # everything, the way `ids or ...` would.
+    _seed(collection, "gc73", 5)
+    assert collection.get(ids=[])["ids"] == []
+
+
+def test_episode_where_does_not_match_a_different_date(collection):
+    # Same show and episode_number, different date -- the date clause is
+    # what stops this from colliding with another episode of the same show.
+    _seed(collection, "gc73", 5)
+    _seed(collection, "other", 3, date="2020-01-01")
+    ids = paged_get_ids(collection, episode_where(*TRIPLE))
+    assert len(ids) == 5
+    assert all(i.startswith("gc73-") for i in ids)
+
+
+def test_batched_rejects_a_size_above_the_request_cap():
+    with pytest.raises(ValueError):
+        list(batched([1, 2, 3], size=STORE_MAX_REQUEST + 1))
+
+
+def test_batched_accepts_a_size_at_the_request_cap():
+    assert list(batched([1, 2], size=STORE_MAX_REQUEST)) == [[1, 2]]

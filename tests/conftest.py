@@ -43,7 +43,15 @@ class FakeCollection:
             return all(self._matches(meta, c) for c in where["$and"])
         for key, cond in where.items():
             if isinstance(cond, dict):
-                if "$eq" in cond and meta.get(key) != cond["$eq"]:
+                if "$eq" not in cond:
+                    # Only $and/$eq and bare equality are modelled. Defaulting
+                    # an unknown operator to True would silently misreport a
+                    # filter this fake does not actually understand.
+                    unknown = next(iter(cond))
+                    raise ValueError(
+                        f"FakeCollection does not implement operator {unknown!r}"
+                    )
+                if meta.get(key) != cond["$eq"]:
                     return False
             elif meta.get(key) != cond:
                 return False
@@ -82,7 +90,8 @@ class FakeCollection:
                 f"Quota exceeded: 'Limit value' exceeded quota limit for action "
                 f"'Get': current usage of {limit} exceeds limit of {MAX_REQUEST}."
             )
-        selected = [i for i in (ids or self._select(where)) if i in self._docs]
+        chosen = ids if ids is not None else self._select(where)
+        selected = [i for i in chosen if i in self._docs]
         if ids is not None and where is not None:
             selected = [i for i in selected if self._matches(self._meta[i], where)]
         # An absent limit SILENTLY truncates at 300 on Cloud.

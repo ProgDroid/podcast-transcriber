@@ -22,6 +22,8 @@ BATCH = 250
 
 def batched(items: list, size: int = BATCH) -> Iterator[list]:
     """Split a list into request-sized batches."""
+    if size > MAX_REQUEST:
+        raise ValueError(f"batch size {size} exceeds the request cap of {MAX_REQUEST}")
     for start in range(0, len(items), size):
         yield items[start : start + size]
 
