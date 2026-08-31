@@ -206,13 +206,29 @@ checked at all.
 ### 4. `decide_action` — four states, exclusion first-class
 
 ```
-decide_action(transcript_exists, complete_in_chroma, excluded, parses_to_chunks)
-    excluded                     -> EXCLUDE      (terminal)
-    not parses_to_chunks         -> UNPARSEABLE  (terminal, reported)
-    not transcript_exists        -> TRANSCRIBE
-    transcript and not complete  -> EMBED_ONLY
-    otherwise                    -> SKIP
+decide_action(transcript_exists, complete_in_chroma,
+              stored_rules_version, excluded, parses_to_chunks)
+    excluded                             -> EXCLUDE      (terminal)
+    not parses_to_chunks                 -> UNPARSEABLE  (terminal, reported)
+    not transcript_exists                -> TRANSCRIBE
+    not complete_in_chroma               -> EMBED_ONLY
+    stored_rules_version != CURRENT      -> EMBED_ONLY
+    otherwise                            -> SKIP
 ```
+
+`rules_version` is a metadata field naming the version of whatever derives a
+chunk's content beyond the raw transcript — today the speaker labels. Without
+it, **Spec B's archive pass is unreachable**: after migration every episode
+satisfies `stored count == n_chunks`, so `decide_action` returns `SKIP` for all
+of them and a re-embed that changes only names is a silent no-op. Completeness
+answers "does this episode have all its chunks", not "were those chunks built by
+the current rules", and those are different questions.
+
+A rules-version bump therefore re-embeds the archive **through this state
+machine**, which is also what keeps `EXCLUDE` honest: an archive pass that
+iterated the volume directly would re-create precisely the records Part 5
+deletes. The pass covers **436** episodes, not 438 — the two excluded
+cross-posts are subtracted.
 
 `EXCLUDE` exists because the cross-post decision in Part 5 is otherwise
 unexpressible: both excluded episodes have transcripts on the volume, so a
@@ -283,13 +299,39 @@ needs on every record.
    stopped across copy *and* validate.
 2. Create `podcast_transcripts_v2` from the source's serialized schema
    (`create_dest_collection` — pass **schema only**).
-3. Page the source at 250; compute new IDs; add `n_chunks` and `episode_guid`;
-   upsert into v2 **in batches of 250**.
+3. Page the source at 250; compute new IDs; add `n_chunks`, `episode_guid` and
+   `rules_version`; upsert into v2 **in batches of 250**.
 4. Validate v2 against v1 through the ID map: counts, then per-record documents,
    metadata, uris, embeddings (`allclose`, `atol=1e-4`).
-5. Cut over via the collection-name constant; redeploy; confirm search.
+5. **Deploy the new write path and the collection constant atomically**, then
+   confirm search.
 6. Delete v1 only after explicit confirmation. Unlike the July EU→US migration,
    a rollback path exists until then.
+
+**Two blocking gaps in the existing tooling, both shallow.**
+`create_dest_collection` takes the destination name from `src_col.name` and
+reuses any collection already carrying it — so within a single database it finds
+the source and returns **the source collection itself**, and `copy_collection`
+would then upsert v1 into v1 and report success. It needs a `dest_name`
+parameter. And `validate_collection` looks up destination records by *source*
+id (`dst_col.get(ids=ids)`), so under a re-ID all 28,489 report
+`missing id in dst`; it needs the ID map and a metadata comparison of "equal on
+every old key, plus exactly the declared new keys".
+
+**Step 5 is atomic for a reason.** `transcribe` builds `pending` from
+`os.path.exists(out_path)`, and all seven broken episodes *have* transcripts —
+so on the deployed code `pending` is empty and the function returns
+"All episodes already transcribed" before reaching any embed path. Self-healing
+does not exist until `decide_action` ships. If the cutover redeploy carried the
+old write path, the first post-unfreeze cron would write old-scheme IDs, no
+`n_chunks`, no `episode_guid`, unbatched, straight into the collection just
+validated.
+
+**`n_chunks` is derived by re-parsing the transcript on the volume, never by
+counting records in v1.** Counting v1 would stamp a torn episode's truncated
+count as its expected count, freezing it as permanently complete so the
+self-heal never fires for it — the completeness check would then certify exactly
+the damage it exists to detect.
 
 **Records not matching the podcast ID pattern are copied verbatim.**
 `upload_book.py` writes `Geopolitical_Alpha-p{n}` for the *Geopolitical Alpha*

@@ -125,12 +125,32 @@ transcripts supply labels and timestamps; only the names change. This is the
 backfill the original design deferred, and it is affordable precisely because
 text rules need no audio.
 
-**It must be volume-driven, not feed-driven.** Six early Jacob Shapiro episodes
-have aged off the front of their feed and are invisible to the feed-iterating
-planner (Spec A §4.6). A feed-driven re-embed would silently leave those six
-carrying `SPEAKER_XX` while every other episode gained names — and the
-reconciliation would report the corpus complete, because they are complete,
-just not renamed.
+**It must enumerate from the volume but decide through `decide_action`.** Six
+early Jacob Shapiro episodes have aged off the front of their feed and are
+invisible to a feed-iterating planner (Spec A §4.6), so a feed-driven re-embed
+would leave exactly those six carrying `SPEAKER_XX` while everything else gained
+names — and reconciliation would report the corpus healthy, because they *are*
+complete, just not renamed. But a pass that iterated the volume and skipped the
+state machine would re-create the two excluded cross-posts. Enumerate the
+volume, route every candidate through `decide_action`, and the count is
+**436**, not 438.
+
+The trigger is a **`rules_version` bump** (Spec A §4.4). Completeness alone
+returns `SKIP` for every episode after migration, so without it this pass is a
+silent no-op.
+
+### The speech-time module is a deliverable, not analysis
+
+Chunk metadata carries `start_time` and no end time or duration, so
+speech-seconds cannot be computed from Chroma at all — they come from the
+transcripts, as the delta between consecutive segment timestamps. That is the
+same accounting the R2 floor calibration needs and the same the B2 trigger
+needs, so it ships as a committed, tested module rather than as ad-hoc analysis.
+
+Two conventions it must state rather than leave implicit: the duration of each
+episode's **final segment** is unknowable from the transcript and is assigned a
+declared constant; and "corpus speech" means the **436 embedded episodes**, not
+all 438.
 
 ## 3. Phase B2 — the voice model, gated
 
@@ -163,7 +183,15 @@ Build B2 only when **both** hold:
    roster-generalised R1 and R2-extended-to-all-shows.
 2. A hand-labelled sample of the residual demonstrates that voice can recover
    it — i.e. the residual is unnamed because nobody self-identifies, not because
-   diarisation is poor there.
+   diarisation is poor there. **30 clusters drawn at random from the residual,
+   labelled by the project owner**, each marked as *recoverable* (a real single
+   speaker who simply never says a name) or *not* (over-split, merged with a
+   guest, or too short). Condition 2 holds only if a majority are recoverable.
+
+Condition 2 is a judgement gate, not a measurement, and is stated that way. Its
+purpose is to catch the case where the residual is dominated by bad diarisation
+— because a voice model inherits the same broken clusters and recovers nothing
+from them.
 
 Condition 2 matters because if the residual is dominated by bad diarisation, a
 voice model inherits the same broken clusters and recovers nothing.
