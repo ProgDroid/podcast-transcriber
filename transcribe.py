@@ -1,0 +1,516 @@
+import modal
+import os
+import re
+
+image = (
+    modal.Image.from_registry(
+        "nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04", add_python="3.12"
+    )
+    .apt_install("git")
+    .pip_install(
+        "torch", "torchaudio", extra_index_url="https://download.pytorch.org/whl/cu128"
+    )
+    .apt_install("ffmpeg")
+    .pip_install(
+        "whisperx",
+        "feedparser",
+        "requests",
+        "sentence-transformers",
+        "chromadb",
+    )
+)
+
+app = modal.App("podcast-transcriber", image=image)
+
+volume = modal.Volume.from_name("podcast-transcripts", create_if_missing=True)
+model_cache = modal.Volume.from_name("whisperx-model-cache", create_if_missing=True)
+
+VOLUME_PATH = "/transcripts"
+MODEL_PATH = "/models"
+
+# Max words per chunk — BGE large handles 512 tokens, ~400 words is a safe proxy
+MAX_CHUNK_WORDS = 400
+CHUNK_OVERLAP_WORDS = 50
+
+
+def parse_all_episodes(feed_url: str):
+    import feedparser
+    import email.utils
+
+    feed = feedparser.parse(feed_url)
+    episodes = []
+
+    for entry in feed.entries:
+        title = entry.get("title", "Unknown Title")
+
+        episode_number = entry.get("itunes_episode", None)
+        if episode_number is None:
+            match = re.search(r"\b[Ee]p\.?\s*(\d+)", title)
+            episode_number = match.group(1) if match else "Unknown"
+
+        published = entry.get("published", None)
+        if published:
+            try:
+                dt = email.utils.parsedate_to_datetime(published)
+                date_str = dt.strftime("%Y-%m-%d")
+            except Exception:
+                date_str = "Unknown Date"
+        else:
+            date_str = "Unknown Date"
+
+        audio_url = None
+        for link in entry.get("links", []):
+            if link.get("rel") == "enclosure":
+                audio_url = link["href"]
+                break
+        if not audio_url and entry.get("enclosures"):
+            audio_url = entry["enclosures"][0]["href"]
+
+        if audio_url:
+            episodes.append(
+                {
+                    "title": title,
+                    "episode_number": str(episode_number),
+                    "audio_url": audio_url,
+                    "date": date_str,
+                }
+            )
+
+    return episodes
+
+
+def build_chunks(
+    segments: list,
+    show_name: str,
+    episode_number: str,
+    episode_title: str,
+    date_str: str,
+):
+    """
+    Group consecutive segments from the same speaker into chunks,
+    splitting at MAX_CHUNK_WORDS. Overlaps the last CHUNK_OVERLAP_WORDS
+    words into the next chunk for context continuity.
+    """
+    chunks = []
+    current_speaker = None
+    current_words = []
+    current_start = 0.0
+
+    def flush_chunk(speaker, words, start):
+        if not words:
+            return
+        text = " ".join(words)
+        chunks.append(
+            {
+                "text": f"[{speaker}] {text}",
+                "metadata": {
+                    "show": show_name,
+                    "episode_number": episode_number,
+                    "episode_title": episode_title,
+                    "date": date_str,
+                    "speaker": speaker,
+                    "start_time": start,
+                    "date_ts": int(date_str.replace("-", ""))
+                    if date_str != "Unknown Date"
+                    else 0,
+                },
+            }
+        )
+
+    for segment in segments:
+        speaker = segment.get("speaker", "UNKNOWN")
+        text = segment.get("text", "").strip()
+        start = segment.get("start", 0.0)
+        words = text.split()
+
+        if speaker != current_speaker and current_words:
+            flush_chunk(current_speaker, current_words, current_start)
+            current_words = current_words[-CHUNK_OVERLAP_WORDS:]
+            current_start = start
+
+        if not current_words:
+            current_start = start
+
+        current_speaker = speaker
+        current_words.extend(words)
+
+        while len(current_words) >= MAX_CHUNK_WORDS:
+            flush_chunk(current_speaker, current_words[:MAX_CHUNK_WORDS], current_start)
+            current_words = current_words[-CHUNK_OVERLAP_WORDS:]
+            current_start = start
+
+    flush_chunk(current_speaker, current_words, current_start)
+    return chunks
+
+
+def build_chunks_from_text(
+    text: str, show_name: str, episode_number: str, episode_title: str, date_str: str
+):
+    """
+    Parse a saved transcript text file into chunks.
+    Handles the [SPEAKER_XX] timestamp format written by the transcribe function.
+    """
+    segments = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        # Format: [SPEAKER_00] 12.3s - Some text here
+        m = re.match(r"\[([^\]]+)\]\s+([\d.]+)s\s+-\s+(.*)", line)
+        if m:
+            segments.append(
+                {
+                    "speaker": m.group(1),
+                    "start": float(m.group(2)),
+                    "text": m.group(3),
+                }
+            )
+    return build_chunks(segments, show_name, episode_number, episode_title, date_str)
+
+
+def embed_and_store(chunks: list, embedding_model, chroma_collection):
+    """Embed chunks and upsert into ChromaDB. Idempotent — safe to re-run."""
+    texts = [c["text"] for c in chunks]
+    metadatas = [c["metadata"] for c in chunks]
+
+    print(f"  Embedding {len(texts)} chunks...")
+    embeddings = embedding_model.encode(
+        texts,
+        batch_size=32,
+        show_progress_bar=False,
+        normalize_embeddings=True,
+    ).tolist()
+
+    ids = [
+        f"{m['show']}-ep{m['episode_number']}-{i}".replace(" ", "_")
+        for i, m in enumerate(metadatas)
+    ]
+
+    chroma_collection.upsert(
+        ids=ids,
+        embeddings=embeddings,
+        documents=texts,
+        metadatas=metadatas,
+    )
+    print(f"  Stored {len(ids)} chunks in ChromaDB.")
+
+
+def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
+    import chromadb
+
+    client = chromadb.CloudClient(
+        api_key=chroma_api_key,
+        tenant=chroma_tenant,
+        database=chroma_database,
+    )
+    return client.get_or_create_collection(
+        name="podcast_transcripts",
+        metadata={"hnsw:space": "cosine"},
+    )
+
+
+@app.function(
+    gpu="T4",
+    timeout=7200,
+    volumes={
+        VOLUME_PATH: volume,
+        MODEL_PATH: model_cache,
+    },
+    secrets=[modal.Secret.from_name("podcast-secrets")],
+)
+def transcribe(feed_url: str, show_name: str):
+    import whisperx
+    import requests
+    import gc
+    from whisperx.diarize import DiarizationPipeline
+    from sentence_transformers import SentenceTransformer
+
+    hf_token = os.environ["HF_TOKEN"]
+    device = "cuda"
+    compute_type = "float16"
+
+    collection = get_chroma_collection(
+        os.environ["CHROMA_API_KEY"],
+        os.environ["CHROMA_TENANT"],
+        os.environ["CHROMA_DATABASE"],
+    )
+
+    print("Loading BGE embedding model...")
+    embedding_model = SentenceTransformer(
+        "BAAI/bge-large-en-v1.5",
+        device=device,
+        cache_folder=MODEL_PATH,
+    )
+
+    episodes = parse_all_episodes(feed_url)
+    print(f"Found {len(episodes)} episodes in feed.")
+
+    pending = []
+    for episode in episodes:
+        out_path = f"{VOLUME_PATH}/{show_name} - Episode {episode['episode_number']} - {episode['date']}.txt"
+        if os.path.exists(out_path):
+            print(
+                f"Skipping Episode {episode['episode_number']} — already transcribed."
+            )
+        else:
+            pending.append(episode)
+
+    if not pending:
+        print("All episodes already transcribed.")
+        return
+
+    print(f"{len(pending)} episodes to transcribe.")
+    print("Loading whisperx model...")
+    model = whisperx.load_model(
+        "large-v2",
+        device,
+        compute_type=compute_type,
+        download_root=MODEL_PATH,
+    )
+
+    for episode in pending:
+        episode_number = episode["episode_number"]
+        audio_url = episode["audio_url"]
+        episode_title = episode["title"]
+        date_str = episode["date"]
+        out_path = (
+            f"{VOLUME_PATH}/{show_name} - Episode {episode_number} - {date_str}.txt"
+        )
+
+        print(
+            f"\nProcessing: {show_name} - Episode {episode_number} - {episode_title} ({date_str})"
+        )
+
+        try:
+            print("Downloading audio...")
+            audio_path = f"/tmp/episode_{episode_number}.mp3"
+            response = requests.get(audio_url, stream=True)
+            total = int(response.headers.get("content-length", 0))
+            downloaded = 0
+            with open(audio_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=65536):
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if total:
+                        print(f"  Download progress: {downloaded / total * 100:.1f}%")
+            print("Download complete.")
+
+            print("Transcribing...")
+            audio = whisperx.load_audio(audio_path)
+            result = model.transcribe(audio, batch_size=16)
+            print(f"Transcription complete. Detected language: {result['language']}")
+
+            print("Aligning...")
+            model_a, metadata = whisperx.load_align_model(
+                language_code=result["language"],
+                device=device,
+                model_dir=MODEL_PATH,
+            )
+            result = whisperx.align(
+                result["segments"],
+                model_a,
+                metadata,
+                audio,
+                device,
+                return_char_alignments=False,
+            )
+            print("Alignment complete.")
+            del model_a
+            gc.collect()
+
+            print("Diarising...")
+            diarize_model = DiarizationPipeline(token=hf_token, device=device)
+            diarize_segments = diarize_model(audio)
+            result = whisperx.assign_word_speakers(diarize_segments, result)
+            print("Diarisation complete.")
+
+            lines = [
+                f"# {show_name} - Episode {episode_number}",
+                f"# {episode_title}",
+                f"# Published: {date_str}",
+                "",
+            ]
+            for segment in result["segments"]:
+                speaker = segment.get("speaker", "UNKNOWN")
+                text = segment["text"].strip()
+                start = segment["start"]
+                lines.append(f"[{speaker}] {start:.1f}s - {text}")
+
+            with open(out_path, "w") as f:
+                f.write("\n".join(lines))
+            volume.commit()
+            print(f"Transcript saved: {out_path}")
+
+            print("Chunking and embedding...")
+            chunks = build_chunks(
+                result["segments"],
+                show_name,
+                episode_number,
+                episode_title,
+                date_str,
+            )
+            embed_and_store(chunks, embedding_model, collection)
+
+            os.remove(audio_path)
+
+        except Exception as e:
+            print(f"Failed Episode {episode_number}: {e}")
+            continue
+
+    del model
+    gc.collect()
+    print("\nAll done.")
+
+
+@app.function(
+    gpu="T4",
+    timeout=7200,
+    volumes={
+        VOLUME_PATH: volume,
+        MODEL_PATH: model_cache,
+    },
+    secrets=[modal.Secret.from_name("podcast-secrets")],
+)
+def bulk_embed(show_name: str):
+    """
+    Embed and upload all already-transcribed episodes for a given show
+    that are not yet in ChromaDB. Safe to re-run — upserts are idempotent.
+    """
+    from sentence_transformers import SentenceTransformer
+
+    device = "cuda"
+
+    collection = get_chroma_collection(
+        os.environ["CHROMA_API_KEY"],
+        os.environ["CHROMA_TENANT"],
+        os.environ["CHROMA_DATABASE"],
+    )
+
+    print("Loading BGE embedding model...")
+    embedding_model = SentenceTransformer(
+        "BAAI/bge-large-en-v1.5",
+        device=device,
+        cache_folder=MODEL_PATH,
+    )
+
+    # Find all transcript files for this show in the volume
+    all_files = [
+        e.path
+        for e in volume.listdir("/")
+        if e.path.startswith(show_name) and e.path.endswith(".txt")
+    ]
+
+    if not all_files:
+        print(f"No transcripts found for '{show_name}'.")
+        return
+
+    print(f"Found {len(all_files)} transcripts for '{show_name}'.")
+
+    for filename in sorted(all_files):
+        # Parse show name, episode number and date from filename
+        # Format: {Show Name} - Episode {N} - {YYYY-MM-DD}.txt
+        m = re.match(r"^(.+) - Episode (\w+) - (\d{4}-\d{2}-\d{2})\.txt$", filename)
+        if not m:
+            print(f"Skipping unrecognised filename format: {filename}")
+            continue
+
+        parsed_show = m.group(1)
+        episode_number = m.group(2)
+        date_str = m.group(3)
+
+        # Check if already in ChromaDB by looking for any chunk with this episode ID prefix
+        existing = collection.get(
+            where={
+                "$and": [
+                    {"show": {"$eq": parsed_show}},
+                    {"episode_number": {"$eq": episode_number}},
+                ]
+            },
+            limit=1,
+        )
+        if existing["ids"]:
+            print(f"Skipping Episode {episode_number} — already in ChromaDB.")
+            continue
+
+        print(f"\nEmbedding: {filename}")
+
+        try:
+            file_path = f"{VOLUME_PATH}/{filename}"
+            with open(file_path, "r") as f:
+                text = f.read()
+
+            # Extract episode title from header comment
+            episode_title = "Unknown Title"
+            for line in text.splitlines():
+                if (
+                    line.startswith("# ")
+                    and "Episode" not in line
+                    and "Published" not in line
+                ):
+                    episode_title = line.lstrip("# ").strip()
+                    break
+
+            chunks = build_chunks_from_text(
+                text,
+                parsed_show,
+                episode_number,
+                episode_title,
+                date_str,
+            )
+
+            if not chunks:
+                print(f"  No chunks parsed — skipping.")
+                continue
+
+            embed_and_store(chunks, embedding_model, collection)
+
+        except Exception as e:
+            print(f"Failed {filename}: {e}")
+            continue
+
+    print("\nBulk embed complete.")
+
+
+@app.function(
+    schedule=modal.Cron("0 9 * * *"),
+    timeout=7200,
+)
+def scheduled_job():
+    transcribe.remote(
+        feed_url="https://feeds.captivate.fm/geopolitical-cousins/",
+        show_name="Geopolitical Cousins",
+    )
+    transcribe.remote(
+        feed_url="https://feeds.captivate.fm/jacob-shapiro/",
+        show_name="The Jacob Shapiro Podcast",
+    )
+    transcribe.remote(
+        feed_url="https://api.substack.com/feed/podcast/868206/s/386602.rss",
+        show_name="The Observing Japan Podcast",
+    )
+
+
+@app.local_entrypoint()
+def main(
+    feed_url: str = "https://feeds.captivate.fm/geopolitical-cousins/",
+    show_name: str = "Geopolitical Cousins",
+):
+    call = transcribe.spawn(feed_url=feed_url, show_name=show_name)
+    print(f"Job started. Track it at https://modal.com/apps")
+    print(f"Call ID: {call.object_id}")
+
+
+@app.local_entrypoint()
+def bulk_upload(show_name: str = "Geopolitical Cousins"):
+    """
+    Embed and upload all already-transcribed episodes for a show.
+    Run once per show to backfill ChromaDB.
+
+    Usage:
+        modal run transcribe.py::bulk_upload --show-name "Geopolitical Cousins"
+        modal run transcribe.py::bulk_upload --show-name "The Jacob Shapiro Podcast"
+    """
+    call = bulk_embed.spawn(show_name=show_name)
+    print(f"Bulk upload started for '{show_name}'.")
+    print(f"Track it at https://modal.com/apps")
+    print(f"Call ID: {call.object_id}")
