@@ -21,11 +21,32 @@ dev = [
 target-version = "py312"
 line-length = 88
 src = ["corpus", "tests"]
-# Scoped to what this task owns. The repo root and migration/ predate this
-# work (pre-existing lint violations, and `ruff format` will also rewrite
-# fenced Python code blocks inside unrelated .md docs if pointed at the
-# whole tree) -- fixing either is scope creep for Task 1.
-include = ["corpus/**/*.py", "tests/**/*.py"]
+# Legacy files predating this work: 23 pre-existing lint violations that are
+# not this project's to fix. Everything else -- corpus/, tests/, and the new
+# migration/ modules later tasks add -- is linted. Excluding by name rather
+# than including by glob means new files are covered by default; a glob would
+# silently leave them unlinted.
+#
+# docs/ is separately excluded: `ruff format` (0.16.5) rewrites fenced
+# ```python blocks inside .md files in place, and does so destructively when
+# a fragment isn't valid standalone syntax (observed: stray wrapping parens
+# inserted around a tuple literal, and indentation flattened inside a
+# fenced block that continued from surrounding prose). Reproduced twice --
+# `uv run ruff format .` and `uv run ruff format --check <file>` both alter
+# docs/superpowers/plans/2026-08-31-corpus-integrity.md every run. That file
+# is the source of truth for the rest of this plan, so it and the rest of
+# docs/ (none of it is source this project's lint config is meant to reach)
+# are excluded outright rather than fixed file-by-file.
+extend-exclude = [
+    "transcribe.py",
+    "mcp_server.py",
+    "upload_book.py",
+    "migration/chroma_migrate.py",
+    "migration/migrate.py",
+    "migration/validate.py",
+    "migration/selftest.py",
+    "docs/",
+]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "C4", "UP"]
