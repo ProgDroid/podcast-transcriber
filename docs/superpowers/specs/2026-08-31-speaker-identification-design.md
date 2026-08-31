@@ -1,265 +1,270 @@
-# Design: speaker identification — a text baseline, then a voice model measured against it
+# Design: speaker identification — a text baseline, and a voice model behind a gate
 
-**Status: approved after adversarial review, not yet implemented. Written 2026-08-31.**
+**Status: approved after two rounds of adversarial review, not yet implemented.
+Written 2026-08-31.**
 
 Implements [`docs/speaker-identification.md`](../../speaker-identification.md).
-Ships **after** [corpus integrity](2026-08-31-corpus-integrity-design.md), which
-is a hard dependency and not merely an ordering preference — see §0.
+Ships after [corpus integrity](2026-08-31-corpus-integrity-design.md), a hard
+dependency — §0.
 
-Restructured from the original single-phase voice-model design after a review
-measured a text-only baseline at 43% of speech time and ~0.98 precision, for
-zero GPU cost, across the whole existing archive.
+The original design was a voice model with a deferred backfill. Two review
+rounds measured the cheap alternative and inverted it: **phase B1 (text) ships;
+phase B2 (voice) is specified but gated behind a measured trigger** it does not
+currently clear.
 
 ## 0. Why corpus integrity is a hard dependency
 
-`build_chunks` cuts a chunk boundary at every speaker change. The moment
-`SPEAKER_00` and `SPEAKER_01` both resolve to `"Jacob Shapiro"`, that boundary
-disappears, adjacent chunks merge, and the episode's chunk count **drops**.
-`upsert` can only overwrite indices `0..n-1`, so every index above the new count
-survives, still carrying `[SPEAKER_01]` in its document text and duplicating
-passages that now live inside the merged chunk.
-
-This feature corrupts the corpus on today's write path. Full-replacement writes
-(`delete(where=<triple>)` before upsert) must land first. Spec A also makes it
-safe for this work to add a metadata key, since Chroma's upsert *merges*
-metadata rather than replacing it.
+`build_chunks` cuts a chunk boundary at every speaker change. When `SPEAKER_00`
+and `SPEAKER_01` both resolve to `"Jacob Shapiro"`, the boundary disappears,
+adjacent chunks merge, and the episode's chunk count drops. `upsert` overwrites
+only `0..n-1`, stranding every higher index with `[SPEAKER_01]` still in its
+document text, duplicating passages that now live in the merged chunk. Spec A's
+upsert-then-prune writes make this safe by construction, and its full
+replacement makes it safe for this spec to add a metadata key.
 
 ## 1. Measured evidence
 
-All figures from the 400-transcript local mirror (59 Geopolitical Cousins, 341
-Jacob Shapiro, **0 Observing Japan**) unless stated. 42 clusters were audited by
-hand, each judged independently of the rule that named it, with unresolvable
-cases counted as errors.
+From the 438-file volume unless noted. 42 clusters were audited by hand, each
+judged independently of the rule that named it, unresolvable cases counted as
+errors.
 
-| Rule | Audited | Correct | Wilson 95% | Clusters | % clusters | Speech | Episodes |
-|---|---|---|---|---|---|---|---|
-| R1 first-person self-ID | 12 | 12 | [0.76, 1.00] | 265 | 28% | 100h (25%) | 265/400 |
-| R2 vocative (GC only) | 15 | 15 | [0.80, 1.00] | 125 | 13% | 75h (19%) | 58/59 GC |
-| Combined | 42 | 41 | **[0.877, 0.996]** | 382 | 40% | 171h (43%) | 314/400 |
+**Precision** (audited on the 400-file mirror):
 
-Three findings that shape the design:
+| Rule | Audited | Correct | Wilson 95% |
+|---|---|---|---|
+| R1 first-person self-ID | 12 | 12 | [0.76, 1.00] |
+| R2 vocative (GC only) | 15 | 15 | [0.80, 1.00] |
+| Combined | 42 | 41 | [0.877, 0.996] |
 
-**The dominant-cluster heuristic is dead.** The cluster that self-identifies as
-Jacob is the *second*-largest in 191 of 283 Jacob Shapiro episodes and the
-largest in only 86 — on an interview show the guest out-talks the host. Naming
-by dominance would misattribute the host in roughly two-thirds of that show.
+**Coverage of name-agnostic first-person self-ID, per show** (whole volume,
+first 600s of each episode):
 
-**The one false positive defines the rule.** Geopolitical Cousins episode 6,
-`SPEAKER_01` says *"reach out to us at jacob at jacobshapiro.com"* and also
-*"**Jacob and Marco** had a fantastic conversation today"* — third person about
-both hosts. It is the produced intro voice. **Reading out someone's email
-address is not claiming to be them**, so R1 requires *first person*, and the
-class is eliminated by construction rather than by a blocklist. The refinement
-also *raises* coverage — 265 clusters against 82 — because self-introduction is
-far more common than an email read-out.
+| Show | Episodes with a hit | Top capture |
+|---|---|---|
+| The Jacob Shapiro Podcast | 295/355 (83%) | `Jacob Shapiro` ×231 |
+| The Observing Japan Podcast | 6/7 (86%) | `Tobias Harris` ×5 |
+| Geopolitical Cousins | 21/76 (28%) | noisy — see below |
 
-**The text rules cannot serve Observing Japan.** Both hardcode "Jacob" and
-"Marco" and name zero clusters there. The show with the least stable host set is
-exactly the one the cheap approach cannot reach, which is the whole argument for
-phase 2.
+Four findings shape the design:
 
-## 2. Scope
+**The dominant cluster is not the host.** The cluster that self-identifies as
+Jacob is the *second*-largest in 191 of 283 Jacob Shapiro episodes and largest
+in only 86 — guests out-talk hosts on an interview show. Naming by dominance
+would misattribute the host across two-thirds of that show.
 
-**Phase B1 — text baseline.** Two independent rules, names written across the
-entire existing archive. No GPU beyond the re-embed, no audio download, no
-enrolment, no biometric data.
+**Reading out an address is not claiming to be someone.** Geopolitical Cousins
+episode 6, `SPEAKER_01`: *"reach out to us at jacob at jacobshapiro.com"* and
+also *"**Jacob and Marco** had a fantastic conversation today"* — third person
+about both hosts. It is the produced intro voice. R1 requires a **first-person
+frame**, which eliminates the class by construction and *raises* coverage, since
+self-introduction is far more common than an email read-out.
 
-**Phase B2 — voice model.** ECAPA voiceprints, with enrolment centroids derived
-automatically from B1's high-precision output. Extends coverage to Observing
-Japan, to guests-turned-regulars, and to any future feed. Reported as a
-**delta over B1**, never as a standalone number.
+**The name must be a validated capture, not a literal.** Geopolitical Cousins'
+28% hit rate is noisy: captures include `Rusillo`, `Orthodox`, `Los Angeles`,
+`Slavic Saudi Arabia`, `Shaggy Marco`. "I'm Orthodox" is first-person and not a
+self-identification. Validating the capture against a per-show roster rejects
+all of those; fuzzy matching also rescues `Jacob Shapira`, a transcription error
+rather than a different person.
 
-**Out of both:** guest identification, cross-show identity resolution,
-auto-enrolment of recurring unknowns.
+**The rules are complementary by show, not redundant.** R1 carries Jacob Shapiro
+(83%) and Observing Japan (5/7 name Tobias Harris outright — a single-host show,
+close to ideal for it). R2 carries Geopolitical Cousins (58/59). Between them
+all three shows are covered with no voice model.
 
-## 3. Phase B1 — the text baseline
+## 2. Phase B1 — the text baseline
 
-### Two matchers, kept separate
+### R1 — roster-validated first-person self-identification
 
-They ship and report separately. Their coverage is disjoint, their failure modes
-are unrelated, and a blended precision number would hide that R2 contributes
-nothing outside one of three shows.
+A name-agnostic capture inside a first-person frame (`I'm <name>`,
+`I'm your host, <name>`, `my name is <name>`, `email/write/reach **me** at …`),
+with the capture validated against a per-show roster by fuzzy match. Extending
+to a new feed is one roster line.
 
-**R1 — first-person self-identification.** Per-show patterns requiring a
-first-person frame: `I'm <name>`, `I'm your host`, `email/write/reach **me** at
-<address>`. Generalises to a new feed with one line of configuration.
+### R2 — vocative inference
 
-**R2 — vocative inference.** For a show with a known two-person roster: the
-cluster that addresses the *other* host by name, and is not itself named, is the
-first host. Structurally limited to shows where the full roster is known.
+For a show with a known roster: the cluster that addresses another roster member
+by name, and is not itself named, is the remaining member. Extending R2 to the
+Jacob Shapiro show reclaims 27 of its 86 residual episodes (8h, 1.9% of corpus
+speech) for zero GPU.
 
-**R2 guard.** R2 applies only when exactly two clusters exceed a speech-time
-floor. With a third substantial speaker present, a guest saying "Marco" would be
-named Jacob. The audited GC episodes decompose as two hosts plus a sub-150s
-fragment plus a one-second `UNKNOWN` artefact — but Geopolitical Cousins 73
-(Peter Zeihan and Matt Gertken, genuinely four speakers) is **absent from the
-audited mirror**, so this case is untested and the guard is not optional.
+**The guard is a calibrated parameter, not a hand-wave.** R2 applies only when
+exactly two clusters exceed a speech-time floor — and that floor decides its own
+coverage: 30/59 Geopolitical Cousins episodes qualify at 30s, 42 at 60s, 45 at
+100s, 46 at 150s, 51 at 300s. The floor swings applicability across 36% of the
+show, so it is calibrated against **the 13 Geopolitical Cousins episodes that
+have ≥3 clusters over 150s** — e.g. Ep 4 `[2145, 1746, 1519, 795]s`, Ep 31
+`[2192, 1889, 1232]`, Ep 49 `[1799, 1469, 1051]` — labelled with one question:
+*is the third cluster a real third person or an over-split host?* Mostly
+over-splits means the guard discards good episodes and should become "two
+clusters cover ≥X% of speech"; mostly real guests means R2's audited precision
+was measured on the easy subset and its bound does not transfer.
 
-### Conflict and fallback
+### Conflict, fallback, provenance
 
-If R1 and R2 disagree on a cluster, the answer is `unknown` — never a
-tiebreak. If two clusters in one episode resolve to the same person, both fall
-to `unknown`: that means diarisation over-split, and naming both would launder a
-diarisation error into a false attribution.
+R1 and R2 disagreeing on a cluster yields `unknown` — never a tiebreak. Two
+clusters in one episode resolving to the same person both fall to `unknown`:
+that means diarisation over-split, and naming both would launder a diarisation
+error into a false attribution.
 
-Unnamed clusters become `unknown_1`, `unknown_2`, ordered by descending speech
-time so re-runs are deterministic. This deviates from the design note's
-`guest_1`: "guest" asserts something not established, since a host who failed a
-rule is not a guest.
-
-### Provenance
+Unnamed clusters become `unknown_1`, `unknown_2`, by descending speech time so
+re-runs are deterministic. This deviates from the design note's `guest_1`:
+"guest" asserts something not established, since a host who failed a rule is not
+a guest.
 
 Every chunk gains `speaker_source` ∈ `{diarisation, text_r1, text_r2,
-voiceprint}`. Consumers can filter by how a name was derived, and the eval can
-be recomputed from the corpus without re-running the matchers. Safe to add only
-because Spec A made writes full-replacement.
+voiceprint}`, so consumers can filter by provenance and the eval can be
+recomputed from the corpus. Safe to add only because Spec A made writes full
+replacement.
 
 ### Applying it to the archive
 
 Names change the embedded document text, so this is a full re-embed of 438
-episodes — roughly 28k BGE encodes through Spec A's `EMBED_ONLY` path, with no
-Whisper, no alignment and no diarisation. The transcripts on the volume supply
-the speaker labels and timestamps; only the names change.
+episodes — ~29,894 BGE encodes through Spec A's `EMBED_ONLY` path, with no
+Whisper, no alignment, no diarisation, **and no audio download**. The
+transcripts supply labels and timestamps; only the names change. This is the
+backfill the original design deferred, and it is affordable precisely because
+text rules need no audio.
 
-This is the backfill the original design deferred. It is affordable here
-because the text rules need no audio.
+## 3. Phase B2 — the voice model, gated
 
-## 4. Phase B2 — the voice model
+### Why it is gated rather than built
 
-### Architecture
+Auto-enrolment from R1's output would produce a store containing **one person**.
+Reimplemented over 400 transcripts, R1 names 317 clusters: **316 Jacob, 1
+Marco** — only one host habitually self-identifies. With a single centroid the
+`margin` gate is inert (there is no second-best), per-episode contention is
+meaningless, and B2 degrades to single-speaker open-set verification on a bare
+cosine threshold, the most channel-sensitive calibration case, on the eval set
+with the fewest labels.
 
-The decision logic must not import torch, so it runs on a laptop in about a
-second with no GPU, model download or network.
+Its honest ceiling is small. Residual after first-person rules is 86 episodes,
+94h, 23.6% of speech; if a voice model named the host cluster *perfectly in
+every one*, that is 32h — **8.0% of corpus speech**. And the cost the original
+spec never stated: `transcribe.py:354` deletes the audio, so enrolment needs
+~265 episodes re-downloaded and a backfill needs all 438 (~400h of mp3) plus GPU
+ECAPA over every cluster.
 
-```
-speaker_id/
-  spans.py        SpeechSpan; from_whisperx_segments() | from_transcript_text()
-  embedding.py    ECAPA wrapper — the only torch-touching module
-  voiceprints.py  VoiceprintStore: load/save, centroid maths, schema versioning
-  policy.py       MatchPolicy(threshold, margin, min_speech_seconds)
-  matching.py     pure: identify(cluster_vectors, store, policy)
-  text_rules.py   R1 and R2 from phase B1
-  eval.py         sweep, precision/coverage, Wilson interval, B1→B2 delta
-```
+Its stated justification — reaching Observing Japan — does not survive
+measurement. Roster-validated R1 names Tobias Harris in 5 of 7 episodes
+directly, at zero GPU cost.
 
-`spans.py` carries the live/backfill symmetry: both parsers emit the same
-`SpeechSpan` list, so `embed_spans(audio, spans)` serves either path unchanged.
+### The trigger
 
-### Model
+Build B2 only when **both** hold:
 
-`speechbrain/spkrec-ecapa-voxceleb` — 192-d, ~20 MB, VoxCeleb EER ≈ 0.8%.
-Chosen over `pyannote/embedding` because it is **not gated** (the README already
-documents pyannote's terms-acceptance as a runtime-failure footgun) and over
-harvesting pyannote's internal clustering vectors because that would force a
-full re-diarisation on any backfill. Verify the loading API against Context7
-before coding; do not rely on remembered signatures.
+1. Residual unnamed speech exceeds **10%** of corpus speech after
+   roster-generalised R1 and R2-extended-to-all-shows.
+2. A hand-labelled sample of the residual demonstrates that voice can recover
+   it — i.e. the residual is unnamed because nobody self-identifies, not because
+   diarisation is poor there.
 
-### Enrolment without a human in the loop
+Condition 2 matters because if the residual is dominated by bad diarisation, a
+voice model inherits the same broken clusters and recovers nothing.
 
-Take the clusters R1 named at high precision — 265 of them, across 265 episodes
-— embed them, and average per person. No hand-labelling, no clip-playing CLI,
-and no confirmation-bias risk, because no human is being shown a guess.
+### Design, if the trigger fires
 
-The store is a Modal volume artefact, **never committed**. An ECAPA centroid is
-a biometric template; stripping the name yields pseudonymisation, not
-anonymisation, since anyone with a few seconds of the person's public audio can
-match it back. The repository is public and MIT-licensed, so it **ships the
-recipe, not the biometrics** — and reproducibility survives, because the
-podcasts are public RSS and the derivation code is committed.
+Modules stay pure of torch so the decision logic runs on a laptop in a second:
+`spans.py` (both parsers emit the same `SpeechSpan` list, so `embed_spans` serves
+live and backfill unchanged), `embedding.py` (the only torch module),
+`voiceprints.py`, `policy.py`, `matching.py`, `eval.py`.
 
-Store schema carries `model` and `dim`, checked on load with a raise on
-mismatch: a store built with ECAPA vectors is meaningless against pyannote
-vectors, and the failure would otherwise be silent nonsense. It also records
-`intra_cohesion`, the mean pairwise cosine within one person's samples — low
-cohesion means the enrolment itself is wrong.
+Model: `speechbrain/spkrec-ecapa-voxceleb` — 192-d, ~20 MB, ungated, unlike
+`pyannote/embedding` whose terms-acceptance the README already documents as a
+runtime-failure footgun. Verify the loading API against Context7 before coding.
 
-### Matching
+Enrolment draws from **R1 ∪ R2**, not R1 alone — R2 is what names Marco, and
+R1-only is what produces the one-person store. The store is a Modal volume
+artefact, **never committed**: an ECAPA centroid is a biometric template, and
+stripping the name yields pseudonymisation, not anonymisation, since anyone with
+a few seconds of public audio can match it back. The repository ships the recipe,
+not the biometrics, and reproducibility survives because the podcasts are public
+RSS.
 
-```
-per cluster, duration d, centroid v:
-    d < min_speech_seconds              -> unknown
-    best < threshold                    -> unknown
-    best - second_best < margin         -> unknown
-per episode:
-    greedy by descending score; a name already taken -> unknown
-```
+`model` and `dim` are stored and checked on load with a raise on mismatch.
+**Contamination is reported per-sample, not as a mean.** 28 of 317 R1-named
+clusters exceed 70% of episode speech; spot checks found genuine solo episodes,
+so contamination is **unknown, not absent** — and `intra_cohesion` as a mean over
+265 samples cannot detect a 5–9% contaminated minority. Report the per-sample
+distance distribution and flag outliers individually.
 
-### Fail-closed, and degradation
+Matching: three gates (`min_speech_seconds`, `threshold`, `margin`) then greedy
+per-episode assignment, with the same one-name-per-episode constraint as B1.
+Missing store, failed model/dim check, or ECAPA failing to load: log and fall
+back to B1's names, then to diarisation labels. Identification is additive and
+must never break transcription.
 
-If the store is missing, fails its model/dim check, or ECAPA will not load: log
-a warning and fall back to B1's text names, then to diarisation labels.
-Identification is additive and must never break transcription.
+## 4. Evaluation
 
-## 5. Evaluation
+**Gold set: 15 episodes, 5 per show.** Every diarised cluster labelled with a
+name or "not a known host". `eval/labels.json` holds names against `(episode,
+cluster)` pairs — no vectors, committable, since who hosts a public podcast is
+public. **Plus the 13 Geopolitical Cousins multi-cluster episodes**, labelled
+only for the R2 guard question above.
 
-**Gold set: 15 episodes, 5 per show — including Observing Japan**, which no text
-rule can reach and which is therefore the only place phase B2's generalisation
-can be measured at all. Every diarised cluster labelled with a name or "not a
-known host". Stored as `eval/labels.json`: names attached to `(episode,
-cluster)` pairs, no vectors, committable — who hosts a public podcast is public.
+**Split:** tune and holdout, stratified by show.
 
-**Split:** tune and holdout, stratified by show so each contains all three.
-Thresholds are selected on tune; the reported number comes from the untouched
-holdout.
+**Definitions.** An *assignment* is an `(episode, cluster)` pair that received a
+name. *Precision* is correct ÷ assignments — the headline, its complement the
+false-attribution rate. *Coverage* is speech-seconds in named clusters ÷ total.
+Precision always carries a **Wilson 95% lower bound**; the review's own 42-cluster
+audit returned 41 correct with a bound of 0.877, a reminder that the point
+estimate is the least interesting number in the table.
 
-**Definitions.**
+**Observing Japan is reported as a count, not a rate.** The show has 7 episodes
+total; 5 in the gold set is 71% of it, and a stratified holdout is ~2 episodes,
+~4 clusters. At 4/4 correct the Wilson lower bound is 0.510, at 5/5 it is
+0.566 — no bar worth setting is cleared. Report leave-one-out over all 7 as
+"n of m clusters correct", and say why a rate is not quoted.
 
-- **assignment** — an `(episode, cluster)` pair that received a name
-- **precision** — correct ÷ assignments. The headline; its complement is the
-  false-attribution rate
-- **coverage** — speech-seconds in named clusters ÷ total speech-seconds
-- **delta** — B2 coverage minus B1 coverage at equal or better precision. This
-  is what justifies phase 2 existing
-
-Precision is always reported with a **Wilson 95% lower bound**. The review's own
-42-cluster audit returned 41 correct with a bound of 0.877 — a reminder that the
-point estimate is the least interesting number in the table.
+R1 and R2 are reported **separately**. Their coverage is disjoint and their
+failure modes unrelated; one blended number would hide that R2 contributes
+nothing outside one show.
 
 **Precision is the objective, not accuracy.** Misattributing a claim to a named
 real person is worse than declining to attribute it, because this corpus feeds a
-briefing that produces position signals. The threshold is tuned for precision
-and the coverage it costs is reported, not hidden.
+briefing that produces position signals.
 
-## 6. Pipeline integration
+## 5. Pipeline integration
 
 In `transcribe()`, between diarisation and writing the transcript: resolve names
-and rewrite `segment["speaker"]` in place, so the saved transcript and the
-Chroma chunks stay consistent. Resolution order is R1, then R2 under its guard,
-then voiceprint, then `unknown_N` — with `speaker_source` recording which
+and rewrite `segment["speaker"]` in place, so the saved transcript and the Chroma
+chunks stay consistent. Order: R1, then R2 under its guard, then (if it ever
+exists) voiceprint, then `unknown_N`, with `speaker_source` recording which
 answered.
 
-## 7. Testing
+## 6. Testing
 
 Unit, CPU-only, no network, no GPU:
 
-- **text rules** — R1 requires first person, and the produced-intro-voice case
-  from GC episode 6 is a regression test that must return `unknown`; R2's guard
-  refuses an episode with three substantial clusters; R1/R2 disagreement yields
-  `unknown`; two clusters resolving to one person both fall to `unknown`.
-- **matching** — each gate rejects independently; happy path assigns; per-episode
-  contention resolves to one assignment plus one unknown; empty store yields all
-  unknown; `unknown_N` follows descending speech time.
-- **voiceprints** — round-trip; model and dim mismatch both raise; centroids
-  L2-normalised; `intra_cohesion` matches a hand-computed value.
-- **spans** — both parsers agree on the same episode; end time from the next
-  segment's start, capped; `[UNKNOWN]` handled; malformed lines skipped.
-- **eval** — precision, coverage, Wilson bound and delta against a hand-computed
-  confusion matrix.
+- **R1** — requires a first-person frame; the GC episode 6 produced-intro-voice
+  case is a regression test that must return `unknown`; a capture failing roster
+  validation (`Orthodox`, `Los Angeles`) is rejected; `Jacob Shapira` fuzzy-matches
+  to the roster; an unknown name is not invented.
+- **R2** — the guard refuses an episode with three clusters over the floor;
+  disagreement with R1 yields `unknown`; two clusters resolving to one person
+  both fall to `unknown`.
+- **fallback** — `unknown_N` follows descending speech time and is deterministic
+  across runs.
+- **eval** — precision, coverage and Wilson bound against a hand-computed
+  confusion matrix; the leave-one-out count for a 7-episode show.
+- **B2, if built** — each gate rejects independently; empty store yields all
+  unknown; store round-trip; model and dim mismatch raise; per-sample
+  contamination flags a planted outlier.
 
-Fixtures are a seeded generator with controlled cosine separation, labelled
-synthetic in code and in results: they validate the harness, explicitly not the
-accuracy claim.
+Fixtures are seeded and labelled synthetic in code and in results: they validate
+the harness, explicitly not the accuracy claim.
 
-CI: GitHub Actions, ubuntu, Python 3.12, ruff and pytest. No GPU, no secrets,
-no Modal.
+CI: GitHub Actions, ubuntu, Python 3.12, ruff and pytest. No GPU, no secrets, no
+Modal.
 
 ## Acceptance
 
 **B1:** `eval/results.md` reports R1 and R2 precision and coverage separately,
-each with a Wilson lower bound, on the holdout. Names and `speaker_source` are
-present across the archive. The GC episode 6 intro-voice case returns `unknown`.
+each with a Wilson lower bound, on the holdout; Observing Japan as a
+leave-one-out count. Names and `speaker_source` present across the archive. The
+GC episode 6 intro-voice case returns `unknown`. The R2 floor is a number chosen
+from the 13-episode calibration, with the calibration recorded.
 
-**B2:** the same report adds voiceprint precision and the measured coverage
-delta over B1, including a separate Observing Japan figure where B1 scores zero.
-Removing the store degrades to B1 without failing. No voiceprint vector is
-committed.
+**B2 gate:** `results.md` states the residual unnamed speech percentage and
+whether the trigger fired. If it did not, that is a successful outcome and the
+phase stays unbuilt.
