@@ -11,15 +11,17 @@ image = (
     )
     .apt_install("git")
     .pip_install(
-        "torch", "torchaudio", extra_index_url="https://download.pytorch.org/whl/cu128"
+        "torch==2.8.0",
+        "torchaudio==2.8.0",
+        extra_index_url="https://download.pytorch.org/whl/cu128",
     )
     .apt_install("ffmpeg")
     .pip_install(
-        "whisperx",
-        "feedparser",
-        "requests",
-        "sentence-transformers",
-        "chromadb",
+        "whisperx==3.8.5",
+        "feedparser==6.0.12",
+        "requests==2.33.1",
+        "sentence-transformers==5.4.1",
+        "chromadb==1.5.9",
     )
     .add_local_python_source("corpus")
 )

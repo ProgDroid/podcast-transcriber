@@ -11,15 +11,15 @@ def download_bge_model():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
-        "torch",
+        "torch==2.11.0+cu128",
         extra_index_url="https://download.pytorch.org/whl/cu128",
     )
     .pip_install(
-        "sentence-transformers",
-        "chromadb",
-        "fastapi",
-        "mcp",
-        "starlette",
+        "sentence-transformers==5.4.1",
+        "chromadb==1.5.9",
+        "fastapi==0.136.1",
+        "mcp==1.27.0",
+        "starlette==1.0.0",
     )
     .run_function(download_bge_model)
 )
