@@ -79,6 +79,13 @@ def test_is_complete_uses_the_expected_count_not_mere_presence(collection):
     assert not is_complete(ids, 432)
 
 
+def test_an_over_count_is_not_complete():
+    # Orphans left behind by a previous, longer version of the episode. A
+    # >= comparison would certify this complete, upsert_then_prune would
+    # never run, and the orphans would answer searches forever.
+    assert not is_complete(["a-0", "a-1", "a-2"], 2)
+
+
 def test_a_single_orphan_chunk_is_not_complete():
     # After a collision clobber an episode retained one chunk. A boolean
     # "does any chunk exist" check called that healthy.

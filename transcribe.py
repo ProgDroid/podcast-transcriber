@@ -222,8 +222,19 @@ def transcribe(feed_url: str, show_name: str):
         print(
             f"  {action.value:12s} Episode {episode['episode_number']} ({episode['date']})"
         )
-        if action in (Action.TRANSCRIBE, Action.EMBED_ONLY):
+        if action is Action.TRANSCRIBE or action is Action.EMBED_ONLY:
             plan.append((action, episode, out_path))
+        elif action is Action.SKIP:
+            pass  # complete and current -- nothing to do
+        elif action is Action.EXCLUDE:
+            pass  # deliberately kept out of the corpus -- see corpus/exclusions.py
+        elif action is Action.UNPARSEABLE:
+            pass  # transcript exists but parses to zero chunks -- terminal,
+            # never becomes complete, so treating it as pending would loop
+        else:
+            # A silent no-op here is the same shape as the incident's
+            # `except Exception: continue` -- work goes unreported as undone.
+            raise RuntimeError(f"unhandled Action from plan_episode: {action!r}")
 
     if not plan:
         print("Nothing to do.")

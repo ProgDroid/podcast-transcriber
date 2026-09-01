@@ -71,6 +71,23 @@ def test_torn_episode_is_re_embedded(collection):
     )
 
 
+def test_an_over_stored_episode_is_re_embedded_not_skipped(collection):
+    # Orphans left behind by a previous, longer version of the episode. If
+    # this planned SKIP, upsert_then_prune would never run and the orphans
+    # would answer searches forever -- self-healing failing silently.
+    _seed(collection, 3, n_chunks=3)
+    assert (
+        plan_episode(
+            collection,
+            show=SHOW,
+            episode_number=EP,
+            date_str=DATE,
+            transcript_text=TRANSCRIPT,
+        )
+        is Action.EMBED_ONLY
+    )
+
+
 def test_stale_rules_version_is_re_embedded(collection):
     _seed(collection, 2, n_chunks=2, rules_version="0")
     assert (
