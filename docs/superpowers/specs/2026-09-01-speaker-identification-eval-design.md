@@ -1,429 +1,302 @@
-# Design: speaker identification, measured before it ships
+# Design: naming speakers where it matters
 
-**Status: approved in brainstorming after adversarial review, not yet
-implemented. Written 2026-09-01.**
+**Status: approved in brainstorming after three rounds of adversarial review,
+not yet implemented. Written 2026-09-01.**
 
 Supersedes the scoping half of
-[`2026-08-31-speaker-identification-design.md`](2026-08-31-speaker-identification-design.md),
-which remains the statement of *why* this is worth doing. That note argued its
-own conclusion: "the eval set and the measured precision, written down —
-without that number this is a demo." This spec builds the measurement, and
-stops well before the production write path.
+[`2026-08-31-speaker-identification-design.md`](2026-08-31-speaker-identification-design.md)
+and corrects one of its claims (§1.3). Depends on
+[`2026-08-31-corpus-integrity-design.md`](2026-08-31-corpus-integrity-design.md),
+shipped 2026-09-01; `RULES_VERSION` and `episode_id_prefix` are consumed here.
 
-Depends on [`2026-08-31-corpus-integrity-design.md`](2026-08-31-corpus-integrity-design.md),
-which shipped 2026-09-01. `RULES_VERSION` and `episode_id_prefix` are both
-consumed here.
+## Part 0 — What three review rounds changed
 
-## Part 0 — Why this is two phases
+Two earlier drafts of this spec were killed by review, and the failures share a
+shape worth recording, because it governs the structure below.
 
-An earlier draft of this spec pre-registered a gate — zero misattributions,
-coverage >= 70% of speech — and an eval set sized to support a 98% precision
-claim. Adversarial review killed both numbers, and the way they died is the
-reason for the structure below.
+- Draft 1 pre-registered a coverage gate a *perfect* matcher could not pass: the
+  denominator was total speech, which includes guest speech the matcher never
+  names, so the ceiling was each show's guest ratio. 66.7% on the show that is
+  341 of 400 measurable transcripts.
+- Draft 1 sized the eval set on ~1.5 named assignments per episode, never
+  measured. The plausible range 1.15–1.96 swings the achievable bound from
+  97.4% (fails) to 98.5% (passes).
+- Draft 2's pilot was underpowered for the two quantities it existed to measure:
+  at Marco Papic's 10.9% co-host rate, a 20-episode stratified pilot draws zero
+  co-host episodes **44.8%** of the time.
+- Draft 2 claimed to defer its gate and then pinned eval size at ">=150
+  assignments", which is only meaningful as the n implied by a 98% bound. The
+  gate was pre-registered through the back door.
+- Draft 2's §4.2 said "crop each recorded turn", but a transcript *line* is a
+  whisper segment, not a turn. **262,802 segments at a 4.2s median versus 19,782
+  merged turns at 38.0s** — a 13.3x error in embedding count, and near
+  worst-case input to a speaker-embedding model.
 
-**The coverage gate was unpassable by a perfect matcher.** Coverage was defined
-as named speech seconds over *total* speech seconds. The denominator includes
-guest speech, which the matcher is designed never to name, so the metric's
-ceiling was set by each show's guest ratio rather than by matcher quality. On
-The Jacob Shapiro Podcast — 341 of the 400 measurable transcripts — that
-ceiling is 66.7%. The gate failed before any matcher existed.
+**Every round found the inputs wrong and the reasoning right.** The Wilson
+closed form, the sampling rule and the leakage guard survived all three passes;
+four ordinary numbers went in unmeasured and came out as gates. That is why this
+draft ships a cheap tier first and derives its expensive tier's scope from
+measurements rather than from argument.
 
-**The sample size rested on a number nobody measured.** It assumed ~1.5 named
-assignments per episode. Part 2 measured *clusters* per episode (2.39); it never
-measured *enrolled hosts* per episode, and 1.5 is not derivable from it. The
-plausible range runs from 1.15 to 1.96, which moves the achievable precision
-bound from 97.4% (fails) to 98.5% (passes). Both gate numbers swing from
-unpassable to comfortable on that one quantity.
+## Part 1 — What ships
 
-**And it cannot be measured from the clustering alone.** Jacob Shapiro's
-top-1/top-2 speech split is 66.7%/99.1%; Geopolitical Cousins' is 62.0%/96.7%.
-The same shape. "One host plus a guest" and "two hosts" are indistinguishable
-without labels — telling them apart *is* the identification problem. You need
-labels to size the labelling.
+### 1.1 Two tiers, sized to where the difficulty actually is
 
-The lesson generalises past these two numbers. The Wilson bound, the sampling
-rule, the leakage guard — every part that looked like rigour was correct. What
-broke were two unremarkable figures carried in from intuition and then allowed
-to become load-bearing. **Pre-registration does not protect a number whose input
-was guessed; it freezes the guess and makes it look decided.**
+| Tier | Method | Surface | Cost |
+|---|---|---|---|
+| **1** | Dominant cluster is the host, cross-checked by name grep | ~76% of the archive | No GPU, no model, no audio embedding |
+| **2** | Voice embedding and matching | ~24% | GPU, model gating, embedding cache |
 
-So: Phase 1 measures the quantities Phase 2's gate depends on, cheaply and
-without a GPU. Phase 2's gate and sizing are **computed from Phase 1's outputs**
-and are deliberately not fixed in this document.
+Measured: Geopolitical Cousins is 59/400 episodes (14.8%) and has two hosts to
+separate; 37 of 341 Jacob Shapiro episodes (9.2%) mention Marco Papic in their
+first 40 segments. Those 24.0% are where voice identification is *uniquely*
+needed. On the other 76.0% — single-host episodes — the dominant cluster is the
+only candidate, and no voice model is required to pick it.
 
-## Part 1 — Scope
+Tier 2 is therefore scoped to **Geopolitical Cousins co-host separation and
+cross-show host detection**, and is specified only after Tier 1 is measured.
 
-**Phase 1 (fully specified here).** A clip-cutting tool, a labelling CLI, a
-~20-episode pilot label set, and four measurements: hosts per episode, host
-speech share, cluster impurity, and the accuracy of a free baseline.
+### 1.2 Tier 1 ships names, on new episodes and on the archive
 
-**Phase 2 (structure specified, numbers deferred).** The voice-embedding cache,
-derived enrolment, the matcher, and the measured gate.
+**New episodes.** The name is written at transcribe time into both the `speaker`
+metadata and the chunk text. Free — the chunks are being built anyway.
 
-**Out of scope in both, deliberately.** Writing names into production chunks;
-the archive re-embed; guest identification; auto-enrolment of recurring
-unknowns.
+**The archive.** A **metadata-only** `collection.update()`. No GPU, no re-embed.
 
-The ordering is the point. A matcher wired into the corpus before it is
-measured writes names that are expensive to retract, because the speaker label
-is baked into the embedded text and a retraction is a re-embed of ~30k chunks.
+### 1.3 Correcting the 2026-08-31 note
+
+That note states: "Renaming retroactively is a re-embed, not a cheap
+`collection.update()` on metadata." That is true for the *embedding* and false
+for *attribution*, and the distinction decides the backfill's cost.
+
+`mcp_server.py:122` builds each search result's speaker field from
+`meta.get("speaker")` — it reads **metadata**, and never parses the document
+text. So a metadata-only update makes every search result attribute correctly,
+immediately, at Chroma-update cost alone.
+
+What a metadata-only backfill does *not* buy is the name inside the embedded
+string. `corpus/chunking.py:83` builds `f"[{speaker}] {text}"`, so archive chunks
+keep `[SPEAKER_00]` in the vector and a query naming a person gets no lexical
+boost from those records. That is a real but bounded loss, and re-embedding to
+recover it is a separate, costed decision — not a precondition for shipping
+attribution.
 
 ## Part 2 — Measured facts
 
-Everything here was probed. Where a figure is an estimate or an assumption, it
-says so.
+All probed 2026-09-01. Assumptions are marked as such.
 
-**Clusters per episode.** Measured 2026-09-01 across the 400 transcripts in
-`downloaded/`:
+**Clusters per episode**, across the 400 transcripts in `downloaded/`: median 2,
+mean 2.39, range 1–7. Geopolitical Cousins median 3 (n=59); The Jacob Shapiro
+Podcast median 2 (n=341). Distribution: 1x17, 2x262, 3x89, 4x21, 5x5, 6x3, 7x3.
 
-| | median | mean | min | max |
-|---|---|---|---|---|
-| All | 2 | 2.39 | 1 | 7 |
-| Geopolitical Cousins (n=59) | 3 | 3.19 | | |
-| The Jacob Shapiro Podcast (n=341) | 2 | 2.25 | | |
+**Segments versus turns.** A transcript line is a whisper segment. Merging
+consecutive same-speaker segments, as `corpus/chunking.py::build_chunks` already
+does for chunking:
 
-Distribution: 1 cluster x17, 2 x262, 3 x89, 4 x21, 5 x5, 6 x3, 7 x3.
+| | count | median duration |
+|---|---|---|
+| Whisper segments | 262,802 | 4.2s |
+| Merged turns | 19,782 | 38.0s |
 
-**Speech concentration.** Measured the same day, same parse as
-`corpus/chunking.py`, turns under 1.5s dropped and single turns capped at 30s
-per §4.2:
+**Any voice work operates on merged turns, never on raw segments.** 13.3x fewer
+embeddings, far better input to a speaker-embedding model, and the derived
+end-time problem shrinks to 19,782 real speaker-change boundaries instead of
+262,802 arbitrary ones.
 
-| | pooled top-1 share | pooled top-2 share | median top-1 | episodes with top-1 < 70% |
+**Speech concentration**, turns under 1.5s dropped:
+
+| | pooled top-1 | pooled top-2 | median top-1 | episodes top-1 < 70% |
 |---|---|---|---|---|
 | The Jacob Shapiro Podcast | 66.7% | 99.1% | 68.2% | 193 / 341 |
 | Geopolitical Cousins | 62.0% | 96.7% | 62.8% | 51 / 59 |
 | All 400 | 65.7% | 98.6% | | |
 
 389 of 400 episodes have a dominant cluster holding over 50% of speech, median
-share 66.2%.
+share 66.2%. **That the dominant cluster is the host is the HYPOTHESIS Tier 1
+tests**, not a measured fact.
 
-**Top-k by duration is an upper bound on coverage.** For any assumed number of
-enrolled voices k, the top-k clusters by speech time bound what any correct
-assignment of k people could cover, because top-k-by-duration is by
-construction the maximum-duration k-subset. This makes the ceiling figures above
-robust to not knowing which cluster is whom — but sensitive to k, which is
-exactly what Phase 1 measures.
+**Hosts per episode is UNKNOWN** and not derivable from the clustering: Jacob
+Shapiro splits 66.7/99.1 top-1/top-2 and Geopolitical Cousins 62.0/96.7 — the
+same shape, so "one host plus a guest" and "two hosts" are indistinguishable
+without labels. Tier 1's design avoids needing this number; Tier 2's does not.
 
-**Hosts per episode is UNKNOWN.** The claim "one host for The Jacob Shapiro
-Podcast, two for Geopolitical Cousins" appears in the 2026-08-31 note and in
-this spec's earlier draft. It was never measured. Marco Papic co-hosts
-Geopolitical Cousins and also appears on the Jacob Shapiro feed — a
-first-40-segment grep for `\bmarco\b|\bpapic\b` hits 37 of 341 Jacob Shapiro
-episodes (10.9%) — and under §4.1's person-keyed enrolment he would be named on
-both. Counting him raises the pooled coverage ceiling from 72.8% to 75.5%.
+**`downloaded/` holds 400 of 438 and contains no Observing Japan episodes** —
+verified twice, by filename-prefix enumeration and by a case-insensitive search.
+Every figure above therefore describes two of three shows.
 
-**"The dominant cluster is the host" is a HYPOTHESIS.** What is measured is a
-property of the clustering (389/400 have a dominant cluster). That the dominant
-cluster is a host is unverified, and Phase 1 tests it.
+**Audio is not retained** (`transcribe.py:378` writes `/tmp`, `:455` deletes).
+**Six episodes have no obtainable audio** (`FEED_UNREACHABLE`, aged off feed) and
+can never be identified.
 
-**`downloaded/` is a partial copy.** 400 of 438, containing **no Observing Japan
-episodes**. Every figure above therefore describes two of three shows.
+## Part 3 — Tier 1: the baseline, and how it is measured
 
-**Audio is not retained.** `transcribe.py:378` writes `/tmp/episode_N.mp3`;
-`transcribe.py:455` deletes it. Historical work re-downloads from the feed
-enclosure.
+### 3.1 The rule
 
-**Six episodes have no obtainable audio.** The `FEED_UNREACHABLE` set has aged
-off its feeds and can never be identified. Permanent.
+For an episode with one enrolled voice, assign the show's host to the cluster
+holding the most speech time. Assign nothing else. Every other cluster keeps its
+`SPEAKER_XX` label.
 
-**The recorded transcript carries the clustering.** Every line is
-`[SPEAKER_00] 12.3s - text` — label, start time, text. No end time.
+**Cross-check, not label:** grep the episode's first 40 segments for the host's
+name and for known co-host names. A hit for a *second* enrolled voice routes the
+episode to Tier 2 rather than to a Tier 1 assignment.
 
-## Part 3 — Phase 1: the pilot
+### 3.2 The measurement is one clip per episode
 
-No GPU, no embedding model, no Hugging Face gating. Audio is downloaded, clipped
-and discarded.
+Tier 1 makes **exactly one assignment per episode**, so its precision
+denominator is one per episode and verifying it needs **one clip**: listen, and
+answer whether the dominant cluster is the host.
 
-### 3.1 Sample
+This is what makes a real statistical claim affordable. Zero errors on 150
+episodes gives a one-sided 95% lower bound of `150 / (150 + 1.645^2) = 98.2%`,
+clearing the >=98% bar with margin — where draft 1's n=133 sat one episode from
+failing on arithmetic alone.
 
-**20 episodes**, chosen deterministically — every k-th by date within each show
-— stratified across all three shows. Not picked. Picking inflates every figure
-here, because episodes that look easy to label are the ones with clean audio and
-no crosstalk.
+**Budget: 150 episodes x one 10s clip = 25 minutes of audio.** Wall clock runs
+roughly double once replay and typing are counted, so call it **45–60 minutes**.
+Draft 2 estimated "twenty minutes" for a design that was 24 minutes of audio
+before any replay; that estimate is not repeated here.
 
-Observing Japan must be sampled from the Modal volume, since it is absent from
-`downloaded/`. At a mean of 2.39 clusters this is roughly **48 clusters**, about
-twenty minutes of listening.
+### 3.3 Sampling
 
-### 3.2 Clips are spread across the episode, not taken from one place
+Deterministic every-nth-by-date within each show, stride recorded. Not picked —
+episodes that look easy to label are the ones with clean audio, exactly the
+population the baseline performs best on.
 
-For each cluster, take three clips of ~10s: from its **earliest**, **middle**
-and **latest** long turn.
+Labelling proceeds **in deterministic order until 150 single-host episodes are
+labelled**. The stopping rule keys on the label count, never on matcher output,
+so it cannot select for a flattering result.
 
-This is the one change that attacks the deepest flaw in the earlier draft.
-Ground truth is per-cluster, but the harm is per-turn: a cluster that is 80%
-host and 20% guest, sampled three times from the middle, gets labelled "Jacob
-Shapiro", matched "Jacob Shapiro", and scored **correct** — while a fifth of its
-text ships under a real person's name. Spreading the clips across the episode
-gives the labeller a chance to hear that the cluster holds two people.
+### 3.4 The gate
 
-The labeller may mark a cluster **impure**. That is a first-class outcome, not a
-failed label.
+- **Zero misattributions** across the labelled episodes.
+- **Coverage >= 90% of true host seconds** on single-host episodes.
 
-### 3.3 What Phase 1 measures
+Coverage is host-relative by construction: Tier 1 either names the dominant
+cluster or names nothing, so the denominator is the host's own speech, not the
+show's guest ratio. This is stated as a principle rather than derived from a
+small pilot — 90% of a host's speech is what "attribution works" means, and it
+is not a quantity a 20-episode sample should be allowed to set.
 
-1. **Hosts per episode (k)**, per show. Feeds Phase 2's sizing.
-2. **Host speech share** — the true coverage ceiling, per show. Feeds Phase 2's
-   coverage denominator and bar.
-3. **Cluster impurity rate.** Feeds the validity of per-cluster ground truth
-   itself.
-4. **Baseline accuracy.** Does the top-1 cluster hold a host? For a show with
-   two enrolled voices, do the top-2?
+**Measured once.** If the gate fails, the labelled set becomes a dev set and a
+fresh sample must be labelled before any new claim.
 
-### 3.4 Decision rules, pre-registered now
+## Part 4 — Tier 2: scope, deferred
 
-These are rules about what to *do*, not predictions of unmeasured quantities, so
-fixing them here is legitimate.
+Specified after Tier 1 is measured, and scoped to what Tier 1 provably cannot
+do: separating the two Geopolitical Cousins hosts, and recognising a known host
+appearing as a guest on another feed.
 
-- **Impurity above 5% invalidates per-cluster ground truth.** At that rate
-  diarisation error alone injects enough misattribution to make a 98% precision
-  claim unsupportable no matter how good the matcher is. Phase 2's measurement
-  design must change before it is built, not after it fails.
-- **Size Phase 2's eval split from measured k** so that expected named
-  assignments are **>= 150**, not the bare 133 the bound requires. n=133 yields
-  exactly 0.98006 and n=132 yields 0.97991; the earlier draft sat one episode
-  from failing on arithmetic alone.
-- **If the baseline names hosts with zero errors and covers most host speech**,
-  re-scope before building the voice pipeline. It costs no GPU, no audio
-  embedding and no model gating, and the expensive design has to beat it rather
-  than merely be checked by it.
-- **The baseline cannot resolve co-hosts or cross-show appearances.** It cannot
-  separate the two Geopolitical Cousins hosts, and it cannot recognise a host
-  appearing as a guest elsewhere — which is the cross-show query the feature
-  exists for. So a good baseline result narrows Phase 2's scope; it does not
-  delete it.
+Design decisions that already stand:
 
-## Part 4 — Phase 2: structure
+- **Enrolment is keyed by person, not (show, person)** — so Marco on the Jacob
+  Shapiro feed is the same identity as Marco on Geopolitical Cousins. This is
+  what makes cross-show queries answerable, and it is Tier 2's entire reason to
+  exist.
+- **Embed merged turns, not segments** (Part 2), weighting centroids by **true**
+  turn duration while embedding a duration-capped crop. Those are two different
+  quantities; conflating them silently under-weights the longest, cleanest turns.
+- **Centroids are derived from labels, never stored.** `speakers/labels.json`
+  holds provenance only. This follows `corpus/exclusions.py`, where the lists are
+  derived because two hand-maintained lists drift **asymmetrically** — the stale
+  one works right up until the moment it matters.
+- **Assignment needs a threshold and a margin.** The dangerous case is two high
+  scores a hair apart, which a threshold alone resolves confidently and wrongly.
+- **`person: null` is ground truth**, not missing data. Naming such a cluster is
+  a precision violation, and it is the one that matters most.
 
-Numbers deferred to Phase 1. The design decisions below stand.
+## Part 5 — The impurity probe
 
-### 4.1 Enrolment is keyed by person, not by (show, person)
+Per-cluster ground truth is only valid if diarisation clusters hold one person.
+A cluster that is 80% host and 20% guest gets labelled, matched and scored
+**correct** while a fifth of its text ships under a real person's name.
 
-One centroid per human, so Marco Papic on the Jacob Shapiro feed is the same
-identity as Marco Papic on Geopolitical Cousins. This is what makes "what has X
-said across the archive" answerable at all. The cost is that a bad enrolment
-misfires everywhere at once — a reason to measure enrolment quality, not to
-fragment identity across feeds.
+**This is a binary existence question, not a rate.** Draft 2 tried to estimate a
+rate and could not: three fixed clips detect a 20%-contaminated cluster only
+48.8% of the time and a 10%-contaminated one 27.1%, so a 5% threshold was being
+tested with roughly 2x downward bias.
 
-### 4.2 Embed the recorded turns; do not re-run diarisation
+Instead: take **15 clusters** and label **10 randomly-drawn turns** from each.
+Ten draws detect 20% contamination 89.3% of the time and 10% contamination
+65.1%. **150 turn clips, 25 minutes of audio.**
 
-The clustering is already in the transcript files. The archive pass is: fetch
-audio, crop each recorded turn, embed, aggregate per cluster, discard audio.
-**The embedding model only** — no whisper, no alignment, no diarisation
-pipeline.
+**Decision rule.** If *any* cluster shows two speakers, per-cluster ground truth
+is invalid and Tier 2 must score per-turn — decided before Tier 2 is built,
+rather than discovered after it fails.
 
-This is not merely cheaper. Re-running diarisation produces a *fresh* clustering
-whose `SPEAKER_XX` numbering has no relationship to the numbering baked into the
-stored transcript, so a name learned against cluster 2 of the new run could not
-be written back onto cluster 2 of the old text. Embedding the recorded turns
-keeps labels aligned **by construction**.
+## Part 6 — Architecture
 
-The price: a turn's end must be derived as the next line's start, over-including
-trailing silence and any gap. Mitigations — drop turns under **1.5s**, cap a
-single crop at **30s**, aggregate across the whole cluster.
+Two files, not four. 150 labels does not need a module hierarchy.
 
-**The live path would differ.** Identification on a new episode runs inside the
-transcriber where real end-times exist. That fidelity gap is acceptable because
-derived ends are the *looser* input: a matcher tuned on them is tuned on dirtier
-audio than production supplies. Revisit if a production path is specified.
+| Unit | Purpose |
+|---|---|
+| `corpus/speakers.py` | Pure: merge segments into turns, dominant-cluster rule, name grep, scoring. Tested. |
+| `speaker_tool.py` | Modal app plus local entrypoints: cut clips, prompt, report. |
+| `speakers/labels.json` | Ground truth. Hand-made, reviewable, in git. |
 
-### 4.3 Enrolment centroids are derived, never stored
-
-`speakers/labels.json` holds provenance only — which cluster of which episode is
-which person. Centroids are recomputed from cached vectors on every use. No
-vector is ever checked in.
-
-This follows `corpus/exclusions.py`, where the exclusion lists are derived for
-the same reason: two hand-maintained lists drift **asymmetrically**, the stale
-one working right up until the moment it matters. A checked-in centroid blob is
-that bug with a binary payload, undiffable and unreviewable.
-
-```json
-{"version": 1, "clusters": [
-  {"episode": "Geopolitical_Cousins-ep73-2026-07-29",
-   "cluster": "SPEAKER_00", "person": "Jacob Shapiro",
-   "split": "enrol", "impure": false, "labelled_on": "2026-09-01"},
-  {"episode": "Geopolitical_Cousins-ep73-2026-07-29",
-   "cluster": "SPEAKER_02", "person": null,
-   "split": "enrol", "impure": false, "labelled_on": "2026-09-01"}
-]}
-```
-
-`episode` is `corpus.identity.episode_id_prefix(show, episode_number, date)`. A
-second identity scheme in a new subsystem is the bug this repo already paid for
-once; invariant 1 exists because of it.
-
-**`person: null` is ground truth, not missing data.** It means "not one of the
-recurring voices". Naming such a cluster is a precision violation, and it is the
-one that matters most: the realistic failure is not confusing two hosts, it is
-confidently stamping a guest with a host's name.
-
-### 4.4 Assignment takes a threshold **and** a margin
-
-```
-best >= threshold  AND  (best - second_best) >= margin  ->  name
-otherwise                                               ->  label unchanged
-```
-
-The dangerous case is not a low score but **two high scores a hair apart**,
-where a threshold picks the higher one and reports confidence. The margin makes
-ambiguity fail closed. An unmatched cluster keeps its existing `SPEAKER_XX`
-label; no `guest_1` vocabulary is introduced.
-
-Centroids are duration-weighted — `L2_normalise(sum(d_i * v_i) / sum(d_i))` —
-since a 40-second turn is both less noisy and more representative than a
-2-second interjection.
-
-### 4.5 Sampling, splitting and tuning
-
-Deterministic every-k-th-by-date sampling, as in §3.1, for the same reason.
-
-**Split assigned before labelling**, deterministically from the episode prefix.
-Assigning it afterwards would let a disappointing result be re-split into a
-better one. `enrol()` **raises** if any episode appears in both splits —
-asserted in code, matching how the `corpus/` invariants are pinned.
-
-Enrolment needs far fewer episodes than evaluation, since each host recurs
-across nearly every episode of their show. The split is deliberately lopsided
-toward measurement.
-
-**Threshold and margin are tuned within the enrolment split only**, by holding
-out turns from enrolment episodes. Tuning on same-episode turns is optimistic —
-same recording conditions — which biases the threshold **too loose**. That bias
-surfaces as errors on the eval split rather than as a hidden pass, so it fails
-in the detectable direction.
-
-### 4.6 The measurement
-
-- **precision** = named-and-correct / **named**. A `null`-truth cluster given a
-  name counts against it. A real person left unnamed does not — that is recall.
-- **coverage** = named host seconds / **true host seconds**. Host-relative, not
-  total-speech-relative. The earlier definition measured each show's guest ratio
-  rather than the matcher, and made the gate unpassable.
-- **sweep** over (threshold, margin), producing the table the operating point is
-  chosen from.
-
-**The denominator is assignments the matcher makes**, not clusters labelled —
-roughly k per episode, which Phase 1 measures.
-
-Zero errors on n named assignments gives a one-sided 95% lower bound of
-`n / (n + z^2)` with `z = 1.645`; this closed form is the Wilson interval's
-all-successes case and was verified against the full computation. A **one-sided**
-bound is correct here: the claim of interest is "precision is at least X", and
-there is no use for an upper bound.
-
-**Per-turn evaluation is rejected for matcher error and required for
-diarisation error.** Matcher errors are perfectly correlated within a cluster —
-if a centroid is wrong, every turn it covers is wrong — so per-turn scoring
-would inflate the denominator without new information. Diarisation errors are by
-definition *not* constant within a cluster, which is exactly why a per-cluster
-metric cannot see them. §3.2's spread clips and the impurity flag are how that
-blindness is addressed; they are not optional polish.
-
-### 4.7 The gate
-
-**Deferred to Phase 1's outputs.** The shape is fixed: zero misattributions on
-the eval split, plus a coverage floor expressed against **host** speech. The
-numbers are computed once k and the host speech share are known.
-
-**The eval split is measured once.** Re-tuning after a failure and re-measuring
-on the same episodes is selection on the test set. If the gate fails, the burned
-split becomes a dev split and a **fresh** eval split must be labelled before any
-new claim is made.
-
-Both numbers are asserted in the test suite, so a sweep that does not clear them
-refuses rather than reports.
-
-### 4.8 Negative controls that cost no labelling
-
-Across the whole cached archive: a host should be named in nearly every episode
-of their own show, and a two-host show should not yield five named people in one
-episode. These catch gross failure for free and are the checks most likely to
-fire if enrolment is subtly wrong.
-
-Note these are *controls*, not the baseline. The baseline is §3.4's
-dominant-cluster hypothesis, and Phase 2 must beat it.
-
-## Part 5 — Architecture
-
-Pure logic in `corpus/`, Modal at the top level, matching the split argued in
+`corpus/speakers.py` imports no Modal and no audio library, so the rule and the
+scoring run in the test suite on CPU — matching the split argued in
 `corpus/showplan.py`'s module docstring.
 
-| Unit | Phase | Purpose | Depends on |
-|---|---|---|---|
-| `speaker_id.py` | 1 | Modal app: fetch audio, cut spread clips, discard audio | modal |
-| `label_clips.py` | 1 | Local CLI: prompt, append to `labels.json` | — |
-| `corpus/speaker_stats.py` | 1 | k, host share, impurity, baseline accuracy. Pure. | — |
-| `speakers/labels.json` | 1 | Ground truth. Hand-made, reviewable, in git. | — |
-| `corpus/speakers.py` | 2 | Centroids, cosine match, threshold + margin. Pure. | numpy |
-| `corpus/speaker_eval.py` | 2 | Precision, coverage, sweep, leakage guard. Pure. | numpy |
-| `voice-cache` volume | 2 | `{episode_id_prefix}.npz` per episode | — |
-
-Every `corpus/` module imports no Modal and no audio library, so all of the
-statistics, the matcher and the measurement run in the test suite on CPU.
-
-**Phase 1 workflow:**
+The labelling prompt must have **name autocomplete from names already used**.
+Free-text entry across 150 answers reliably produces `Jacob Shapiro` and
+`J. Shapiro` as distinct people, which silently splits a centroid in Tier 2 and
+is invisible in Tier 1's counts. It must also support undo and skip, and append
+after every answer so an interrupted session resumes.
 
 ```
-uv run modal run speaker_id.py::cut_clips --episodes 20   # -> clips/ locally
-uv run python label_clips.py                              # -> speakers/labels.json
-uv run pytest tests/test_speaker_stats.py                 # the four measurements
+uv run modal run speaker_tool.py::cut_clips     # -> clips/ locally
+uv run python speaker_tool.py label             # -> speakers/labels.json
+uv run pytest tests/test_speakers.py            # rule, scoring, gate
 ```
 
-`label_clips.py` walks unlabelled clusters, plays a clip, takes a name, blank
-for unknown, or a key for impure, and **appends after every answer** — so an
-interrupted session resumes rather than restarts.
+## Part 7 — UNKNOWNs
 
-## Part 6 — UNKNOWNs
-
-None of these may be treated as settled by assumption.
-
-1. **Hosts per episode.** The quantity both Phase 2 gate numbers hinge on.
-   Measured by Phase 1; unmeasurable from clustering alone.
-2. **Observing Japan's cluster count and speech concentration.** Absent from
+1. **Whether the dominant cluster is the host.** Tier 1's whole hypothesis.
+2. **Cluster purity.** Part 5. Invalidates per-cluster ground truth if it fails.
+3. **Observing Japan's clustering and speech concentration.** Absent from
    `downloaded/`; every Part 2 figure covers two of three shows. Probe against
-   the Modal volume when sampling.
-3. **Cluster purity.** If diarisation clusters routinely mix speakers, the
-   per-cluster ground-truth design is invalid regardless of matcher quality.
-4. **Hugging Face gating on the embedding model** (Phase 2 only). `README.md`
-   records accepting terms for `pyannote/speaker-diarization` and
-   `pyannote/segmentation`. Whether that covers
-   `pyannote/wespeaker-voxceleb-resnet34-LM` is unknown; a gated model fails at
-   runtime with an authorisation error, not at setup.
-5. **What the deployed image exposes** (Phase 2 only). pyannote is not pinned in
-   `transcribe.py`; it arrives transitively via `whisperx==3.8.5` and was frozen
-   at build time. Per `docs/operations.md`, replicate the image spec **verbatim**
-   so content-addressing reuses the cache; build lines in the log mean the spec
-   drifted and any versions read are not the deployed ones.
-   `.add_local_python_source("corpus")` must stay **last** in the chain.
-6. **Audio URL resolution.** Enclosure URLs can rot independently of the feed
-   entry. A sampled episode whose audio 404s is replaced by the next episode in
-   deterministic order, and **the substitution is recorded** — not silently
+   the Modal volume before sampling.
+4. **Hosts per episode.** Needed by Tier 2 only, and unmeasurable from the
+   clustering. Tier 1 is deliberately designed not to need it.
+5. **Hugging Face gating** (Tier 2 only). `README.md` records accepting terms for
+   `pyannote/speaker-diarization` and `pyannote/segmentation`; whether that
+   covers an embedding model is unknown, and a gated model fails at runtime with
+   an authorisation error, not at setup.
+6. **What the deployed image exposes** (Tier 2 only). pyannote is unpinned,
+   arriving transitively via `whisperx==3.8.5` and frozen at build time. Per
+   `docs/operations.md`, replicate the image spec **verbatim** so
+   content-addressing reuses the cache; build lines mean the spec drifted.
+   `.add_local_python_source("corpus")` stays **last**.
+7. **Audio URL rot.** A sampled episode whose audio 404s is replaced by the next
+   in deterministic order and **the substitution is recorded** — never silently
    skipped, which would reintroduce selection.
 
 ## Self-Review
 
-**Coverage of the prior design note.** Its enrolment/matching/threshold/unknown
-proposal → §4.1, §4.3, §4.4. Its "fail closed, and mean it" → §4.4 and the
-`null` semantics in §4.3. Its "the part worth more than the feature" → Part 3
-and §4.6–4.7. Its out-of-scope list is preserved and extended with the
-production write path, which it left ambiguous.
+**What this draft cut, and why.** Draft 2's three modules became two files; its
+four pilot measurements became one hypothesis test plus one existence probe; its
+uniform sampling became a stopping rule keyed on label count. The cuts follow
+from Part 1's measurement that voice identification is uniquely needed on 24% of
+the archive — spending the first build on the other 76% was the misallocation
+both reviews named.
 
-**Three numbers from the earlier draft were wrong, and all three failed the same
-way.** The coverage denominator, the hosts-per-episode figure, and the eval
-sizing derived from it were estimates that became pre-registered gates. The
-statistics around them — the Wilson closed form, verified against the full
-computation; the sampling rule; the leakage guard — were correct throughout.
-Part 0 records this because the failure mode is more reusable than the fix.
+**What is genuinely new here rather than reorganised.** §1.3's finding that
+attribution reads from metadata, verified at `mcp_server.py:122`, which turns the
+archive backfill from a ~30k-chunk re-embed into a `collection.update()` and is
+the reason this design ships something. And Part 2's segment/turn measurement,
+which was a defect in draft 2 rather than a scope choice.
 
-**What is deliberately still weak.** The live-path fidelity gap in §4.2 is real
-and argued as failing safe rather than eliminated. Part 2's figures describe two
-of three shows. Phase 2's gate is genuinely undetermined, and this document
-should not be read as though it were.
+**Where this is still weak.** Tier 1's gate assumes single-host episodes can be
+identified as such *before* labelling; the name grep is the mechanism and its
+false-negative rate is unmeasured — an episode with an unannounced second host
+would be scored as a Tier 1 failure when it is really a routing failure. Part 2
+covers two of three shows. And Tier 2 remains genuinely unspecified; this
+document should not be read as though its scope were settled beyond §4's
+boundary.
 
-**One scope boundary worth defending.** The archive backfill is out even though
-`RULES_VERSION` makes it schedulable, because a bump alone cannot rename anyone:
-`EMBED_ONLY` re-chunks from the **stored transcript** (`transcribe.py:313-325`,
-verified), whose text still says `SPEAKER_00`. A backfill requires rewriting the
-transcript files first — a separate, costed decision that belongs in its own
-spec.
+**One boundary worth defending.** Re-embedding the archive so names enter the
+vector text stays out, even though `RULES_VERSION` makes it schedulable, because
+§1.3 shows attribution does not require it. Doing it anyway would spend ~30k
+chunks of GPU to improve lexical matching on a name — a real benefit, but one
+that should be argued on its own and priced against a corpus that now attributes
+correctly without it.
