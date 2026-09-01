@@ -97,6 +97,11 @@ def run() -> None:
         print(f"\n{name.upper()} ({len(values)}):")
         for v in values:
             print("   ", v)
+    # An empty list here would read as "no cross-posts found" -- a confident
+    # negative. It is not computed at all: reconcile() never receives episode
+    # titles, and cross-post detection needs a fuzzy title match. Render that
+    # explicitly so nobody mistakes silence for a clean result.
+    print("\nSUSPECTED_CROSS_POSTS: not computed (no title data reaches reconcile())")
     print(f"\nCLEAN: {report.is_clean()}")
 
 

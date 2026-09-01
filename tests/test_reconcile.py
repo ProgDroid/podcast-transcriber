@@ -1,4 +1,6 @@
-from corpus.reconcile import reconcile
+import pytest
+
+from corpus.reconcile import ReconcileReport, reconcile
 
 VOL = {
     ("Geopolitical Cousins", "73", "2026-07-29"),
@@ -124,6 +126,40 @@ def test_volume_files_with_no_feed_entry_are_their_own_class():
 
 def test_is_clean_is_false_when_anything_is_wrong():
     assert not reconcile(VOL, [], FEED).is_clean()
+
+
+# One value per FAULT field is_clean() consults, typed to match the
+# dataclass field it fills. Built directly against ReconcileReport rather
+# than driven through reconcile() -- the point is pinning the predicate
+# itself, not re-testing detection.
+_FAULT_FIELD_VALUES = {
+    "missing": [("A", "1", "2025-01-01")],
+    "extra": [("A", "1", "2025-01-01")],
+    "non_contiguous": [("A", "1", "2025-01-01")],
+    "shared_prefixes": ["A-ep1"],
+    "excluded_with_records": [("A", "1", "2025-01-01")],
+}
+
+
+@pytest.mark.parametrize("field_name", sorted(_FAULT_FIELD_VALUES))
+def test_is_clean_is_false_for_each_fault_field(field_name):
+    # A report with ONLY this one field populated must already be unclean --
+    # this is what pins is_clean() to actually consult all five fault
+    # fields, not just whichever one a given reconcile() call happens to hit.
+    report = ReconcileReport(**{field_name: _FAULT_FIELD_VALUES[field_name]})
+    assert report.is_clean() is False
+
+
+def test_is_clean_is_true_with_only_informational_fields_set():
+    # feed_unreachable and suspected_cross_posts are documented as
+    # informational, not faults -- populating only those must stay clean.
+    report = ReconcileReport(
+        feed_unreachable=[("A", "1", "2025-01-01")],
+        suspected_cross_posts=[
+            (("A", "1", "2025-01-01"), ("B", "2", "2025-01-02")),
+        ],
+    )
+    assert report.is_clean() is True
 
 
 def test_book_records_are_not_reported_as_extra():

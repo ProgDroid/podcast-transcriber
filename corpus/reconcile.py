@@ -25,6 +25,13 @@ class ReconcileReport:
     shared_prefixes: list[str] = field(default_factory=list)
     excluded_with_records: list[Key] = field(default_factory=list)
     feed_unreachable: list[Key] = field(default_factory=list)
+    # NEVER POPULATED TODAY. `reconcile()` only ever sees (show,
+    # episode_number, date) triples -- no episode titles reach it from the
+    # volume, Chroma or the feeds -- and cross-post detection needs a fuzzy
+    # title-and-date match (see corpus/exclusions.py's module docstring).
+    # An empty list here means "this check does not run", NOT "no cross-posts
+    # were found". Do not read it as a clean result; it is not a result at
+    # all until something populates it.
     suspected_cross_posts: list[tuple[Key, Key]] = field(default_factory=list)
 
     def is_clean(self) -> bool:
