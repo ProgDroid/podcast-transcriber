@@ -19,6 +19,28 @@ MAX_REQUEST = 300
 PAGE = 250
 BATCH = 250
 
+# The only collection names this pipeline is allowed to write to.
+# `_v2` is migration/reid.py's re-ID destination, reserved for the separately
+# approved cutover -- not currently written by transcribe.py.
+KNOWN_COLLECTION_NAMES = frozenset({"podcast_transcripts", "podcast_transcripts_v2"})
+
+
+def resolve_collection_name(name: str) -> str:
+    """Refuse an unreviewed collection name rather than silently writing to it.
+
+    `get_or_create_collection` will happily CREATE a typo'd or unreviewed
+    name with no error at either end -- the writer succeeds, the reader
+    keeps pointing at the old collection, and nothing notices until a search
+    for a recent episode comes back empty. Raising here turns that into a
+    loud failure on the first cron run instead of a phantom collection.
+    """
+    if name not in KNOWN_COLLECTION_NAMES:
+        raise ValueError(
+            f"refusing to write to unreviewed collection {name!r}; expected one "
+            f"of {sorted(KNOWN_COLLECTION_NAMES)}"
+        )
+    return name
+
 
 def batched(items: list, size: int = BATCH) -> Iterator[list]:
     """Split a list into request-sized batches."""

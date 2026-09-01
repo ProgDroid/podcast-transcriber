@@ -1,16 +1,18 @@
 import pytest
 
 from corpus.store import (
-    MAX_REQUEST as STORE_MAX_REQUEST,
-)
-from corpus.store import (
+    KNOWN_COLLECTION_NAMES,
     batched,
     episode_where,
     guid_where,
     is_complete,
     paged_get,
     paged_get_ids,
+    resolve_collection_name,
     stale_ids,
+)
+from corpus.store import (
+    MAX_REQUEST as STORE_MAX_REQUEST,
 )
 from tests.conftest import MAX_REQUEST, ChromaQuotaError
 
@@ -212,3 +214,15 @@ def test_batched_rejects_a_size_above_the_request_cap():
 
 def test_batched_accepts_a_size_at_the_request_cap():
     assert list(batched([1, 2], size=STORE_MAX_REQUEST)) == [[1, 2]]
+
+
+def test_resolve_collection_name_accepts_every_known_name():
+    for name in KNOWN_COLLECTION_NAMES:
+        assert resolve_collection_name(name) == name
+
+
+def test_resolve_collection_name_rejects_an_unreviewed_name():
+    # A typo'd or unreviewed CHROMA_COLLECTION secret must fail loudly here,
+    # not be silently provisioned by get_or_create_collection.
+    with pytest.raises(ValueError):
+        resolve_collection_name("podcast_transcript")  # missing the 's'

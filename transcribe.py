@@ -118,16 +118,27 @@ def embed_and_store(
 def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
     import chromadb
 
+    from corpus.store import resolve_collection_name
+
     client = chromadb.CloudClient(
         api_key=chroma_api_key,
         tenant=chroma_tenant,
         database=chroma_database,
     )
+    # resolve_collection_name refuses an unreviewed name rather than letting
+    # get_or_create_collection silently provision a phantom collection --
+    # both transcribe and bulk_embed mount the same secret, so one unreviewed
+    # key in the Modal dashboard would otherwise repoint every nightly write
+    # with no code diff and no error at either end.
+    name = resolve_collection_name(
+        os.environ.get("CHROMA_COLLECTION", "podcast_transcripts")
+    )
+    print(f"Writing to collection: {name}")
     # The writer may create; the reader (mcp_server) must not -- see its
     # get_collection call. scheduled_job spawns fresh containers nightly, so
     # this side has no warm-container exposure.
     return client.get_or_create_collection(
-        name=os.environ.get("CHROMA_COLLECTION", "podcast_transcripts"),
+        name=name,
         metadata={"hnsw:space": "cosine"},
     )
 
