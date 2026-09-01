@@ -172,6 +172,93 @@ def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
     )
 
 
+def _transcript_path(show_name: str, episode: dict) -> str:
+    from corpus.identity import transcript_filename
+
+    return (
+        f"{VOLUME_PATH}/"
+        f"{transcript_filename(show_name, episode['episode_number'], episode['date'])}"
+    )
+
+
+@app.function(
+    timeout=7200,
+    volumes={VOLUME_PATH: volume},
+    secrets=[modal.Secret.from_name("podcast-secrets")],
+)
+def transcribe(feed_url: str, show_name: str):
+    """Plan a show on CPU, then hand only the real work to a GPU.
+
+    THIS FUNCTION HAS NO GPU, deliberately. Planning costs two Chroma round
+    trips per episode and re-chunks every transcript it finds -- roughly 870
+    round trips and 433 re-chunks a night across the three shows -- and none
+    of it needs an accelerator. Held inside the T4 container it originally
+    ran in, that is minutes of GPU time burned nightly before any GPU work
+    begins, and on most nights to conclude there is nothing to do at all.
+    When the plan is empty no GPU container is started, which is the common
+    case.
+
+    The cost of the split is a plan-then-act gap: the corpus could in
+    principle change between planning here and acting there. Accepted --
+    nothing else writes overnight, and upsert_then_prune is idempotent, so a
+    stale plan costs a redundant re-embed rather than a wrong corpus.
+    """
+    from corpus.showplan import plan_show
+
+    # A warm CPU container carries the volume view it started with. Without
+    # this, a container reused from an earlier run plans against a stale
+    # filesystem, sees no transcript for an episode that was transcribed
+    # since, and sends it back to the GPU to be transcribed AGAIN. The old
+    # code could not hit this because the same container that read the volume
+    # had also written it.
+    volume.reload()
+
+    collection = get_chroma_collection(
+        os.environ["CHROMA_API_KEY"],
+        os.environ["CHROMA_TENANT"],
+        os.environ["CHROMA_DATABASE"],
+    )
+
+    episodes = parse_all_episodes(feed_url)
+    print(f"Found {len(episodes)} episodes in feed.")
+
+    def read_transcript(episode: dict) -> str | None:
+        path = _transcript_path(show_name, episode)
+        if not os.path.exists(path):
+            return None
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.read()
+
+    plan = plan_show(
+        collection,
+        show=show_name,
+        episodes=episodes,
+        read_transcript=read_transcript,
+    )
+    print(f"{len(plan.to_transcribe)} to transcribe, {len(plan.to_embed)} to re-embed.")
+
+    failures = list(plan.failures)
+
+    if plan.has_work:
+        failures.extend(
+            process_episodes.remote(
+                show_name,
+                plan.to_embed,
+                plan.to_transcribe,
+            )
+        )
+    else:
+        print("Nothing to do -- no GPU container started.")
+
+    print("\nAll done.")
+
+    if failures:
+        raise RuntimeError(
+            f"{len(failures)} of {len(plan.to_transcribe) + len(plan.to_embed)} "
+            f"episodes failed:\n" + "\n".join(failures)
+        )
+
+
 @app.function(
     gpu="T4",
     timeout=7200,
@@ -181,12 +268,24 @@ def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
     },
     secrets=[modal.Secret.from_name("podcast-secrets")],
 )
-def transcribe(feed_url: str, show_name: str):
-    import whisperx
-    import requests
+def process_episodes(
+    show_name: str,
+    to_embed: list[dict],
+    to_transcribe: list[dict],
+) -> list[str]:
+    """Do the accelerator work a plan asked for. Returns the failure list.
+
+    Called only when there is work, so reaching here always justifies the
+    GPU. Returns failures rather than raising them: the caller owns the
+    show's verdict and has planning failures of its own to combine with
+    these, and an exception crossing .remote() would lose that list.
+    """
     import gc
-    from whisperx.diarize import DiarizationPipeline
+
+    import requests
+    import whisperx
     from sentence_transformers import SentenceTransformer
+    from whisperx.diarize import DiarizationPipeline
 
     hf_token = os.environ["HF_TOKEN"]
     device = "cuda"
@@ -205,121 +304,55 @@ def transcribe(feed_url: str, show_name: str):
         cache_folder=MODEL_PATH,
     )
 
-    episodes = parse_all_episodes(feed_url)
-    print(f"Found {len(episodes)} episodes in feed.")
-
-    from corpus.completeness import plan_episode
-    from corpus.identity import transcript_filename
-    from corpus.planning import Action
-
     failures: list[str] = []
 
-    plan = []
-    for episode in episodes:
-        out_path = (
-            f"{VOLUME_PATH}/"
-            f"{transcript_filename(show_name, episode['episode_number'], episode['date'])}"
-        )
+    for episode in to_embed:
+        episode_number = episode["episode_number"]
+        date_str = episode["date"]
         try:
-            text = None
-            if os.path.exists(out_path):
-                with open(out_path, encoding="utf-8", errors="replace") as fh:
-                    text = fh.read()
-            action = plan_episode(
-                collection,
-                show=show_name,
-                episode_number=episode["episode_number"],
-                date_str=episode["date"],
-                transcript_text=text,
-                # Load-bearing: without it the exclusion falls back to the
-                # triple alone and the guid arm never fires on the nightly
-                # path.
-                episode_guid=episode.get("guid"),
-            )
-        except Exception as e:
-            # A transient Chroma error on one episode used to abort the
-            # whole show's planning loop before any work was done -- the
-            # `os.path.exists` this replaced could not fail this way.
-            print(
-                f"  Failed to plan Episode {episode['episode_number']} "
-                f"({episode['date']}): {type(e).__name__}: {e}"
-            )
-            failures.append(
-                f"{show_name} ep{episode['episode_number']} "
-                f"({episode['date']}) [plan]: {e}"
-            )
-            continue
-        print(
-            f"  {action.value:12s} Episode {episode['episode_number']} ({episode['date']})"
-        )
-        if action is Action.TRANSCRIBE or action is Action.EMBED_ONLY:
-            plan.append((action, episode, out_path))
-        elif action is Action.SKIP:
-            pass  # complete and current -- nothing to do
-        elif action is Action.EXCLUDE:
-            pass  # deliberately kept out of the corpus -- see corpus/exclusions.py
-        elif action is Action.UNPARSEABLE:
-            pass  # transcript exists but parses to zero chunks -- terminal,
-            # never becomes complete, so treating it as pending would loop
-        else:
-            # A silent no-op here is the same shape as the incident's
-            # `except Exception: continue` -- work goes unreported as undone.
-            raise RuntimeError(f"unhandled Action from plan_episode: {action!r}")
-
-    pending = [(a, e, p) for a, e, p in plan if a is Action.TRANSCRIBE]
-    embed_only = [(a, e, p) for a, e, p in plan if a is Action.EMBED_ONLY]
-    print(f"{len(pending)} to transcribe, {len(embed_only)} to re-embed.")
-
-    for _action, episode, out_path in embed_only:
-        try:
-            with open(out_path, encoding="utf-8", errors="replace") as fh:
+            with open(
+                _transcript_path(show_name, episode), encoding="utf-8", errors="replace"
+            ) as fh:
                 text = fh.read()
             chunks = build_chunks_from_text(
                 text,
                 show_name,
-                episode["episode_number"],
+                episode_number,
                 episode["title"],
-                episode["date"],
+                date_str,
                 episode_guid=episode.get("guid"),
             )
-            print(
-                f"Re-embedding Episode {episode['episode_number']} from transcript..."
-            )
+            print(f"Re-embedding Episode {episode_number} from transcript...")
             embed_and_store(
                 chunks,
                 embedding_model,
                 collection,
                 show_name,
-                episode["episode_number"],
-                episode["date"],
+                episode_number,
+                date_str,
                 episode.get("guid"),
             )
         except Exception as e:
-            # No isolation here used to mean one failing re-embed (including
-            # embed_and_store's own RuntimeError on 0 chunks) propagated
-            # straight out of transcribe(), skipping every remaining
-            # EMBED_ONLY episode AND the entire transcription phase below --
-            # the exact "abort the batch over one bad item" bug scheduled_job
-            # was written to prevent one level up.
+            # One failing re-embed (including embed_and_store's own
+            # RuntimeError on 0 chunks) must not skip the remaining
+            # EMBED_ONLY episodes or the transcription phase below -- the
+            # "abort the batch over one bad item" bug, one level down.
             print(
-                f"Failed to re-embed Episode {episode['episode_number']} "
-                f"({episode['date']}): {type(e).__name__}: {e}"
+                f"Failed to re-embed Episode {episode_number} "
+                f"({date_str}): {type(e).__name__}: {e}"
             )
             failures.append(
-                f"{show_name} ep{episode['episode_number']} "
-                f"({episode['date']}) [embed_only]: {e}"
+                f"{show_name} ep{episode_number} ({date_str}) [embed_only]: {e}"
             )
             continue
 
-    if not pending and not embed_only:
-        print("Nothing to do.")
-        if failures:
-            raise RuntimeError(
-                f"{len(failures)} episodes failed:\n" + "\n".join(failures)
-            )
-        return
+    if not to_transcribe:
+        # Guarded because loading whisperx costs a large-v2 read and a VAD
+        # startup, and an embed-only run used to pay both for nothing.
+        print("No episodes to transcribe.")
+        return failures
 
-    print(f"{len(pending)} episodes to transcribe.")
+    print(f"{len(to_transcribe)} episodes to transcribe.")
     print("Loading whisperx model...")
     model = whisperx.load_model(
         "large-v2",
@@ -328,14 +361,16 @@ def transcribe(feed_url: str, show_name: str):
         download_root=MODEL_PATH,
     )
 
-    for _action, episode, out_path in pending:
+    for episode in to_transcribe:
         episode_number = episode["episode_number"]
         audio_url = episode["audio_url"]
         episode_title = episode["title"]
         date_str = episode["date"]
+        out_path = _transcript_path(show_name, episode)
 
         print(
-            f"\nProcessing: {show_name} - Episode {episode_number} - {episode_title} ({date_str})"
+            f"\nProcessing: {show_name} - Episode {episode_number} - "
+            f"{episode_title} ({date_str})"
         )
 
         try:
@@ -426,13 +461,8 @@ def transcribe(feed_url: str, show_name: str):
 
     del model
     gc.collect()
-    print("\nAll done.")
 
-    if failures:
-        raise RuntimeError(
-            f"{len(failures)} of {len(pending) + len(embed_only)} episodes "
-            f"failed:\n" + "\n".join(failures)
-        )
+    return failures
 
 
 @app.function(
