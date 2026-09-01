@@ -35,6 +35,15 @@ model can reason about whether a view is current or stale.
 | `mcp_server.py` | Modal app `podcast-mcp-server`. Serves `search_podcasts` and `latest_on_topic` over MCP's streamable HTTP transport. |
 | `upload_book.py` | One-off: chunk, embed and upload a PDF into the same collection. |
 | `migration/` | Copy a Chroma Cloud collection between databases or regions, with validation. Chroma cannot move a database's region in place, so this exists to do it as a copy-validate-cutover. |
+| `corpus/` | The pure logic: episode identity, planning, completeness, writes, exclusions, reconciliation. No Modal imports, so all of it is unit-tested. |
+
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| [`docs/corpus-integrity.md`](docs/corpus-integrity.md) | How the corpus silently lost episodes, and the six invariants that now prevent it. **Read this before changing anything in `corpus/`.** |
+| [`docs/chroma-cloud-behaviour.md`](docs/chroma-cloud-behaviour.md) | Chroma Cloud limits and semantics, all measured rather than documented — the 300-record cap and its silent form, `$eq`/`$ne` asymmetry, paging stability, metadata merge. |
+| [`docs/operations.md`](docs/operations.md) | Runbook: verifying the corpus, repairing a show, cutting over a collection, deleting records safely, pinning images. |
 
 ## Prerequisites
 
