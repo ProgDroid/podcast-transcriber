@@ -144,6 +144,18 @@ def _emb_cell(batch, idx):
     return np.asarray(embs[idx], dtype=float)
 
 
+def _self_query_ok(expected_id, hit_ids, id_map=None):
+    """Whether the destination's self-query recovered the expected record.
+
+    `hit_ids` come back in the DESTINATION id scheme. Under a re-ID, comparing
+    the raw source id against them is a guaranteed miss on a perfect
+    migration -- map the expected id through `id_map` first (falling back to
+    the bare id when there is no map, or the id isn't in it).
+    """
+    mapped = id_map.get(expected_id, expected_id) if id_map else expected_id
+    return mapped in hit_ids
+
+
 def validate_collection(
     src_col, dst_col, atol=1e-4, id_map=None, allowed_new_keys=frozenset()
 ):
@@ -243,7 +255,7 @@ def validate_collection(
                 include=["embeddings", "distances"],
             )
             hit_ids = res["ids"][0]
-            ok = last_id in hit_ids
+            ok = _self_query_ok(last_id, hit_ids, id_map)
             if not ok:
                 res_embs = res.get("embeddings")
                 if res_embs is not None and len(res_embs) and len(res_embs[0]):
@@ -256,8 +268,9 @@ def validate_collection(
             if ok:
                 print(f"  self-query: OK (recovered {last_id} or identical-vector tie)")
             else:
+                mapped = id_map.get(last_id, last_id) if id_map else last_id
                 problems.append(
-                    f"self-query failed: {last_id} not in top results {hit_ids}"
+                    f"self-query failed: {last_id} -> {mapped} not in top results {hit_ids}"
                 )
         except Exception as e:  # noqa: BLE001
             problems.append(f"self-query errored: {type(e).__name__}: {e}")
