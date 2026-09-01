@@ -78,11 +78,23 @@ def parse_all_episodes(feed_url: str):
     return episodes
 
 
-def embed_and_store(chunks: list, embedding_model, chroma_collection):
-    """Embed chunks and upsert into ChromaDB. Idempotent — safe to re-run."""
-    texts = [c["text"] for c in chunks]
-    metadatas = [c["metadata"] for c in chunks]
+def embed_and_store(
+    chunks: list,
+    embedding_model,
+    chroma_collection,
+    show: str,
+    episode_number: str,
+    date_str: str,
+    episode_guid: str | None = None,
+):
+    """Embed chunks and write them as a full replacement of the episode."""
+    from corpus.writing import upsert_then_prune
 
+    if not chunks:
+        print("  No chunks to store.")
+        return
+
+    texts = [c["text"] for c in chunks]
     print(f"  Embedding {len(texts)} chunks...")
     embeddings = embedding_model.encode(
         texts,
@@ -91,18 +103,16 @@ def embed_and_store(chunks: list, embedding_model, chroma_collection):
         normalize_embeddings=True,
     ).tolist()
 
-    ids = [
-        f"{m['show']}-ep{m['episode_number']}-{i}".replace(" ", "_")
-        for i, m in enumerate(metadatas)
-    ]
-
-    chroma_collection.upsert(
-        ids=ids,
-        embeddings=embeddings,
-        documents=texts,
-        metadatas=metadatas,
+    result = upsert_then_prune(
+        chroma_collection,
+        chunks,
+        embeddings,
+        show=show,
+        episode_number=episode_number,
+        date_str=date_str,
+        episode_guid=episode_guid,
     )
-    print(f"  Stored {len(ids)} chunks in ChromaDB.")
+    print(f"  Stored {result['written']} chunks, pruned {result['pruned']}.")
 
 
 def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
@@ -113,8 +123,11 @@ def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
         tenant=chroma_tenant,
         database=chroma_database,
     )
+    # The writer may create; the reader (mcp_server) must not -- see its
+    # get_collection call. scheduled_job spawns fresh containers nightly, so
+    # this side has no warm-container exposure.
     return client.get_or_create_collection(
-        name="podcast_transcripts",
+        name=os.environ.get("CHROMA_COLLECTION", "podcast_transcripts"),
         metadata={"hnsw:space": "cosine"},
     )
 
@@ -259,7 +272,15 @@ def transcribe(feed_url: str, show_name: str):
                 episode_title,
                 date_str,
             )
-            embed_and_store(chunks, embedding_model, collection)
+            embed_and_store(
+                chunks,
+                embedding_model,
+                collection,
+                show_name,
+                episode_number,
+                date_str,
+                episode.get("guid"),
+            )
 
             os.remove(audio_path)
 
@@ -372,7 +393,14 @@ def bulk_embed(show_name: str):
                 print(f"  No chunks parsed — skipping.")
                 continue
 
-            embed_and_store(chunks, embedding_model, collection)
+            embed_and_store(
+                chunks,
+                embedding_model,
+                collection,
+                parsed_show,
+                episode_number,
+                date_str,
+            )
 
         except Exception as e:
             print(f"Failed {filename}: {e}")
