@@ -77,11 +77,18 @@ def test_the_geopolitical_cousins_originals_are_not_excluded():
     assert not is_excluded("Geopolitical Cousins", "74", "2026-07-31")
 
 
-def test_exclusions_are_exactly_the_two_cross_posts():
+def test_exclusions_are_exactly_the_four_cross_posts():
+    # The 2026 pair fall back to "Unknown" because Captivate publishes no
+    # itunes_episode for them; the 2025 pair carry real numbers because it
+    # does. Both shapes have to survive in one list, so the literal set is
+    # asserted rather than a count -- a count would not notice a triple
+    # silently changing shape.
     assert EXCLUDED_EPISODES == frozenset(
         {
             ("The Jacob Shapiro Podcast", "Unknown", "2026-07-29"),
             ("The Jacob Shapiro Podcast", "Unknown", "2026-07-31"),
+            ("The Jacob Shapiro Podcast", "271", "2025-04-04"),
+            ("The Jacob Shapiro Podcast", "273", "2025-04-08"),
         }
     )
 

@@ -47,6 +47,25 @@ EXCLUDED: frozenset[ExcludedEpisode] = frozenset(
             "d738c6b4-cb9e-497e-995f-c106c42d9b1d",
             "cross-post of Geopolitical Cousins 74, 'Lessons Learned'",
         ),
+        # The 2025 pair. Captivate publishes an itunes_episode for these two,
+        # which is why they carry real numbers where the 2026 pair fall back to
+        # the literal "Unknown". Their Chroma records were deleted by hand on
+        # 2026-09-01 (175 and 50 records); these entries are what stops the
+        # cron restoring them the next morning.
+        ExcludedEpisode(
+            "The Jacob Shapiro Podcast",
+            "271",
+            "2025-04-04",
+            "c4af95bf-cfbc-4c0a-b4d7-2c2df77d1fe6",
+            "cross-post of Geopolitical Cousins, 'Riding on the Hog of a Fiscal Orgy'",
+        ),
+        ExcludedEpisode(
+            "The Jacob Shapiro Podcast",
+            "273",
+            "2025-04-08",
+            "3a3c0a69-ea66-46b1-a54e-7ef1ea657505",
+            "cross-post of Geopolitical Cousins, 'Let Them Drink Bleach'",
+        ),
     }
 )
 
@@ -85,11 +104,19 @@ def is_excluded(
 
     THE GUID ARM IS SCOPED BY SHOW, and that is not defensive tidiness -- an
     unscoped guid arm excluded the ORIGINALS. Every excluded episode here is a
-    CROSS-POST, and a cross-post syndicated through Captivate carries THE SAME
-    GUID as the episode it copies. So `guid in EXCLUDED_GUIDS` alone matched
-    Geopolitical Cousins 73 and 74 as well as the Jacob Shapiro copies of
-    them, and the repair run planned EXCLUDE for the two episodes this entire
-    project exists to fix. Caught only by reading a real run's plan output.
+    CROSS-POST, and a cross-post syndicated through Captivate MAY carry the
+    same guid as the episode it copies. The 2026 pair do: `guid in
+    EXCLUDED_GUIDS` alone matched Geopolitical Cousins 73 and 74 as well as
+    the Jacob Shapiro copies of them, and the repair run planned EXCLUDE for
+    the two episodes this entire project exists to fix. Caught only by reading
+    a real run's plan output.
+
+    The 2025 pair do NOT -- measured against the live feed on 2026-09-01,
+    their guids differ from their Geopolitical Cousins originals. So guid
+    sharing is a property of the individual cross-post, not of Captivate, and
+    there is no way to tell which kind you have without checking the feed.
+    That is precisely why the arm is scoped unconditionally rather than only
+    where sharing is known: the safe version does not depend on knowing.
 
     Scoping by show keeps what the arm is for -- surviving an episode_number
     backfill WITHIN a show, where the triple moves and the guid does not --
