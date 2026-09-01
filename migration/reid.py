@@ -14,6 +14,7 @@ import re
 
 import modal
 
+from corpus.feed import entry_guid
 from corpus.identity import parse_transcript_filename
 from corpus.reid_planning import build_episode_facts, enrich_metadata
 from corpus.store import BATCH, PAGE, batched
@@ -53,10 +54,8 @@ def _load_feed_guids() -> dict[tuple[str, str, str], str]:
     guids: dict[tuple[str, str, str], str] = {}
     for show, url in FEEDS.items():
         for entry in feedparser.parse(url).entries:
-            gid = entry.get("id")
-            # RSS <guid isPermaLink> defaults to true. A link-derived id is a
-            # URL, and this publisher rewrites URLs, so it is not an identity.
-            if not gid or entry.get("guidislink"):
+            gid = entry_guid(entry)
+            if not gid:
                 continue
             number = entry.get("itunes_episode")
             if number is None:

@@ -3,6 +3,7 @@ import os
 import re
 
 from corpus.chunking import build_chunks, build_chunks_from_text
+from corpus.feed import entry_guid
 
 image = (
     modal.Image.from_registry(
@@ -72,6 +73,7 @@ def parse_all_episodes(feed_url: str):
                     "episode_number": str(episode_number),
                     "audio_url": audio_url,
                     "date": date_str,
+                    "guid": entry_guid(entry),
                 }
             )
 
@@ -91,8 +93,16 @@ def embed_and_store(
     from corpus.writing import upsert_then_prune
 
     if not chunks:
-        print("  No chunks to store.")
-        return
+        # All 438 transcripts were verified to parse to at least one chunk,
+        # so zero chunks means something is wrong with the transcript, not
+        # with the episode. Leaving the old records in place is the safe
+        # direction (a superset, never a hole) -- do NOT prune against an
+        # empty set -- but this must reach the caller's failures list rather
+        # than pass silently, or "produced nothing" and "not re-embedded"
+        # become indistinguishable in the corpus.
+        raise RuntimeError(
+            "0 chunks parsed; not stored, existing records left in place"
+        )
 
     texts = [c["text"] for c in chunks]
     print(f"  Embedding {len(texts)} chunks...")
@@ -208,6 +218,8 @@ def transcribe(feed_url: str, show_name: str):
         download_root=MODEL_PATH,
     )
 
+    failures: list[str] = []
+
     for episode in pending:
         episode_number = episode["episode_number"]
         audio_url = episode["audio_url"]
@@ -288,6 +300,7 @@ def transcribe(feed_url: str, show_name: str):
                 episode_number,
                 episode_title,
                 date_str,
+                episode_guid=episode.get("guid"),
             )
             embed_and_store(
                 chunks,
@@ -302,12 +315,19 @@ def transcribe(feed_url: str, show_name: str):
             os.remove(audio_path)
 
         except Exception as e:
-            print(f"Failed Episode {episode_number}: {e}")
+            print(f"Failed Episode {episode_number}: {type(e).__name__}: {e}")
+            failures.append(f"{show_name} ep{episode_number} ({date_str}): {e}")
             continue
 
     del model
     gc.collect()
     print("\nAll done.")
+
+    if failures:
+        raise RuntimeError(
+            f"{len(failures)} of {len(pending)} episodes failed:\n"
+            + "\n".join(failures)
+        )
 
 
 @app.function(
@@ -354,6 +374,8 @@ def bulk_embed(show_name: str):
 
     print(f"Found {len(all_files)} transcripts for '{show_name}'.")
 
+    failures: list[str] = []
+
     for filename in sorted(all_files):
         # Parse show name, episode number and date from filename
         # Format: {Show Name} - Episode {N} - {YYYY-MM-DD}.txt
@@ -398,17 +420,18 @@ def bulk_embed(show_name: str):
                     episode_title = line.lstrip("# ").strip()
                     break
 
+            # bulk_embed has no feed entry in hand -- pass episode_guid=None
+            # explicitly rather than appearing to have one. Safe because
+            # upsert MERGES metadata: a guid already stamped by the
+            # migration survives a re-embed that omits it here.
             chunks = build_chunks_from_text(
                 text,
                 parsed_show,
                 episode_number,
                 episode_title,
                 date_str,
+                episode_guid=None,
             )
-
-            if not chunks:
-                print(f"  No chunks parsed — skipping.")
-                continue
 
             embed_and_store(
                 chunks,
@@ -417,13 +440,21 @@ def bulk_embed(show_name: str):
                 parsed_show,
                 episode_number,
                 date_str,
+                episode_guid=None,
             )
 
         except Exception as e:
-            print(f"Failed {filename}: {e}")
+            print(f"Failed {filename}: {type(e).__name__}: {e}")
+            failures.append(f"{filename}: {e}")
             continue
 
     print("\nBulk embed complete.")
+
+    if failures:
+        raise RuntimeError(
+            f"{len(failures)} of {len(all_files)} transcripts failed:\n"
+            + "\n".join(failures)
+        )
 
 
 @app.function(
@@ -431,18 +462,38 @@ def bulk_embed(show_name: str):
     timeout=7200,
 )
 def scheduled_job():
-    transcribe.remote(
-        feed_url="https://feeds.captivate.fm/geopolitical-cousins/",
-        show_name="Geopolitical Cousins",
-    )
-    transcribe.remote(
-        feed_url="https://feeds.captivate.fm/jacob-shapiro/",
-        show_name="The Jacob Shapiro Podcast",
-    )
-    transcribe.remote(
-        feed_url="https://api.substack.com/feed/podcast/868206/s/386602.rss",
-        show_name="The Observing Japan Podcast",
-    )
+    # `transcribe` now raises when any of its episodes failed, so these three
+    # calls must be isolated from each other. Left as bare sequential calls,
+    # one show's bad episode would abort the two shows after it -- exactly the
+    # "abort the batch over one bad item" behaviour the per-episode failure
+    # list exists to avoid, reintroduced one level up. Run all three, then
+    # fail if any did, so the run is still loudly unsuccessful.
+    shows = [
+        (
+            "https://feeds.captivate.fm/geopolitical-cousins/",
+            "Geopolitical Cousins",
+        ),
+        (
+            "https://feeds.captivate.fm/jacob-shapiro/",
+            "The Jacob Shapiro Podcast",
+        ),
+        (
+            "https://api.substack.com/feed/podcast/868206/s/386602.rss",
+            "The Observing Japan Podcast",
+        ),
+    ]
+    failures: list[str] = []
+    for feed_url, show_name in shows:
+        try:
+            transcribe.remote(feed_url=feed_url, show_name=show_name)
+        except Exception as e:
+            print(f"Show failed: {show_name}: {type(e).__name__}: {e}")
+            failures.append(f"{show_name}: {e}")
+
+    if failures:
+        raise RuntimeError(
+            f"{len(failures)} of {len(shows)} shows failed:\n" + "\n".join(failures)
+        )
 
 
 @app.local_entrypoint()
