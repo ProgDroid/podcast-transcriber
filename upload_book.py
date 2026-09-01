@@ -144,6 +144,19 @@ def main():
 
     import chromadb
 
+    from corpus.store import resolve_collection_name
+
+    # Resolved from the same podcast-secrets CHROMA_COLLECTION as
+    # transcribe.py and mcp_server.py -- a hardcoded literal here would keep
+    # writing to the old collection after cutover (invisible to the reader),
+    # and after the old collection is eventually deleted would silently
+    # CREATE a fresh empty one, the exact phantom-collection failure
+    # resolve_collection_name and get_collection both exist to prevent.
+    name = resolve_collection_name(
+        os.environ.get("CHROMA_COLLECTION", "podcast_transcripts")
+    )
+    print(f"Writing to collection: {name}")
+
     print("Connecting to ChromaDB...")
     client = chromadb.CloudClient(
         tenant=CHROMA_TENANT,
@@ -151,7 +164,7 @@ def main():
         api_key=CHROMA_API_KEY,
     )
     collection = client.get_or_create_collection(
-        name="podcast_transcripts",  # same collection as podcasts
+        name=name,
         metadata={"hnsw:space": "cosine"},
     )
     print("Connected.")

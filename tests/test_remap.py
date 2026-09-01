@@ -1,0 +1,128 @@
+# tests/test_remap.py
+from corpus.remap import remap_id
+
+
+def test_podcast_record_is_remapped_with_the_date_inserted():
+    meta = {
+        "show": "Geopolitical Cousins",
+        "episode_number": "73",
+        "date": "2026-07-29",
+    }
+    result = remap_id("Geopolitical_Cousins-ep73-17", meta)
+    assert result.new_id == "Geopolitical_Cousins-ep73-2026-07-29-17"
+    assert result.classification == "remapped"
+
+
+def test_the_two_episode_243s_stop_colliding():
+    a = remap_id(
+        "The_Jacob_Shapiro_Podcast-ep243-0",
+        {
+            "show": "The Jacob Shapiro Podcast",
+            "episode_number": "243",
+            "date": "2024-11-07",
+        },
+    )
+    b = remap_id(
+        "The_Jacob_Shapiro_Podcast-ep243-0",
+        {
+            "show": "The Jacob Shapiro Podcast",
+            "episode_number": "243",
+            "date": "2024-11-08",
+        },
+    )
+    assert a.new_id != b.new_id
+
+
+def test_book_records_pass_through_untouched():
+    # upload_book.py writes Geopolitical_Alpha-p{n}; these ids are already
+    # unique and carry no episode concept. Applying the podcast scheme to
+    # them would corrupt them.
+    meta = {"show": "Geopolitical Alpha", "episode_number": "N/A", "date": "2021-01-01"}
+    result = remap_id("Geopolitical_Alpha-p179", meta)
+    assert result.new_id == "Geopolitical_Alpha-p179"
+    assert result.classification == "passthrough_non_episode"
+
+
+def test_book_records_with_a_chunk_index_are_recognised_by_source_not_id_shape():
+    # Production regression: upload_book.py's real id shape is
+    # {title}-p{page}-{i} (a page number AND a chunk index), which matches
+    # _OLD_ID_RE, and its metadata reuses the episode fields ("so filters
+    # work consistently") -- show=title, episode_number="N/A",
+    # date="2021-01-01". Before the source check, this landed in
+    # passthrough_unmatched (the alarm class for an id that disagrees with
+    # its metadata) even though nothing was wrong with the record. The dry
+    # run against production caught this: all 191 book records misclassified.
+    meta = {
+        "source": "book",
+        "show": "Geopolitical Alpha",
+        "episode_number": "N/A",
+        "date": "2021-01-01",
+    }
+    result = remap_id("Geopolitical_Alpha-p42-17", meta)
+    assert result.new_id == "Geopolitical_Alpha-p42-17"
+    assert result.classification == "passthrough_non_episode"
+
+
+def test_source_podcast_is_still_remapped():
+    # Pins that the rule keys on the VALUE of source, not merely its
+    # presence -- an episode record that explicitly declares source="podcast"
+    # must still go through the normal remap.
+    meta = {
+        "source": "podcast",
+        "show": "Geopolitical Cousins",
+        "episode_number": "73",
+        "date": "2026-07-29",
+    }
+    result = remap_id("Geopolitical_Cousins-ep73-17", meta)
+    assert result.new_id == "Geopolitical_Cousins-ep73-2026-07-29-17"
+    assert result.classification == "remapped"
+
+
+def test_an_id_whose_metadata_does_not_reconstruct_it_passes_through():
+    # Never guess. If the id and the metadata disagree, leave it alone and
+    # let reconciliation report it.
+    meta = {"show": "Some Other Show", "episode_number": "9", "date": "2025-01-01"}
+    result = remap_id("Geopolitical_Cousins-ep73-17", meta)
+    assert result.new_id == "Geopolitical_Cousins-ep73-17"
+    assert result.classification == "passthrough_unmatched"
+
+
+def test_an_already_migrated_id_is_left_alone():
+    meta = {
+        "show": "Geopolitical Cousins",
+        "episode_number": "73",
+        "date": "2026-07-29",
+    }
+    new = "Geopolitical_Cousins-ep73-2026-07-29-17"
+    result = remap_id(new, meta)
+    assert result.new_id == new
+    assert result.classification == "remapped"
+
+
+def test_missing_metadata_keys_pass_through():
+    assert remap_id("Whatever-ep1-0", {}).classification == "passthrough_unmatched"
+
+
+def test_old_and_new_scheme_ids_can_never_collide():
+    # Old ids end in an integer; new ids end in YYYY-MM-DD-{int}. This is what
+    # makes a mixed-scheme corpus safe during the migration.
+    meta = {"show": "Show", "episode_number": "1", "date": "2025-01-01"}
+    old = {f"Show-ep1-{i}" for i in range(200)}
+    new = {remap_id(f"Show-ep1-{i}", meta).new_id for i in range(200)}
+    assert old & new == set()
+
+
+def test_the_books_show_name_alone_does_not_exempt_a_record():
+    # The exemption is keyed on `source`, never on the book's title. A record
+    # carrying the book's show name but no `source` key, whose id reconstructs
+    # from its own metadata, is an ordinary episode record and must be
+    # remapped. Without this, a title-keyed implementation passes every other
+    # test in this file -- verified by mutation, not assumed.
+    meta = {
+        "show": "Geopolitical Alpha",
+        "episode_number": "3",
+        "date": "2025-05-05",
+    }
+    result = remap_id("Geopolitical_Alpha-ep3-9", meta)
+    assert result.new_id == "Geopolitical_Alpha-ep3-2025-05-05-9"
+    assert result.classification == "remapped"

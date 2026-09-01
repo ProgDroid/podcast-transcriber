@@ -2,22 +2,29 @@ import modal
 import os
 import re
 
+from corpus.chunking import build_chunks, build_chunks_from_text
+from corpus.feed import entry_guid
+from corpus.store import episode_where, is_complete, paged_get_ids
+
 image = (
     modal.Image.from_registry(
         "nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04", add_python="3.12"
     )
     .apt_install("git")
     .pip_install(
-        "torch", "torchaudio", extra_index_url="https://download.pytorch.org/whl/cu128"
+        "torch==2.8.0",
+        "torchaudio==2.8.0",
+        extra_index_url="https://download.pytorch.org/whl/cu128",
     )
     .apt_install("ffmpeg")
     .pip_install(
-        "whisperx",
-        "feedparser",
-        "requests",
-        "sentence-transformers",
-        "chromadb",
+        "whisperx==3.8.5",
+        "feedparser==6.0.12",
+        "requests==2.33.1",
+        "sentence-transformers==5.4.1",
+        "chromadb==1.5.9",
     )
+    .add_local_python_source("corpus")
 )
 
 app = modal.App("podcast-transcriber", image=image)
@@ -27,10 +34,6 @@ model_cache = modal.Volume.from_name("whisperx-model-cache", create_if_missing=T
 
 VOLUME_PATH = "/transcripts"
 MODEL_PATH = "/models"
-
-# Max words per chunk — BGE large handles 512 tokens, ~400 words is a safe proxy
-MAX_CHUNK_WORDS = 400
-CHUNK_OVERLAP_WORDS = 50
 
 
 def parse_all_episodes(feed_url: str):
@@ -73,106 +76,43 @@ def parse_all_episodes(feed_url: str):
                     "episode_number": str(episode_number),
                     "audio_url": audio_url,
                     "date": date_str,
+                    "guid": entry_guid(entry),
                 }
             )
 
     return episodes
 
 
-def build_chunks(
-    segments: list,
-    show_name: str,
+def embed_and_store(
+    chunks: list,
+    embedding_model,
+    chroma_collection,
+    show: str,
     episode_number: str,
-    episode_title: str,
     date_str: str,
+    episode_guid: str | None = None,
 ):
-    """
-    Group consecutive segments from the same speaker into chunks,
-    splitting at MAX_CHUNK_WORDS. Overlaps the last CHUNK_OVERLAP_WORDS
-    words into the next chunk for context continuity.
-    """
-    chunks = []
-    current_speaker = None
-    current_words = []
-    current_start = 0.0
+    """Embed chunks and write them as a full replacement of the episode.
 
-    def flush_chunk(speaker, words, start):
-        if not words:
-            return
-        text = " ".join(words)
-        chunks.append(
-            {
-                "text": f"[{speaker}] {text}",
-                "metadata": {
-                    "show": show_name,
-                    "episode_number": episode_number,
-                    "episode_title": episode_title,
-                    "date": date_str,
-                    "speaker": speaker,
-                    "start_time": start,
-                    "date_ts": int(date_str.replace("-", ""))
-                    if date_str != "Unknown Date"
-                    else 0,
-                },
-            }
+    Replacement is of the chunk SET, not of each record: upsert merges
+    metadata, so a key on the old record that the new one omits survives.
+    See corpus/writing.py's module docstring.
+    """
+    from corpus.writing import upsert_then_prune
+
+    if not chunks:
+        # All 438 transcripts were verified to parse to at least one chunk,
+        # so zero chunks means something is wrong with the transcript, not
+        # with the episode. Leaving the old records in place is the safe
+        # direction (a superset, never a hole) -- do NOT prune against an
+        # empty set -- but this must reach the caller's failures list rather
+        # than pass silently, or "produced nothing" and "not re-embedded"
+        # become indistinguishable in the corpus.
+        raise RuntimeError(
+            "0 chunks parsed; not stored, existing records left in place"
         )
 
-    for segment in segments:
-        speaker = segment.get("speaker", "UNKNOWN")
-        text = segment.get("text", "").strip()
-        start = segment.get("start", 0.0)
-        words = text.split()
-
-        if speaker != current_speaker and current_words:
-            flush_chunk(current_speaker, current_words, current_start)
-            current_words = current_words[-CHUNK_OVERLAP_WORDS:]
-            current_start = start
-
-        if not current_words:
-            current_start = start
-
-        current_speaker = speaker
-        current_words.extend(words)
-
-        while len(current_words) >= MAX_CHUNK_WORDS:
-            flush_chunk(current_speaker, current_words[:MAX_CHUNK_WORDS], current_start)
-            current_words = current_words[-CHUNK_OVERLAP_WORDS:]
-            current_start = start
-
-    flush_chunk(current_speaker, current_words, current_start)
-    return chunks
-
-
-def build_chunks_from_text(
-    text: str, show_name: str, episode_number: str, episode_title: str, date_str: str
-):
-    """
-    Parse a saved transcript text file into chunks.
-    Handles the [SPEAKER_XX] timestamp format written by the transcribe function.
-    """
-    segments = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        # Format: [SPEAKER_00] 12.3s - Some text here
-        m = re.match(r"\[([^\]]+)\]\s+([\d.]+)s\s+-\s+(.*)", line)
-        if m:
-            segments.append(
-                {
-                    "speaker": m.group(1),
-                    "start": float(m.group(2)),
-                    "text": m.group(3),
-                }
-            )
-    return build_chunks(segments, show_name, episode_number, episode_title, date_str)
-
-
-def embed_and_store(chunks: list, embedding_model, chroma_collection):
-    """Embed chunks and upsert into ChromaDB. Idempotent — safe to re-run."""
     texts = [c["text"] for c in chunks]
-    metadatas = [c["metadata"] for c in chunks]
-
     print(f"  Embedding {len(texts)} chunks...")
     embeddings = embedding_model.encode(
         texts,
@@ -181,30 +121,53 @@ def embed_and_store(chunks: list, embedding_model, chroma_collection):
         normalize_embeddings=True,
     ).tolist()
 
-    ids = [
-        f"{m['show']}-ep{m['episode_number']}-{i}".replace(" ", "_")
-        for i, m in enumerate(metadatas)
-    ]
-
-    chroma_collection.upsert(
-        ids=ids,
-        embeddings=embeddings,
-        documents=texts,
-        metadatas=metadatas,
+    result = upsert_then_prune(
+        chroma_collection,
+        chunks,
+        embeddings,
+        show=show,
+        episode_number=episode_number,
+        date_str=date_str,
+        episode_guid=episode_guid,
     )
-    print(f"  Stored {len(ids)} chunks in ChromaDB.")
+    print(f"  Stored {result['written']} chunks, pruned {result['pruned']}.")
 
 
 def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
     import chromadb
+
+    from corpus.store import resolve_collection_name
+
+    # Resolved and validated BEFORE the client is constructed: a bad secret
+    # should not cost a client construction and an auth round-trip on its way
+    # to failing. resolve_collection_name refuses an unreviewed name rather
+    # than letting get_or_create_collection silently provision a phantom
+    # collection -- both transcribe and bulk_embed mount the same secret, so
+    # one unreviewed key in the Modal dashboard would otherwise repoint every
+    # nightly write with no code diff and no error at either end.
+    name = resolve_collection_name(
+        os.environ.get("CHROMA_COLLECTION", "podcast_transcripts")
+    )
+    print(f"Writing to collection: {name}")
 
     client = chromadb.CloudClient(
         api_key=chroma_api_key,
         tenant=chroma_tenant,
         database=chroma_database,
     )
+    # mcp_server.py (the reader) now calls get_collection (fail if absent),
+    # not get_or_create_collection -- it IS the "must not create" reader this
+    # comment used to say a later task would produce. The load-bearing fact:
+    # it reads CHROMA_COLLECTION from the same podcast-secrets secret as
+    # resolve_collection_name above, so writer and reader can no longer
+    # diverge -- a cutover moves both sides atomically via one secret edit,
+    # not a code change on one side. Anyone relying on "the reader only
+    # changes by code review" is mistaken. The reader has no allowlist of its
+    # own (its brief scoped that out; see mcp_server.py::load), which is fine
+    # here specifically because that shared trigger makes divergence, not an
+    # unreviewed name, the failure this needs to guard against.
     return client.get_or_create_collection(
-        name="podcast_transcripts",
+        name=name,
         metadata={"hnsw:space": "cosine"},
     )
 
@@ -245,18 +208,115 @@ def transcribe(feed_url: str, show_name: str):
     episodes = parse_all_episodes(feed_url)
     print(f"Found {len(episodes)} episodes in feed.")
 
-    pending = []
-    for episode in episodes:
-        out_path = f"{VOLUME_PATH}/{show_name} - Episode {episode['episode_number']} - {episode['date']}.txt"
-        if os.path.exists(out_path):
-            print(
-                f"Skipping Episode {episode['episode_number']} — already transcribed."
-            )
-        else:
-            pending.append(episode)
+    from corpus.completeness import plan_episode
+    from corpus.identity import transcript_filename
+    from corpus.planning import Action
 
-    if not pending:
-        print("All episodes already transcribed.")
+    failures: list[str] = []
+
+    plan = []
+    for episode in episodes:
+        out_path = (
+            f"{VOLUME_PATH}/"
+            f"{transcript_filename(show_name, episode['episode_number'], episode['date'])}"
+        )
+        try:
+            text = None
+            if os.path.exists(out_path):
+                with open(out_path, encoding="utf-8", errors="replace") as fh:
+                    text = fh.read()
+            action = plan_episode(
+                collection,
+                show=show_name,
+                episode_number=episode["episode_number"],
+                date_str=episode["date"],
+                transcript_text=text,
+                # Load-bearing: without it the exclusion falls back to the
+                # triple alone and the guid arm never fires on the nightly
+                # path.
+                episode_guid=episode.get("guid"),
+            )
+        except Exception as e:
+            # A transient Chroma error on one episode used to abort the
+            # whole show's planning loop before any work was done -- the
+            # `os.path.exists` this replaced could not fail this way.
+            print(
+                f"  Failed to plan Episode {episode['episode_number']} "
+                f"({episode['date']}): {type(e).__name__}: {e}"
+            )
+            failures.append(
+                f"{show_name} ep{episode['episode_number']} "
+                f"({episode['date']}) [plan]: {e}"
+            )
+            continue
+        print(
+            f"  {action.value:12s} Episode {episode['episode_number']} ({episode['date']})"
+        )
+        if action is Action.TRANSCRIBE or action is Action.EMBED_ONLY:
+            plan.append((action, episode, out_path))
+        elif action is Action.SKIP:
+            pass  # complete and current -- nothing to do
+        elif action is Action.EXCLUDE:
+            pass  # deliberately kept out of the corpus -- see corpus/exclusions.py
+        elif action is Action.UNPARSEABLE:
+            pass  # transcript exists but parses to zero chunks -- terminal,
+            # never becomes complete, so treating it as pending would loop
+        else:
+            # A silent no-op here is the same shape as the incident's
+            # `except Exception: continue` -- work goes unreported as undone.
+            raise RuntimeError(f"unhandled Action from plan_episode: {action!r}")
+
+    pending = [(a, e, p) for a, e, p in plan if a is Action.TRANSCRIBE]
+    embed_only = [(a, e, p) for a, e, p in plan if a is Action.EMBED_ONLY]
+    print(f"{len(pending)} to transcribe, {len(embed_only)} to re-embed.")
+
+    for _action, episode, out_path in embed_only:
+        try:
+            with open(out_path, encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+            chunks = build_chunks_from_text(
+                text,
+                show_name,
+                episode["episode_number"],
+                episode["title"],
+                episode["date"],
+                episode_guid=episode.get("guid"),
+            )
+            print(
+                f"Re-embedding Episode {episode['episode_number']} from transcript..."
+            )
+            embed_and_store(
+                chunks,
+                embedding_model,
+                collection,
+                show_name,
+                episode["episode_number"],
+                episode["date"],
+                episode.get("guid"),
+            )
+        except Exception as e:
+            # No isolation here used to mean one failing re-embed (including
+            # embed_and_store's own RuntimeError on 0 chunks) propagated
+            # straight out of transcribe(), skipping every remaining
+            # EMBED_ONLY episode AND the entire transcription phase below --
+            # the exact "abort the batch over one bad item" bug scheduled_job
+            # was written to prevent one level up.
+            print(
+                f"Failed to re-embed Episode {episode['episode_number']} "
+                f"({episode['date']}): {type(e).__name__}: {e}"
+            )
+            failures.append(
+                f"{show_name} ep{episode['episode_number']} "
+                f"({episode['date']}) [embed_only]: {e}"
+            )
+            continue
+
+    if not pending and not embed_only:
+        print("Nothing to do.")
+        if failures:
+            raise RuntimeError(
+                f"{len(failures)} episodes failed:\n" + "\n".join(failures)
+            )
         return
 
     print(f"{len(pending)} episodes to transcribe.")
@@ -268,14 +328,11 @@ def transcribe(feed_url: str, show_name: str):
         download_root=MODEL_PATH,
     )
 
-    for episode in pending:
+    for _action, episode, out_path in pending:
         episode_number = episode["episode_number"]
         audio_url = episode["audio_url"]
         episode_title = episode["title"]
         date_str = episode["date"]
-        out_path = (
-            f"{VOLUME_PATH}/{show_name} - Episode {episode_number} - {date_str}.txt"
-        )
 
         print(
             f"\nProcessing: {show_name} - Episode {episode_number} - {episode_title} ({date_str})"
@@ -348,18 +405,34 @@ def transcribe(feed_url: str, show_name: str):
                 episode_number,
                 episode_title,
                 date_str,
+                episode_guid=episode.get("guid"),
             )
-            embed_and_store(chunks, embedding_model, collection)
+            embed_and_store(
+                chunks,
+                embedding_model,
+                collection,
+                show_name,
+                episode_number,
+                date_str,
+                episode.get("guid"),
+            )
 
             os.remove(audio_path)
 
         except Exception as e:
-            print(f"Failed Episode {episode_number}: {e}")
+            print(f"Failed Episode {episode_number}: {type(e).__name__}: {e}")
+            failures.append(f"{show_name} ep{episode_number} ({date_str}): {e}")
             continue
 
     del model
     gc.collect()
     print("\nAll done.")
+
+    if failures:
+        raise RuntimeError(
+            f"{len(failures)} of {len(pending) + len(embed_only)} episodes "
+            f"failed:\n" + "\n".join(failures)
+        )
 
 
 @app.function(
@@ -406,6 +479,8 @@ def bulk_embed(show_name: str):
 
     print(f"Found {len(all_files)} transcripts for '{show_name}'.")
 
+    failures: list[str] = []
+
     for filename in sorted(all_files):
         # Parse show name, episode number and date from filename
         # Format: {Show Name} - Episode {N} - {YYYY-MM-DD}.txt
@@ -417,22 +492,6 @@ def bulk_embed(show_name: str):
         parsed_show = m.group(1)
         episode_number = m.group(2)
         date_str = m.group(3)
-
-        # Check if already in ChromaDB by looking for any chunk with this episode ID prefix
-        existing = collection.get(
-            where={
-                "$and": [
-                    {"show": {"$eq": parsed_show}},
-                    {"episode_number": {"$eq": episode_number}},
-                ]
-            },
-            limit=1,
-        )
-        if existing["ids"]:
-            print(f"Skipping Episode {episode_number} — already in ChromaDB.")
-            continue
-
-        print(f"\nEmbedding: {filename}")
 
         try:
             file_path = f"{VOLUME_PATH}/{filename}"
@@ -450,25 +509,53 @@ def bulk_embed(show_name: str):
                     episode_title = line.lstrip("# ").strip()
                     break
 
+            # bulk_embed has no feed entry in hand -- pass episode_guid=None
+            # explicitly rather than appearing to have one. Safe because
+            # upsert MERGES metadata: a guid already stamped by the
+            # migration survives a re-embed that omits it here.
             chunks = build_chunks_from_text(
                 text,
                 parsed_show,
                 episode_number,
                 episode_title,
                 date_str,
+                episode_guid=None,
             )
 
-            if not chunks:
-                print(f"  No chunks parsed — skipping.")
+            # Root cause 1's third mechanism, verbatim: a bare presence
+            # check "matches the first member of a colliding group and skips
+            # the rest." A torn episode with one surviving chunk also read
+            # as healthy. is_complete compares the full stored id count
+            # against this episode's own expected chunk count instead.
+            stored_ids = paged_get_ids(
+                collection, episode_where(parsed_show, episode_number, date_str)
+            )
+            if is_complete(stored_ids, len(chunks)):
+                print(f"Skipping Episode {episode_number} — already complete.")
                 continue
 
-            embed_and_store(chunks, embedding_model, collection)
+            embed_and_store(
+                chunks,
+                embedding_model,
+                collection,
+                parsed_show,
+                episode_number,
+                date_str,
+                episode_guid=None,
+            )
 
         except Exception as e:
-            print(f"Failed {filename}: {e}")
+            print(f"Failed {filename}: {type(e).__name__}: {e}")
+            failures.append(f"{filename}: {e}")
             continue
 
     print("\nBulk embed complete.")
+
+    if failures:
+        raise RuntimeError(
+            f"{len(failures)} of {len(all_files)} transcripts failed:\n"
+            + "\n".join(failures)
+        )
 
 
 @app.function(
@@ -476,18 +563,38 @@ def bulk_embed(show_name: str):
     timeout=7200,
 )
 def scheduled_job():
-    transcribe.remote(
-        feed_url="https://feeds.captivate.fm/geopolitical-cousins/",
-        show_name="Geopolitical Cousins",
-    )
-    transcribe.remote(
-        feed_url="https://feeds.captivate.fm/jacob-shapiro/",
-        show_name="The Jacob Shapiro Podcast",
-    )
-    transcribe.remote(
-        feed_url="https://api.substack.com/feed/podcast/868206/s/386602.rss",
-        show_name="The Observing Japan Podcast",
-    )
+    # `transcribe` now raises when any of its episodes failed, so these three
+    # calls must be isolated from each other. Left as bare sequential calls,
+    # one show's bad episode would abort the two shows after it -- exactly the
+    # "abort the batch over one bad item" behaviour the per-episode failure
+    # list exists to avoid, reintroduced one level up. Run all three, then
+    # fail if any did, so the run is still loudly unsuccessful.
+    shows = [
+        (
+            "https://feeds.captivate.fm/geopolitical-cousins/",
+            "Geopolitical Cousins",
+        ),
+        (
+            "https://feeds.captivate.fm/jacob-shapiro/",
+            "The Jacob Shapiro Podcast",
+        ),
+        (
+            "https://api.substack.com/feed/podcast/868206/s/386602.rss",
+            "The Observing Japan Podcast",
+        ),
+    ]
+    failures: list[str] = []
+    for feed_url, show_name in shows:
+        try:
+            transcribe.remote(feed_url=feed_url, show_name=show_name)
+        except Exception as e:
+            print(f"Show failed: {show_name}: {type(e).__name__}: {e}")
+            failures.append(f"{show_name}: {e}")
+
+    if failures:
+        raise RuntimeError(
+            f"{len(failures)} of {len(shows)} shows failed:\n" + "\n".join(failures)
+        )
 
 
 @app.local_entrypoint()

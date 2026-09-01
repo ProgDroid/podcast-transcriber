@@ -11,15 +11,15 @@ def download_bge_model():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
-        "torch",
+        "torch==2.11.0+cu128",
         extra_index_url="https://download.pytorch.org/whl/cu128",
     )
     .pip_install(
-        "sentence-transformers",
-        "chromadb",
-        "fastapi",
-        "mcp",
-        "starlette",
+        "sentence-transformers==5.4.1",
+        "chromadb==1.5.9",
+        "fastapi==0.136.1",
+        "mcp==1.27.0",
+        "starlette==1.0.0",
     )
     .run_function(download_bge_model)
 )
@@ -49,10 +49,23 @@ class PodcastSearch:
             database=os.environ["CHROMA_DATABASE"],
             api_key=os.environ["CHROMA_API_KEY"],
         )
-        self.collection = self.chroma_client.get_or_create_collection(
-            name="podcast_transcripts",
-            metadata={"hnsw:space": "cosine"},
-        )
+        # CHROMA_COLLECTION is read from the podcast-secrets Modal secret, the
+        # same one transcribe.py's get_chroma_collection reads. That is
+        # deliberate: sharing one variable makes writer/reader divergence
+        # (writer moves to podcast_transcripts_v2, reader stays on
+        # podcast_transcripts, new episodes go silently unsearchable)
+        # impossible by construction -- both sides move together or neither
+        # does. It also means a cutover is a secret edit, not a code change,
+        # and the visible tell is n_chunks/episode_guid starting to appear in
+        # search output (see the output block below).
+        collection_name = os.environ.get("CHROMA_COLLECTION", "podcast_transcripts")
+        print(f"Reading from collection: {collection_name}")
+        # get_collection, NOT get_or_create_collection. All three call sites
+        # used get-or-create, so a typo at cutover would silently create an
+        # empty third collection and make search_podcasts return
+        # "No results found." instead of erroring. The reader must fail loudly;
+        # the writer may still create.
+        self.collection = self.chroma_client.get_collection(name=collection_name)
         print("Ready.")
 
     @modal.method()
@@ -108,6 +121,10 @@ class PodcastSearch:
                     "date": meta.get("date"),
                     "speaker": meta.get("speaker"),
                     "start_time": meta.get("start_time"),
+                    # Cutover tell: populated proves v2, None proves v1 or a
+                    # stale warm container. Kept permanently.
+                    "n_chunks": meta.get("n_chunks"),
+                    "episode_guid": meta.get("episode_guid"),
                     "relevance_score": round(1 - dist, 3),
                 }
             )

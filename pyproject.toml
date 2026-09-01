@@ -1,0 +1,71 @@
+[project]
+name = "podcast-transcriber"
+version = "0.1.0"
+description = "Serverless podcast transcription and semantic search on Modal"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.14",
+    "mypy>=1.13",
+    # Task 6's tests import migration/chroma_migrate.py, which does
+    # `import numpy as np` at module scope (chroma_migrate.py:17) and needs a
+    # real Collection surface. Without these the test file fails collection.
+    "numpy>=2.0",
+    "chromadb==1.5.9",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["corpus", "tests"]
+# Excluded by name, not scoped by an include glob: new files must be covered
+# by default, or a later task's module gets silently skipped while ruff still
+# reports success.
+#
+# docs/ is excluded because `ruff format` (0.16.5) really does reformat fenced
+# Python blocks inside Markdown, and on THIS repo's own plan file the rewrite
+# is not cosmetic: `uv run ruff format` on a byte-identical scratch copy of
+# docs/superpowers/plans/2026-08-31-corpus-integrity.md, diffed with line
+# endings ignored (`diff --strip-trailing-cr`), shows dozens of real content
+# hunks -- multi-line calls collapsed onto one line, split string literals
+# joined, and one fenced block (around the metadata-mismatch snippet) losing
+# its indentation entirely because the fence's content isn't valid standalone
+# Python on its own. The plans and specs under docs/ are the source of truth
+# for the remaining tasks and are not ruff's to rewrite.
+#
+# The .py files below predate this work and carry 23 pre-existing violations
+# that are not this project's to fix.
+extend-exclude = [
+    "docs/",
+    "transcribe.py",
+    "mcp_server.py",
+    "upload_book.py",
+    "migration/chroma_migrate.py",
+    "migration/migrate.py",
+    "migration/validate.py",
+    "migration/selftest.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+
+[tool.ruff.lint.isort]
+# Without this, isort can't tell `corpus` apart from a third-party package
+# and merges it into the same import group as `pytest`.
+known-first-party = ["corpus"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["corpus", "tests"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "migration.*"
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

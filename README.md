@@ -55,9 +55,16 @@ modal secret create podcast-secrets \
   CHROMA_API_KEY=<your chroma api key> \
   CHROMA_TENANT=<your chroma tenant uuid> \
   CHROMA_DATABASE=<your chroma database name> \
+  CHROMA_COLLECTION=<your collection name> \
   HF_TOKEN=<your huggingface token> \
   MCP_ALLOWED_HOST=<filled in after the first deploy, see below>
 ```
+
+`CHROMA_COLLECTION` names the collection both apps use — the writer in
+`transcribe.py` and the reader in `mcp_server.py`. It is a **shared** variable
+on purpose: pointing the two halves at different collections is the failure it
+exists to prevent, and a cutover is then a single edit rather than two edits
+that must agree. It defaults to `podcast_transcripts` if unset.
 
 `MCP_ALLOWED_HOST` is required and there is a deliberate chicken-and-egg to it:
 it must equal the hostname clients actually connect to, which you only learn
@@ -91,6 +98,30 @@ clients connect to.
 by the presence or absence of a `cloud_host` argument, so to target a different
 region you pass `cloud_host=<region host>` explicitly. There is no in-place
 region change in Chroma Cloud; see `migration/` if you need to move one.
+
+### Cutover
+
+Moving to a new collection — after a migration, say — means changing
+`CHROMA_COLLECTION` in the secret and redeploying both apps. Three things about
+that are worth knowing before you do it.
+
+**A wrong name fails loudly.** The reader calls `get_collection`, not
+`get_or_create_collection`. A typo raises instead of silently creating an empty
+collection and serving zero results, which is the same symptom as a broken
+query and considerably harder to diagnose.
+
+**`n_chunks` in a search result is the version tell.** It is written by the
+current schema and absent from pre-migration records, and the reader passes it
+through with no default — so a result carrying `n_chunks` came from the new
+collection and one without it did not. That gives you a check that does not
+depend on trusting the deploy.
+
+**A warm container must be cycled, not waited out.** A container that entered
+`load()` before the cutover holds a `Collection` handle bound to the old
+collection. That handle has no name to re-resolve, so nothing raises and
+`get_collection` does not help: it keeps serving the old data correctly and
+silently, for as long as the container lives. Stop the app (`modal app stop
+podcast-mcp-server`) and redeploy rather than assuming traffic has drained.
 
 ## Authentication
 

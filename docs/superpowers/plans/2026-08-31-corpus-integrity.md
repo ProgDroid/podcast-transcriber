@@ -933,18 +933,21 @@ def decide_action(
     have transcripts on the volume and are incomplete in Chroma, so any later
     branch would re-embed them -- reverting an approved deletion every night.
 
-    UNPARSEABLE is terminal rather than EMBED_ONLY because an episode that
-    cannot produce chunks can never become complete, so treating it as
-    incomplete would re-embed it forever. Measured: 0 of 438 transcripts
-    currently parse to zero chunks, but a total state machine is not the same
-    as one no current input breaks.
+    transcript_exists is checked before parses_to_chunks: UNPARSEABLE means
+    "a transcript exists on disk that will never produce chunks" and is
+    terminal precisely because such an episode can never become complete, so
+    treating it as incomplete would re-embed it forever. That reasoning
+    presupposes a transcript exists to have failed parsing. If no transcript
+    exists at all, the correct action is TRANSCRIBE, not mark it terminal.
+    Measured: 0 of 438 transcripts currently parse to zero chunks, but a total
+    state machine is not the same as one no current input breaks.
     """
     if excluded:
         return Action.EXCLUDE
-    if not parses_to_chunks:
-        return Action.UNPARSEABLE
     if not transcript_exists:
         return Action.TRANSCRIBE
+    if not parses_to_chunks:
+        return Action.UNPARSEABLE
     if not complete_in_chroma:
         return Action.EMBED_ONLY
     if stored_rules_version != RULES_VERSION:

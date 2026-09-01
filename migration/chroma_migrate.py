@@ -43,16 +43,30 @@ def get_collection_readonly(client, name):
     return client.get_collection(name=name, embedding_function=None)
 
 
-def create_dest_collection(dst_client, src_col):
+def create_dest_collection(dst_client, src_col, dest_name=None):
     """
     Reproduce the source collection on the destination.
+
+    `dest_name` defaults to the source's name, which is correct for a
+    DB-to-DB copy. For a SAME-DATABASE re-ID it must be given: without it the
+    name already exists on the "destination" (it is the source), the resume
+    branch below hands back the SOURCE COLLECTION ITSELF, and the copy
+    silently upserts v1 into v1 and reports success.
+
+    There is deliberately no programmatic guard against that. The obvious one
+    -- comparing `dst_client` against `src_col._client` -- is inert on
+    chromadb 1.5.9, where `Client.get_collection` constructs
+    `Collection(client=self._server, ...)`, so `_client` is the ServerAPI and
+    never the CloudClient the caller holds. A guard that is always False is
+    worse than none, because it reads as protection. The caller is responsible
+    for passing a `dest_name` that differs from the source.
 
     Resume-safe: if it already exists on the destination (a re-run), reuse it.
     Otherwise copy the schema wholesale so distance space / index enablement /
     key-specific + sparse indexes carry over. Falls back to metadata-based
     creation if this build/collection predates the Schema API.
     """
-    name = src_col.name
+    name = dest_name or src_col.name
     existing = {c.name for c in dst_client.list_collections()}
     if name in existing:
         print(f"  [dest] collection '{name}' already exists - reusing (resume).")
@@ -130,12 +144,34 @@ def _emb_cell(batch, idx):
     return np.asarray(embs[idx], dtype=float)
 
 
-def validate_collection(src_col, dst_col, atol=1e-4):
+def _self_query_ok(expected_id, hit_ids, id_map=None):
+    """Whether the destination's self-query recovered the expected record.
+
+    `hit_ids` come back in the DESTINATION id scheme. Under a re-ID, comparing
+    the raw source id against them is a guaranteed miss on a perfect
+    migration -- map the expected id through `id_map` first (falling back to
+    the bare id when there is no map, or the id isn't in it).
+    """
+    mapped = id_map.get(expected_id, expected_id) if id_map else expected_id
+    return mapped in hit_ids
+
+
+def validate_collection(
+    src_col, dst_col, atol=1e-4, id_map=None, allowed_new_keys=frozenset()
+):
     """
     Full validation gate. Returns a list of problem strings (empty == clean).
     Compares counts, schema (best-effort), then every source id's document,
     metadata, uri and embedding against the destination, and finishes with an
     index self-query.
+
+    `id_map` maps source id -> destination id, for a migration that re-IDs.
+    Without it, destination lookups use source ids and every record of a
+    re-IDed copy reports missing.
+
+    `allowed_new_keys` are metadata keys the destination may carry that the
+    source does not. Every other key must match exactly, and a key present in
+    both must have the same value.
     """
     problems = []
 
@@ -170,17 +206,30 @@ def validate_collection(src_col, dst_col, atol=1e-4):
         ids = b["ids"]
         if not ids:
             break
-        d = dst_col.get(ids=ids, include=INCLUDE)
+        d_ids = [id_map.get(i, i) for i in ids] if id_map else ids
+        d = dst_col.get(ids=d_ids, include=INCLUDE)
         d_index = {i: k for k, i in enumerate(d["ids"])}
         for k, _id in enumerate(ids):
-            if _id not in d_index:
-                problems.append(f"missing id in dst: {_id}")
+            mapped = id_map.get(_id, _id) if id_map else _id
+            if mapped not in d_index:
+                problems.append(f"missing id in dst: {_id} -> {mapped}")
                 continue
-            j = d_index[_id]
+            j = d_index[mapped]
             if _cell(b, "documents", k) != _cell(d, "documents", j):
                 problems.append(f"document mismatch: {_id}")
-            if _cell(b, "metadatas", k) != _cell(d, "metadatas", j):
-                problems.append(f"metadata mismatch: {_id}")
+            s_meta = _cell(b, "metadatas", k) or {}
+            d_meta = _cell(d, "metadatas", j) or {}
+            extra = set(d_meta) - set(s_meta) - set(allowed_new_keys)
+            missing = set(s_meta) - set(d_meta)
+            changed = {
+                key for key in set(s_meta) & set(d_meta) if s_meta[key] != d_meta[key]
+            }
+            if extra or missing or changed:
+                problems.append(
+                    f"metadata mismatch for {_id}: "
+                    f"extra={sorted(extra)} missing={sorted(missing)} "
+                    f"changed={sorted(changed)}"
+                )
             if _cell(b, "uris", k) != _cell(d, "uris", j):
                 problems.append(f"uri mismatch: {_id}")
             se = _emb_cell(b, k)
@@ -206,7 +255,7 @@ def validate_collection(src_col, dst_col, atol=1e-4):
                 include=["embeddings", "distances"],
             )
             hit_ids = res["ids"][0]
-            ok = last_id in hit_ids
+            ok = _self_query_ok(last_id, hit_ids, id_map)
             if not ok:
                 res_embs = res.get("embeddings")
                 if res_embs is not None and len(res_embs) and len(res_embs[0]):
@@ -219,8 +268,9 @@ def validate_collection(src_col, dst_col, atol=1e-4):
             if ok:
                 print(f"  self-query: OK (recovered {last_id} or identical-vector tie)")
             else:
+                mapped = id_map.get(last_id, last_id) if id_map else last_id
                 problems.append(
-                    f"self-query failed: {last_id} not in top results {hit_ids}"
+                    f"self-query failed: {last_id} -> {mapped} not in top results {hit_ids}"
                 )
         except Exception as e:  # noqa: BLE001
             problems.append(f"self-query errored: {type(e).__name__}: {e}")

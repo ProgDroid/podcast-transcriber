@@ -34,3 +34,6 @@ Thumbs.db
 
 # Local tool state
 .serena/
+
+# SDD scratch workspace (ledger, briefs, review packages) -- regenerable
+.superpowers/
