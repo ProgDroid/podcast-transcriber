@@ -226,3 +226,23 @@ def test_resolve_collection_name_rejects_an_unreviewed_name():
     # not be silently provisioned by get_or_create_collection.
     with pytest.raises(ValueError):
         resolve_collection_name("podcast_transcript")  # missing the 's'
+
+
+def test_delete_by_ids_above_the_cap_raises_and_leaves_the_count_unchanged(collection):
+    # Measured on Cloud: an ids= delete over 300 raises, atomically -- the
+    # count is unchanged after, not partially reduced. Pinning this so a
+    # later edit can't quietly drop the cap or make the reject non-atomic.
+    _seed(collection, "gc73", 5)
+    with pytest.raises(ChromaQuotaError):
+        collection.delete(ids=[f"x-{i}" for i in range(301)])
+    assert collection.count() == 5
+
+
+def test_delete_by_where_above_the_cap_succeeds(collection):
+    # Measured on Cloud: delete(where=) is NOT capped -- 400 records matched
+    # by a filter all get removed. The cap counts records named in the
+    # request, not records affected. Pinning this so the fake doesn't drift
+    # stricter than Cloud and start failing correct code.
+    _seed(collection, "big", 400)
+    collection.delete(where=episode_where(*TRIPLE))
+    assert collection.count() == 0

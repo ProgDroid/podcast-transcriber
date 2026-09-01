@@ -213,6 +213,62 @@ def test_prune_by_guid_reaches_records_backfilled_to_a_different_triple(collecti
     assert len(paged_get_ids(collection, episode_where(SHOW, EP, DATE))) == 20
 
 
+def test_different_shows_same_episode_number_and_date_are_never_confused(collection):
+    # Two feeds publishing on the same date is routine, and five episodes
+    # carry the literal "Unknown" episode number -- episode_number and date
+    # alone are not enough to key a prune; `show` must always be in it too.
+    _write_triple(collection, "Geopolitical Cousins", "1", "2020-06-15", 10)
+    _write_triple(collection, "The Jacob Shapiro Podcast", "1", "2020-06-15", 8)
+    assert (
+        len(
+            paged_get_ids(
+                collection, episode_where("Geopolitical Cousins", "1", "2020-06-15")
+            )
+        )
+        == 10
+    )
+    assert (
+        len(
+            paged_get_ids(
+                collection,
+                episode_where("The Jacob Shapiro Podcast", "1", "2020-06-15"),
+            )
+        )
+        == 8
+    )
+
+
+def test_a_write_at_the_books_own_triple_never_prunes_the_book(collection):
+    # Reproduces the destroying case directly: something writes at the exact
+    # triple upload_book.py's records occupy. Even though nothing in the
+    # pipeline can produce that triple today (transcribe.py's sentinel is
+    # "Unknown", never "N/A", and parse_transcript_filename's episode-number
+    # group can't match "N/A"), the guard must hold regardless of triple --
+    # "unguarded but unreachable" is exactly the shape this branch keeps
+    # finding one task later.
+    upsert_then_prune(
+        collection,
+        _book_chunks(191),
+        _embeddings(191),
+        show=BOOK_SHOW,
+        episode_number=BOOK_EP,
+        date_str=BOOK_DATE,
+        episode_guid=None,
+    )
+    result = upsert_then_prune(
+        collection,
+        _chunks_for(BOOK_SHOW, BOOK_EP, BOOK_DATE, 1),
+        _embeddings(1),
+        show=BOOK_SHOW,
+        episode_number=BOOK_EP,
+        date_str=BOOK_DATE,
+        episode_guid=None,
+    )
+    assert result["pruned"] == 0
+    book_ids = paged_get_ids(collection, episode_where(BOOK_SHOW, BOOK_EP, BOOK_DATE))
+    assert len(book_ids) == 191
+
+
 def test_prune_by_guid_never_crosses_a_show_boundary(collection):
     # A guid is only unique WITHIN a feed. Geopolitical Cousins 73 was
     # cross-posted (different guid) but a shared guid on a different show is

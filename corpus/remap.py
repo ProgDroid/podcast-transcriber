@@ -40,10 +40,23 @@ class RemapResult(NamedTuple):
     classification: str
 
 
+def is_non_episode(metadata: dict) -> bool:
+    """Whether this record's `source` marks it as not a podcast chunk.
+
+    Keyed on the VALUE of `source`, not merely its presence -- an episode
+    record that explicitly declares `source="podcast"` is still an episode.
+    Episode records never write a `source` field at all (see
+    corpus/chunking.py), so "source present and not 'podcast'" is
+    unambiguous today and stays correct if a future uploader adds its own
+    `source`.
+    """
+    source = metadata.get("source")
+    return source is not None and source != "podcast"
+
+
 def remap_id(old_id: str, metadata: dict) -> RemapResult:
     """Compute this record's id under the new scheme."""
-    source = metadata.get("source")
-    if source is not None and source != "podcast":
+    if is_non_episode(metadata):
         # Checked before the id-shape gate: a non-episode record (e.g. the
         # book) can carry any id shape, including one that happens to match
         # the old episode pattern.
