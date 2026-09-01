@@ -1,5 +1,14 @@
 """Full-replacement episode writes.
 
+"Full replacement" is a claim about the episode's CHUNK SET, not about an
+individual record. The set is replaced exactly: every chunk is upserted and
+every id the episode no longer occupies is pruned. But Chroma's upsert MERGES
+a record's metadata rather than overwriting it, so a key present on the old
+record and absent from the new one SURVIVES. That is relied upon rather than
+worked around -- it is how records written before a field existed acquire it
+without a backfill -- but it means a metadata key can never be removed by
+rewriting the episode, only by deleting the record.
+
 UPSERT FIRST, THEN PRUNE -- not delete-then-upsert. A new episode's delete
 matches nothing so the trickle case has no window either way, but a
 full-archive re-embed opens one destructive window per healthy episode. And
@@ -76,6 +85,17 @@ def upsert_then_prune(
     # UNION, never "guid if present else triple". Every record written before
     # the migration is triple-keyed with no guid, so a guid-only prune matches
     # nothing and strands the entire old record set.
+    #
+    # The triple arm is deliberately NOT restricted to "guid absent or mine".
+    # That restriction would protect against pruning a DIFFERENT episode that
+    # happens to share this triple -- but such an episode cannot be
+    # distinguished here anyway, because episode_id_prefix is keyed on exactly
+    # this triple (corpus/identity.py), so both episodes generate identical
+    # chunk ids and the second write overwrites the first before any prune
+    # runs. Adding the guid restriction would convert a deterministic
+    # overwrite into stranded orphans without preventing the collision. The
+    # collision is an ID-SCHEME problem, and it has to be fixed there or not
+    # at all.
     existing, non_episode = _matched_ids_and_non_episode_ids(
         collection, episode_where(show, episode_number, date_str)
     )

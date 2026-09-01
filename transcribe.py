@@ -92,7 +92,12 @@ def embed_and_store(
     date_str: str,
     episode_guid: str | None = None,
 ):
-    """Embed chunks and write them as a full replacement of the episode."""
+    """Embed chunks and write them as a full replacement of the episode.
+
+    Replacement is of the chunk SET, not of each record: upsert merges
+    metadata, so a key on the old record that the new one omits survives.
+    See corpus/writing.py's module docstring.
+    """
     from corpus.writing import upsert_then_prune
 
     if not chunks:

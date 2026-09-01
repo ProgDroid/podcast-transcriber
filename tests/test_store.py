@@ -96,6 +96,31 @@ def test_no_records_is_not_complete():
     assert not is_complete([], 431)
 
 
+def test_a_correct_count_at_the_wrong_indices_is_not_complete():
+    # The one shape a count check and reconcile's contiguity check disagree
+    # on: three records for a three-chunk episode, but stored at indices
+    # 1..3 rather than 0..2. A count check calls this complete, so the
+    # planner SKIPs it and it is never repaired -- while reconciliation
+    # reports it as non-contiguous on every run, forever. Chunk 0 is simply
+    # absent from the corpus and nothing ever puts it back.
+    assert not is_complete(["a-1", "a-2", "a-3"], 3)
+
+
+def test_a_gap_in_the_middle_is_not_complete():
+    # Same count, same first index, still missing a chunk.
+    assert not is_complete(["a-0", "a-1", "a-3"], 3)
+
+
+def test_an_id_without_an_integer_suffix_is_not_complete():
+    # Cannot be a member of range(n), so it cannot help satisfy coverage.
+    assert not is_complete(["a-0", "a-1", "a-two"], 3)
+
+
+def test_exact_index_coverage_is_complete():
+    # Order is not significant -- Chroma does not promise one.
+    assert is_complete(["a-2", "a-0", "a-1"], 3)
+
+
 def test_absent_expected_count_is_not_complete():
     # Pre-migration records carry no n_chunks. Treating that as satisfied
     # would mean old episodes are never completeness-checked at all.

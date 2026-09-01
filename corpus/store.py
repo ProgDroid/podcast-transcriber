@@ -117,7 +117,33 @@ def is_complete(stored_ids: list[str], expected_n_chunks: int | None) -> bool:
     A missing expected count means a pre-migration record, which is treated as
     INCOMPLETE. The alternative reading -- absent means satisfied -- would mean
     old episodes are never completeness-checked at all.
+
+    THIS CHECKS WHICH INDICES ARE PRESENT, not how many records there are.
+    A count check and reconcile's contiguity check disagree on exactly one
+    shape: an episode whose ids are contiguous but START ABOVE ZERO -- say
+    chunks 5..435 of a 431-chunk episode. The count matches, so a count check
+    calls it complete, the planner SKIPs it, and it is never repaired; while
+    reconciliation, which checks indices, reports it as a fault every single
+    run. A permanent disagreement between the repairer and the auditor is
+    worse than either verdict alone, because neither side ever converges.
+
+    Requiring the index set to equal range(n) settles it in the auditor's
+    favour. Over-count stays incomplete -- orphans from a longer previous
+    version must still trigger the prune, which is what
+    test_an_over_count_is_not_complete pins -- so this is strictly stricter
+    than the count check it replaces, never looser. An id whose suffix is not
+    an integer cannot be part of range(n) and so reads as incomplete.
+
+    Measured at the time of the change: reconciliation reported
+    NON_CONTIGUOUS (0) across 29160 records, so no episode in the corpus is
+    affected today. This is a net, not a repair.
     """
     if expected_n_chunks is None:
         return False
-    return len(stored_ids) == expected_n_chunks
+    indices = set()
+    for stored_id in stored_ids:
+        _, _, suffix = stored_id.rpartition("-")
+        if not suffix.isdigit():
+            return False
+        indices.add(int(suffix))
+    return indices == set(range(expected_n_chunks))
