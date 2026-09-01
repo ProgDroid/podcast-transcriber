@@ -110,6 +110,48 @@ def test_an_excluded_episode_is_never_reported_as_missing():
     ) not in report.missing
 
 
+def test_a_torn_episode_with_a_contiguous_prefix_is_reported_incomplete():
+    # Indices 0..299 of an expected 431 -- contiguous, so non_contiguous
+    # stays silent, and something is present, so missing stays silent too.
+    # incomplete is the only field whose job this is.
+    key = ("Geopolitical Cousins", "73", "2026-07-29")
+    records = [
+        (
+            f"Geopolitical_Cousins-ep73-2026-07-29-{i}",
+            {
+                "show": key[0],
+                "episode_number": key[1],
+                "date": key[2],
+                "n_chunks": 431,
+            },
+        )
+        for i in range(300)
+    ]
+    report = reconcile(VOL, records, FEED)
+    assert key in report.incomplete
+    assert key not in report.non_contiguous
+    assert key not in report.missing
+    assert report.is_clean() is False
+
+
+def test_a_complete_episode_with_n_chunks_is_not_reported_incomplete():
+    key = ("Geopolitical Cousins", "73", "2026-07-29")
+    records = _records(key, "Geopolitical_Cousins-ep73-2026-07-29", range(3))
+    records = [(rid, {**meta, "n_chunks": 3}) for rid, meta in records]
+    report = reconcile(VOL, records, FEED)
+    assert key not in report.incomplete
+
+
+def test_a_record_with_no_n_chunks_is_never_reported_incomplete():
+    # Pre-migration records carry no n_chunks at all. Absent must read as
+    # "cannot verify", not as a mismatch -- these must never appear here,
+    # no matter how few chunks are stored.
+    key = ("Geopolitical Cousins", "73", "2026-07-29")
+    records = _records(key, "Geopolitical_Cousins-ep73-2026-07-29", [0])
+    report = reconcile(VOL, records, FEED)
+    assert key not in report.incomplete
+
+
 def test_a_shared_id_prefix_is_reported():
     records = [
         ("Show-ep1-0", {"show": "A", "episode_number": "1", "date": "2025-01-01"}),
@@ -138,6 +180,7 @@ _FAULT_FIELD_VALUES = {
     "non_contiguous": [("A", "1", "2025-01-01")],
     "shared_prefixes": ["A-ep1"],
     "excluded_with_records": [("A", "1", "2025-01-01")],
+    "incomplete": [("A", "1", "2025-01-01")],
 }
 
 

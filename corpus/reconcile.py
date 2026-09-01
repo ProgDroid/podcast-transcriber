@@ -25,6 +25,14 @@ class ReconcileReport:
     shared_prefixes: list[str] = field(default_factory=list)
     excluded_with_records: list[Key] = field(default_factory=list)
     feed_unreachable: list[Key] = field(default_factory=list)
+    # An episode whose stored id count disagrees with the `n_chunks` recorded
+    # in its own metadata -- the torn-episode case that neither `missing`
+    # (something is there) nor `non_contiguous` (a prefix like 0..299 of an
+    # expected 431 IS contiguous) can catch. A record with no `n_chunks` key
+    # (everything written before the migration) contributes nothing here --
+    # absent means "cannot verify", never a mismatch, so pre-migration
+    # episodes are silently exempt rather than false-flagged.
+    incomplete: list[Key] = field(default_factory=list)
     # NEVER POPULATED TODAY. `reconcile()` only ever sees (show,
     # episode_number, date) triples -- no episode titles reach it from the
     # volume, Chroma or the feeds -- and cross-post detection needs a fuzzy
@@ -46,6 +54,7 @@ class ReconcileReport:
             or self.non_contiguous
             or self.shared_prefixes
             or self.excluded_with_records
+            or self.incomplete
         )
 
 
@@ -60,6 +69,9 @@ def reconcile(
     by_key: dict[Key, list[str]] = defaultdict(list)
     prefixes: dict[str, set[Key]] = defaultdict(set)
     excluded_present: set[Key] = set()
+    # Only ever set from a record that HAS the field -- a key with no entry
+    # here means "no record carried n_chunks", i.e. cannot verify, not zero.
+    expected_n_chunks: dict[Key, int] = {}
 
     for record_id, meta in chroma_records:
         # upload_book.py's records reuse episode-shaped metadata fields
@@ -77,6 +89,10 @@ def reconcile(
         date_str = cast(str, meta.get("date"))
         key: Key = (show, episode_number, date_str)
         by_key[key].append(record_id)
+
+        n_chunks = meta.get("n_chunks")
+        if isinstance(n_chunks, int):
+            expected_n_chunks[key] = n_chunks
 
         # An excluded episode that came back under a BACKFILLED
         # episode_number no longer matches the triple; is_excluded's guid
@@ -97,6 +113,9 @@ def reconcile(
     report.excluded_with_records = sorted(excluded_present)
     report.feed_unreachable = sorted(volume_keys - feed_keys)
     report.shared_prefixes = sorted(p for p, keys in prefixes.items() if len(keys) > 1)
+    report.incomplete = sorted(
+        key for key, n in expected_n_chunks.items() if len(by_key[key]) != n
+    )
 
     for key, ids in by_key.items():
         indices = sorted(

@@ -74,6 +74,8 @@ def run() -> None:
     # Never call get() unlimited -- it silently truncates at 300 on Cloud.
     # reconcile() itself filters out non-episode (book) records via
     # corpus.remap.is_non_episode, so paging in everything is safe here.
+    # include=["metadatas"] is load-bearing beyond show/episode_number/date:
+    # reconcile()'s `incomplete` check reads n_chunks off the same metadata.
     records = []
     offset = 0
     while True:
@@ -92,6 +94,7 @@ def run() -> None:
         "shared_prefixes",
         "excluded_with_records",
         "feed_unreachable",
+        "incomplete",
     ):
         values = getattr(report, name)
         print(f"\n{name.upper()} ({len(values)}):")
