@@ -82,7 +82,28 @@ def is_excluded(
 
     CALLERS MUST PASS episode_guid WHERE THEY HAVE ONE. An arm that no live
     path reaches is not protection, it is decoration.
+
+    THE GUID ARM IS SCOPED BY SHOW, and that is not defensive tidiness -- an
+    unscoped guid arm excluded the ORIGINALS. Every excluded episode here is a
+    CROSS-POST, and a cross-post syndicated through Captivate carries THE SAME
+    GUID as the episode it copies. So `guid in EXCLUDED_GUIDS` alone matched
+    Geopolitical Cousins 73 and 74 as well as the Jacob Shapiro copies of
+    them, and the repair run planned EXCLUDE for the two episodes this entire
+    project exists to fix. Caught only by reading a real run's plan output.
+
+    Scoping by show keeps what the arm is for -- surviving an episode_number
+    backfill WITHIN a show, where the triple moves and the guid does not --
+    while making it structurally impossible to reach the other feed. This is
+    the same correction Task 8 applied to the prune's guid arm, which was
+    likewise unscoped and likewise crossed a show boundary.
     """
-    if episode_guid is not None and episode_guid in EXCLUDED_GUIDS:
-        return True
-    return (show, episode_number, date_str) in EXCLUDED_EPISODES
+    for excluded in EXCLUDED:
+        if (
+            episode_guid is not None
+            and excluded.guid == episode_guid
+            and excluded.show == show
+        ):
+            return True
+        if excluded.triple == (show, episode_number, date_str):
+            return True
+    return False

@@ -110,3 +110,24 @@ def test_guid_arm_does_not_over_match():
     assert not is_excluded(
         "Geopolitical Cousins", "73", "2026-07-29", episode_guid="some-other-guid"
     )
+
+
+def test_the_guid_arm_never_excludes_the_original_it_was_cross_posted_from():
+    # THE BUG THIS PINS, found by reading a real repair run's plan output.
+    # Every excluded episode is a CROSS-POST, and a cross-post syndicated
+    # through Captivate carries THE SAME GUID as the episode it copies. An
+    # unscoped guid arm therefore matched Geopolitical Cousins 73 itself --
+    # the 431-chunk episode this whole project exists to repair -- and the
+    # repair run planned EXCLUDE for it and for 74.
+    #
+    # test_guid_arm_does_not_over_match cannot catch this: it passes a guid
+    # that is not in EXCLUDED_GUIDS at all, so it never exercises the arm.
+    shared_guid = "1c45dbd9-0dc3-4d07-b2d1-758fe78405fe"
+    assert not is_excluded(
+        "Geopolitical Cousins", "73", "2026-07-29", episode_guid=shared_guid
+    )
+    # ...while the cross-post itself is still excluded by that same guid,
+    # so the arm is scoped, not disabled.
+    assert is_excluded(
+        "The Jacob Shapiro Podcast", "Unknown", "2026-07-29", episode_guid=shared_guid
+    )
