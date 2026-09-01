@@ -97,7 +97,12 @@ def upsert_then_prune(
 
     # A non-episode record (e.g. upload_book.py's book chunks) can share this
     # exact triple or guid by construction -- see corpus/remap.py's docstring
-    # -- and must never be pruned just because it isn't in `new_ids`.
+    # -- and must never be pruned just because it isn't in `new_ids`. Cost of
+    # that guard: any record stamping a `source` other than "podcast" becomes
+    # permanently un-prunable by this function, forever -- accepted, because
+    # the alternative is the 191-record book destruction this guard exists
+    # to prevent, and an un-prunable stray record is recoverable by hand
+    # while a wrongly deleted corpus is not.
     to_prune = [i for i in stale_ids(existing, new_ids) if i not in non_episode]
     for batch in batched(to_prune, BATCH):
         collection.delete(ids=batch)

@@ -1,6 +1,6 @@
 import math
 
-from corpus.store import BATCH, episode_where, paged_get_ids
+from corpus.store import BATCH, batched, episode_where, paged_get_ids
 from corpus.writing import upsert_then_prune
 
 SHOW, EP, DATE = "Geopolitical Cousins", "73", "2026-07-29"
@@ -10,9 +10,10 @@ SHOW, EP, DATE = "Geopolitical Cousins", "73", "2026-07-29"
 # episodes -- the field values below are its BOOK_TITLE, its sentinel
 # episode_number, and its publication-year date, not made up for this test.
 BOOK_SHOW, BOOK_EP, BOOK_DATE = "Geopolitical Alpha", "N/A", "2021-01-01"
+BOOK_AUTHOR = "Marko Papic"
 
 
-def _chunks_for(show, ep, date, n, speaker="SPEAKER_00", guid=None):
+def _chunks_for(show, ep, date, n, speaker="SPEAKER_00", guid=None, source=None):
     out = []
     for i in range(n):
         meta = {
@@ -24,30 +25,57 @@ def _chunks_for(show, ep, date, n, speaker="SPEAKER_00", guid=None):
         }
         if guid:
             meta["episode_guid"] = guid
+        if source:
+            meta["source"] = source
         out.append({"text": f"[{speaker}] chunk {i}", "metadata": meta})
     return out
 
 
-def _chunks(n, speaker="SPEAKER_00", guid=None):
-    return _chunks_for(SHOW, EP, DATE, n, speaker=speaker, guid=guid)
+def _chunks(n, speaker="SPEAKER_00", guid=None, source=None):
+    return _chunks_for(SHOW, EP, DATE, n, speaker=speaker, guid=guid, source=source)
 
 
-def _book_chunks(n):
-    out = []
+def _seed_book(collection, n, guid=None):
+    """Seed book records with upload_book.py's REAL id shape and metadata
+    (upload_book.py:71-89, 104-105), not `upsert_then_prune`'s episode-shaped
+    ids.
+
+    Seeding through `upsert_then_prune` (as rounds 1-2 did) builds ids from
+    `chunk_id`/`episode_id_prefix` -- an episode-shaped id, never the book's
+    real `{title}-p{page}-{i}`. A later write at the book's own triple then
+    silently COLLIDES with book chunk 0 and overwrites its document via
+    upsert's merge semantics, while an id-COUNT assertion stays green and
+    never notices. Real ids can't collide with an episode-shaped write, so
+    this is what actually reproduces the hazard -- and lets a test assert on
+    documents, not just how many ids exist.
+    """
+    ids, documents, metadatas = [], [], []
     for i in range(n):
-        out.append(
-            {
-                "text": f"book chunk {i}",
-                "metadata": {
-                    "source": "book",
-                    "show": BOOK_SHOW,
-                    "episode_number": BOOK_EP,
-                    "date": BOOK_DATE,
-                    "n_chunks": n,
-                },
-            }
+        meta = {
+            "source": "book",
+            "title": BOOK_SHOW,
+            "author": BOOK_AUTHOR,
+            "date": BOOK_DATE,
+            "date_ts": 20210101,
+            "page": i,
+            "show": BOOK_SHOW,
+            "episode_number": BOOK_EP,
+            "episode_title": BOOK_SHOW,
+            "speaker": BOOK_AUTHOR,
+            "start_time": float(i),
+        }
+        if guid:
+            meta["episode_guid"] = guid
+        ids.append(f"{BOOK_SHOW.replace(' ', '_')}-p{i}-{i}")
+        documents.append(f"book chunk {i}")
+        metadatas.append(meta)
+    for batch in batched(list(range(n))):
+        collection.upsert(
+            ids=[ids[i] for i in batch],
+            documents=[documents[i] for i in batch],
+            metadatas=[metadatas[i] for i in batch],
         )
-    return out
+    return ids, documents
 
 
 def _embeddings(n):
@@ -160,18 +188,11 @@ def test_a_normal_episode_write_never_touches_the_book(collection):
     # A normal podcast write is at a completely different triple; confirm the
     # triple scoping alone is sufficient to leave the book alone, with no
     # source/id-shape check needed in upsert_then_prune.
-    upsert_then_prune(
-        collection,
-        _book_chunks(191),
-        _embeddings(191),
-        show=BOOK_SHOW,
-        episode_number=BOOK_EP,
-        date_str=BOOK_DATE,
-        episode_guid=None,
-    )
+    book_ids, book_documents = _seed_book(collection, 191)
     _write(collection, 20)
-    book_ids = paged_get_ids(collection, episode_where(BOOK_SHOW, BOOK_EP, BOOK_DATE))
-    assert len(book_ids) == 191
+    stored = collection.get(ids=book_ids, include=["documents"])
+    assert stored["ids"] == book_ids
+    assert stored["documents"] == book_documents
     assert len(paged_get_ids(collection, episode_where(SHOW, EP, DATE))) == 20
 
 
@@ -245,16 +266,10 @@ def test_a_write_at_the_books_own_triple_never_prunes_the_book(collection):
     # "Unknown", never "N/A", and parse_transcript_filename's episode-number
     # group can't match "N/A"), the guard must hold regardless of triple --
     # "unguarded but unreachable" is exactly the shape this branch keeps
-    # finding one task later.
-    upsert_then_prune(
-        collection,
-        _book_chunks(191),
-        _embeddings(191),
-        show=BOOK_SHOW,
-        episode_number=BOOK_EP,
-        date_str=BOOK_DATE,
-        episode_guid=None,
-    )
+    # finding one task later. Real book ids (see _seed_book) never collide
+    # with the new write's episode-shaped ids, so every book document must
+    # come back byte-for-byte unchanged, not merely still present.
+    book_ids, book_documents = _seed_book(collection, 191)
     result = upsert_then_prune(
         collection,
         _chunks_for(BOOK_SHOW, BOOK_EP, BOOK_DATE, 1),
@@ -265,8 +280,63 @@ def test_a_write_at_the_books_own_triple_never_prunes_the_book(collection):
         episode_guid=None,
     )
     assert result["pruned"] == 0
-    book_ids = paged_get_ids(collection, episode_where(BOOK_SHOW, BOOK_EP, BOOK_DATE))
-    assert len(book_ids) == 191
+    stored = collection.get(ids=book_ids, include=["documents"])
+    assert stored["ids"] == book_ids
+    assert stored["documents"] == book_documents
+
+
+def test_prune_never_strands_a_non_episode_record_reached_only_via_guid(collection):
+    # The non-episode guard is checked on BOTH arms of the union. A book-like
+    # record can carry an episode_guid and the writing show, at a DIFFERENT
+    # triple, and be reachable ONLY through the guid arm -- the triple arm
+    # never sees it at all. The guard must hold there too, not just on the
+    # triple arm.
+    non_episode_id = "some-other-source-record-0"
+    collection.upsert(
+        ids=[non_episode_id],
+        documents=["not an episode"],
+        metadatas=[
+            {
+                "source": "book",
+                "show": SHOW,
+                "episode_number": "other",
+                "date": "1999-01-01",
+                "episode_guid": "shared-guid",
+            }
+        ],
+    )
+    result = _write(collection, 5, guid="shared-guid")
+    assert result["pruned"] == 0
+    stored = collection.get(ids=[non_episode_id], include=["documents"])
+    assert stored["documents"] == ["not an episode"]
+
+
+def test_source_podcast_is_pruned_normally_on_a_shrinking_re_embed(collection):
+    # is_non_episode keys on the VALUE of `source`, not merely its presence
+    # (test_remap.py::test_source_podcast_is_still_remapped pins this on the
+    # migration side already) -- an episode record explicitly declaring
+    # source="podcast" must still be pruned normally here on the write path,
+    # the only other consumer of the shared predicate.
+    upsert_then_prune(
+        collection,
+        _chunks_for(SHOW, EP, DATE, 431, source="podcast"),
+        _embeddings(431),
+        show=SHOW,
+        episode_number=EP,
+        date_str=DATE,
+        episode_guid=None,
+    )
+    result = upsert_then_prune(
+        collection,
+        _chunks_for(SHOW, EP, DATE, 300, speaker="Jacob Shapiro", source="podcast"),
+        _embeddings(300),
+        show=SHOW,
+        episode_number=EP,
+        date_str=DATE,
+        episode_guid=None,
+    )
+    assert result["pruned"] == 131
+    assert len(paged_get_ids(collection, episode_where(SHOW, EP, DATE))) == 300
 
 
 def test_prune_by_guid_never_crosses_a_show_boundary(collection):
