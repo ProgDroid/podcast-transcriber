@@ -111,17 +111,32 @@ def run(dry_run: bool = True):
 
     if dry_run:
         counts: dict[str, int] = {}
+        unmatched_sample: list[tuple[str, list[str]]] = []
         offset = 0
         while offset < total:
             page = src.get(limit=PAGE, offset=offset, include=["metadatas"])
             if not page["ids"]:
                 break
             for _id, meta in zip(page["ids"], page["metadatas"], strict=True):
-                counts[remap_id(_id, meta).classification] = (
-                    counts.get(remap_id(_id, meta).classification, 0) + 1
-                )
+                classification = remap_id(_id, meta).classification
+                counts[classification] = counts.get(classification, 0) + 1
+                if (
+                    classification == "passthrough_unmatched"
+                    and len(unmatched_sample) < 5
+                ):
+                    unmatched_sample.append((_id, sorted(meta.keys())))
             offset += len(page["ids"])
         print("classification:", counts)
+        if unmatched_sample:
+            # An id that disagrees with its own metadata is genuinely
+            # unpredicted by the spec -- print enough to diagnose it without
+            # a second investigation: the id itself plus which metadata
+            # fields it carries (not the values, which may be long or
+            # sensitive).
+            n_unmatched = counts["passthrough_unmatched"]
+            print(f"passthrough_unmatched sample (up to 5 of {n_unmatched}):")
+            for sample_id, keys in unmatched_sample:
+                print(f"   {sample_id}  keys={keys}")
         print("DRY RUN -- nothing written.")
         return
 

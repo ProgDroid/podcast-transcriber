@@ -43,6 +43,41 @@ def test_book_records_pass_through_untouched():
     assert result.classification == "passthrough_non_episode"
 
 
+def test_book_records_with_a_chunk_index_are_recognised_by_source_not_id_shape():
+    # Production regression: upload_book.py's real id shape is
+    # {title}-p{page}-{i} (a page number AND a chunk index), which matches
+    # _OLD_ID_RE, and its metadata reuses the episode fields ("so filters
+    # work consistently") -- show=title, episode_number="N/A",
+    # date="2021-01-01". Before the source check, this landed in
+    # passthrough_unmatched (the alarm class for an id that disagrees with
+    # its metadata) even though nothing was wrong with the record. The dry
+    # run against production caught this: all 191 book records misclassified.
+    meta = {
+        "source": "book",
+        "show": "Geopolitical Alpha",
+        "episode_number": "N/A",
+        "date": "2021-01-01",
+    }
+    result = remap_id("Geopolitical_Alpha-p42-17", meta)
+    assert result.new_id == "Geopolitical_Alpha-p42-17"
+    assert result.classification == "passthrough_non_episode"
+
+
+def test_source_podcast_is_still_remapped():
+    # Pins that the rule keys on the VALUE of source, not merely its
+    # presence -- an episode record that explicitly declares source="podcast"
+    # must still go through the normal remap.
+    meta = {
+        "source": "podcast",
+        "show": "Geopolitical Cousins",
+        "episode_number": "73",
+        "date": "2026-07-29",
+    }
+    result = remap_id("Geopolitical_Cousins-ep73-17", meta)
+    assert result.new_id == "Geopolitical_Cousins-ep73-2026-07-29-17"
+    assert result.classification == "remapped"
+
+
 def test_an_id_whose_metadata_does_not_reconstruct_it_passes_through():
     # Never guess. If the id and the metadata disagree, leave it alone and
     # let reconciliation report it.

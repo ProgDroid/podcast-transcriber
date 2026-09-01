@@ -17,8 +17,14 @@ def test_facts_carry_expected_chunk_count_and_guid():
     assert facts[KEY]["episode_guid"] == "guid-abc"
 
 
-def test_chunk_count_comes_from_the_transcript_not_from_stored_records():
-    # Counting stored records would freeze a torn episode as complete.
+def test_absent_guid_does_not_affect_the_chunk_count():
+    # build_episode_facts has no stored-records input at all -- the
+    # transcript-not-stored-records property that matters is enforced one
+    # layer down, in count_chunks_from_text (which only ever sees the
+    # transcript text) and in migration/reid.py's run() (which reads
+    # transcripts fresh off the volume rather than counting anything in
+    # Chroma). This test only pins that n_chunks is unaffected by whether a
+    # guid was found.
     facts = build_episode_facts({KEY: TRANSCRIPT}, {})
     assert facts[KEY]["n_chunks"] == 2
 
