@@ -147,12 +147,12 @@ def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
         tenant=chroma_tenant,
         database=chroma_database,
     )
-    # mcp_server.py (the reader) also calls get_or_create_collection today,
-    # against a hardcoded name with no allowlist of its own -- it is not yet
-    # the "must not create" reader this comment used to claim. A later task
-    # switches it to get_collection (fail if absent) as part of the reviewed
-    # cutover; until then, scheduled_job spawning fresh containers nightly
-    # just means this side has no warm-container exposure to worry about.
+    # mcp_server.py (the reader) now calls get_collection (fail if absent),
+    # not get_or_create_collection -- it IS the "must not create" reader this
+    # comment used to say a later task would produce. It has no allowlist of
+    # its own (its brief scoped that out; see mcp_server.py::load), so the
+    # writer's resolve_collection_name above is still the only guard against
+    # an unreviewed CHROMA_COLLECTION value.
     return client.get_or_create_collection(
         name=name,
         metadata={"hnsw:space": "cosine"},

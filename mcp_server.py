@@ -49,9 +49,13 @@ class PodcastSearch:
             database=os.environ["CHROMA_DATABASE"],
             api_key=os.environ["CHROMA_API_KEY"],
         )
-        self.collection = self.chroma_client.get_or_create_collection(
-            name="podcast_transcripts",
-            metadata={"hnsw:space": "cosine"},
+        # get_collection, NOT get_or_create_collection. All three call sites
+        # used get-or-create, so a typo at cutover would silently create an
+        # empty third collection and make search_podcasts return
+        # "No results found." instead of erroring. The reader must fail loudly;
+        # the writer may still create.
+        self.collection = self.chroma_client.get_collection(
+            name=os.environ.get("CHROMA_COLLECTION", "podcast_transcripts"),
         )
         print("Ready.")
 
@@ -108,6 +112,10 @@ class PodcastSearch:
                     "date": meta.get("date"),
                     "speaker": meta.get("speaker"),
                     "start_time": meta.get("start_time"),
+                    # Cutover tell: populated proves v2, None proves v1 or a
+                    # stale warm container. Kept permanently.
+                    "n_chunks": meta.get("n_chunks"),
+                    "episode_guid": meta.get("episode_guid"),
                     "relevance_score": round(1 - dist, 3),
                 }
             )
