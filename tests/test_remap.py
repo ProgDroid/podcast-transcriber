@@ -110,3 +110,19 @@ def test_old_and_new_scheme_ids_can_never_collide():
     old = {f"Show-ep1-{i}" for i in range(200)}
     new = {remap_id(f"Show-ep1-{i}", meta).new_id for i in range(200)}
     assert old & new == set()
+
+
+def test_the_books_show_name_alone_does_not_exempt_a_record():
+    # The exemption is keyed on `source`, never on the book's title. A record
+    # carrying the book's show name but no `source` key, whose id reconstructs
+    # from its own metadata, is an ordinary episode record and must be
+    # remapped. Without this, a title-keyed implementation passes every other
+    # test in this file -- verified by mutation, not assumed.
+    meta = {
+        "show": "Geopolitical Alpha",
+        "episode_number": "3",
+        "date": "2025-05-05",
+    }
+    result = remap_id("Geopolitical_Alpha-ep3-9", meta)
+    assert result.new_id == "Geopolitical_Alpha-ep3-2025-05-05-9"
+    assert result.classification == "remapped"
