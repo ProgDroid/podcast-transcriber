@@ -195,19 +195,65 @@ def transcribe(feed_url: str, show_name: str):
     episodes = parse_all_episodes(feed_url)
     print(f"Found {len(episodes)} episodes in feed.")
 
-    pending = []
-    for episode in episodes:
-        out_path = f"{VOLUME_PATH}/{show_name} - Episode {episode['episode_number']} - {episode['date']}.txt"
-        if os.path.exists(out_path):
-            print(
-                f"Skipping Episode {episode['episode_number']} — already transcribed."
-            )
-        else:
-            pending.append(episode)
+    from corpus.completeness import plan_episode
+    from corpus.identity import transcript_filename
+    from corpus.planning import Action
 
-    if not pending:
-        print("All episodes already transcribed.")
+    plan = []
+    for episode in episodes:
+        out_path = (
+            f"{VOLUME_PATH}/"
+            f"{transcript_filename(show_name, episode['episode_number'], episode['date'])}"
+        )
+        text = None
+        if os.path.exists(out_path):
+            with open(out_path, encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+        action = plan_episode(
+            collection,
+            show=show_name,
+            episode_number=episode["episode_number"],
+            date_str=episode["date"],
+            transcript_text=text,
+            # Load-bearing: without it the exclusion falls back to the triple
+            # alone and the guid arm never fires on the nightly path.
+            episode_guid=episode.get("guid"),
+        )
+        print(
+            f"  {action.value:12s} Episode {episode['episode_number']} ({episode['date']})"
+        )
+        if action in (Action.TRANSCRIBE, Action.EMBED_ONLY):
+            plan.append((action, episode, out_path))
+
+    if not plan:
+        print("Nothing to do.")
         return
+
+    pending = [(a, e, p) for a, e, p in plan if a is Action.TRANSCRIBE]
+    embed_only = [(a, e, p) for a, e, p in plan if a is Action.EMBED_ONLY]
+    print(f"{len(pending)} to transcribe, {len(embed_only)} to re-embed.")
+
+    for _action, episode, out_path in embed_only:
+        with open(out_path, encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
+        chunks = build_chunks_from_text(
+            text,
+            show_name,
+            episode["episode_number"],
+            episode["title"],
+            episode["date"],
+            episode_guid=episode.get("guid"),
+        )
+        print(f"Re-embedding Episode {episode['episode_number']} from transcript...")
+        embed_and_store(
+            chunks,
+            embedding_model,
+            collection,
+            show_name,
+            episode["episode_number"],
+            episode["date"],
+            episode.get("guid"),
+        )
 
     print(f"{len(pending)} episodes to transcribe.")
     print("Loading whisperx model...")
@@ -220,14 +266,11 @@ def transcribe(feed_url: str, show_name: str):
 
     failures: list[str] = []
 
-    for episode in pending:
+    for _action, episode, out_path in pending:
         episode_number = episode["episode_number"]
         audio_url = episode["audio_url"]
         episode_title = episode["title"]
         date_str = episode["date"]
-        out_path = (
-            f"{VOLUME_PATH}/{show_name} - Episode {episode_number} - {date_str}.txt"
-        )
 
         print(
             f"\nProcessing: {show_name} - Episode {episode_number} - {episode_title} ({date_str})"
