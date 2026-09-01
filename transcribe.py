@@ -149,10 +149,15 @@ def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
     )
     # mcp_server.py (the reader) now calls get_collection (fail if absent),
     # not get_or_create_collection -- it IS the "must not create" reader this
-    # comment used to say a later task would produce. It has no allowlist of
-    # its own (its brief scoped that out; see mcp_server.py::load), so the
-    # writer's resolve_collection_name above is still the only guard against
-    # an unreviewed CHROMA_COLLECTION value.
+    # comment used to say a later task would produce. The load-bearing fact:
+    # it reads CHROMA_COLLECTION from the same podcast-secrets secret as
+    # resolve_collection_name above, so writer and reader can no longer
+    # diverge -- a cutover moves both sides atomically via one secret edit,
+    # not a code change on one side. Anyone relying on "the reader only
+    # changes by code review" is mistaken. The reader has no allowlist of its
+    # own (its brief scoped that out; see mcp_server.py::load), which is fine
+    # here specifically because that shared trigger makes divergence, not an
+    # unreviewed name, the failure this needs to guard against.
     return client.get_or_create_collection(
         name=name,
         metadata={"hnsw:space": "cosine"},

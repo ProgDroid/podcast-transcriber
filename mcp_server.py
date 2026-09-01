@@ -49,14 +49,23 @@ class PodcastSearch:
             database=os.environ["CHROMA_DATABASE"],
             api_key=os.environ["CHROMA_API_KEY"],
         )
+        # CHROMA_COLLECTION is read from the podcast-secrets Modal secret, the
+        # same one transcribe.py's get_chroma_collection reads. That is
+        # deliberate: sharing one variable makes writer/reader divergence
+        # (writer moves to podcast_transcripts_v2, reader stays on
+        # podcast_transcripts, new episodes go silently unsearchable)
+        # impossible by construction -- both sides move together or neither
+        # does. It also means a cutover is a secret edit, not a code change,
+        # and the visible tell is n_chunks/episode_guid starting to appear in
+        # search output (see the output block below).
+        collection_name = os.environ.get("CHROMA_COLLECTION", "podcast_transcripts")
+        print(f"Reading from collection: {collection_name}")
         # get_collection, NOT get_or_create_collection. All three call sites
         # used get-or-create, so a typo at cutover would silently create an
         # empty third collection and make search_podcasts return
         # "No results found." instead of erroring. The reader must fail loudly;
         # the writer may still create.
-        self.collection = self.chroma_client.get_collection(
-            name=os.environ.get("CHROMA_COLLECTION", "podcast_transcripts"),
-        )
+        self.collection = self.chroma_client.get_collection(name=collection_name)
         print("Ready.")
 
     @modal.method()
