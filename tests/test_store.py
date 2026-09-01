@@ -107,11 +107,18 @@ def test_stale_ids_spans_old_and_new_id_schemes():
     assert sorted(stale_ids(old + new, new)) == old
 
 
-def test_guid_where_and_episode_where_select_the_same_records(collection):
+def test_guid_where_reaches_records_the_triple_filter_does_not(collection):
+    # A backfilled episode_number moves a record out from under the triple
+    # filter without moving the guid. Seed one record the triple filter
+    # cannot see (same show, same guid, DIFFERENT episode_number) alongside
+    # one it can, and assert the guid filter alone reaches both.
     _seed(collection, "gc73", 10, episode_guid="abc-123")
+    _seed(collection, "gc73-old", 3, episode_number="Unknown", episode_guid="abc-123")
     by_triple = paged_get_ids(collection, episode_where(*TRIPLE))
     by_guid = paged_get_ids(collection, guid_where("abc-123"))
-    assert by_triple == by_guid
+    assert len(by_triple) == 10
+    assert len(by_guid) == 13
+    assert set(by_triple) < set(by_guid)
 
 
 def test_delete_with_a_non_matching_filter_is_a_no_op(collection):

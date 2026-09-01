@@ -7,7 +7,13 @@ collection on chromadb 1.5.9, not read from documentation:
   get() with no limit     -> SILENTLY returns 300
   upsert of >300 records  -> raises
   upsert on existing id   -> replaces the document, MERGES the metadata
+  delete(ids=) of >300 records -> raises, atomically (count unchanged)
   delete(where=) matching nothing -> no-op
+  delete(where=) matching >300 records -> succeeds, removes all of them --
+    the cap counts records named IN THE REQUEST, not records affected, so
+    the where-form is not capped the way the ids-form is
+  $eq does not match a record missing the key; $ne DOES include it (not
+    modelled here -- nothing in this codebase depends on $ne)
 
 The silent one is why paging is not optional.
 """
@@ -34,6 +40,9 @@ class FakeCollection:
         self.name = name
         self.metadata = {"hnsw:space": "cosine"}
         self.schema = None
+        # An observation, not an assertion -- a test reads this to check how
+        # a caller batched its requests. Nothing here enforces anything.
+        self.calls: list[tuple[str, int]] = []
 
     # -- helpers ---------------------------------------------------------
     def _matches(self, meta: dict, where: dict | None) -> bool:
@@ -105,7 +114,20 @@ class FakeCollection:
         return out
 
     def delete(self, ids=None, where=None):
-        targets = list(ids) if ids is not None else self._select(where)
+        if ids is not None:
+            # Measured on Cloud: an ids= delete over the cap raises, and the
+            # count is UNCHANGED after -- an atomic reject, not a partial
+            # delete. The where= form has no such cap (measured at 400).
+            if len(ids) > MAX_REQUEST:
+                raise ChromaQuotaError(
+                    f"Quota exceeded: 'Number of records' exceeded quota limit "
+                    f"for action 'Delete': current usage of {len(ids)} exceeds "
+                    f"limit of {MAX_REQUEST}."
+                )
+            targets = list(ids)
+        else:
+            targets = self._select(where)
+        self.calls.append(("delete", len(targets)))
         for _id in targets:
             self._docs.pop(_id, None)
             self._meta.pop(_id, None)

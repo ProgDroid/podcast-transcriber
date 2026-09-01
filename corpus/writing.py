@@ -60,7 +60,16 @@ def upsert_then_prune(
         paged_get_ids(collection, episode_where(show, episode_number, date_str))
     )
     if episode_guid:
-        existing |= set(paged_get_ids(collection, guid_where(episode_guid)))
+        # $and with show: a guid is only unique WITHIN a feed. Two different
+        # shows can carry the same guid on a cross-posted episode (see
+        # corpus/exclusions.py), and an unscoped guid arm would prune the
+        # other show's records too.
+        existing |= set(
+            paged_get_ids(
+                collection,
+                {"$and": [guid_where(episode_guid), {"show": {"$eq": show}}]},
+            )
+        )
 
     to_prune = stale_ids(existing, new_ids)
     for batch in batched(to_prune, BATCH):
