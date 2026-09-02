@@ -465,6 +465,56 @@ does is *test* the principle, not choose it.
 **Measured once.** If the gate fails, the labelled set becomes a dev set and a
 fresh sample must be labelled before any new claim.
 
+### 3.5 Clip selection
+
+**Uniform at random over the cluster's eligible turns, seeded.** Not the
+longest turn. The longest turn is the cleanest, longest uninterrupted speech in
+the episode — exactly the condition the matcher performs best under — so
+selecting it would bias the precision estimate the same way picking
+easy-looking episodes would, one level further down. §3.3 rejects that at the
+episode level; it has to be rejected at the turn level too or it comes back.
+
+The seed is composed from a campaign seed and the episode's identity, so the
+draw is reproducible from the record alone and a disputed clip can be re-cut.
+
+**Redraws walk a seeded permutation.** A clip can be unusable — crosstalk,
+music over the voice — and the prompt offers a redraw. Successive draws must
+never return the turn just rejected, or "redraw until it sounds clean"
+silently becomes the longest-clearest-turn selection this rule exists to
+avoid. Every redraw is recorded with its draw index; an unrecorded redraw is
+a silent resample.
+
+**Measured 2026-09-02** (`speaker_stats.py --clippable`), at a 12s minimum
+turn = 2s lead-in plus a 10s clip:
+
+| stratum | n | dominant clippable | 1 eligible turn only | median eligible | all clusters | unclippable seconds |
+|---|---|---|---|---|---|---|
+| pre-2026 | 355 | 100.0% | 18 | 15 | 96.6% | 0.02% |
+| 2026 | 84 | 100.0% | 3 | 23.5 | 89.9% | 0.05% |
+
+Three things follow.
+
+**The precision set does not shrink.** Every one of the 439 episodes has a
+dominant-cluster turn long enough to clip, so unlike the 2026 population
+ceiling in §3.3, nothing is lost here.
+
+**21 episodes have no redraw path** (18 pre-2026, 3 in 2026): their dominant
+cluster has exactly one eligible turn. An unusable clip there is a **drop**,
+recorded as such and reducing the stratum's n — never a resample from a
+shorter turn, which would be a clip the labeller cannot honestly answer.
+
+**An unclippable cluster is an UNKNOWN, not a non-host**, and that matters
+only for the coverage set, which labels every cluster. Assuming such clusters
+are not the host overstates coverage; assuming they are understates it. The
+size of that uncertainty is **0.02% of speech seconds pre-2026 and 0.05% in
+2026** — three orders of magnitude below the 90% gate, so coverage records
+them as unknown and proceeds. Note the shape: about a tenth of 2026's clusters
+are unclippable and they hold a twentieth of one percent of the talking, so
+cluster *count* materially overstates how many voices an episode really has.
+That is consistent with the diarisation-change reading of Part 2's drift and
+equally consistent with the format-change reading — more speakers also means
+more small clusters — so it discriminates nothing and the unknown stands.
+
 ## Part 4 — Tier 2: scope, deferred
 
 Specified after Tier 1 is measured, and scoped to what Tier 1 provably cannot

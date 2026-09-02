@@ -30,10 +30,12 @@ from pathlib import Path
 from corpus.chunking import parse_transcript_segments
 from corpus.identity import parse_transcript_filename
 from corpus.speakers import (
+    CLIP_MIN_TURN_S,
     GAP_CAP_S,
     MIN_TURN_S,
     count_non_monotonic,
     merge_turns,
+    pick_clip_turn,
     speech_shares,
 )
 
@@ -240,11 +242,83 @@ def report_by_year(episodes: list[dict]) -> None:
             )
 
 
+def report_clippable(episodes: list[dict]) -> None:
+    """Can a clip actually be cut for the cluster the eval needs to hear?
+
+    If a meaningful share of episodes has no dominant-cluster turn long
+    enough, the eligible population shrinks and the gate's denominator with
+    it — the same trap as the 41-episode 2026 stratum, one level down.
+
+    The second column matters for the redraw path: a cluster with exactly one
+    eligible turn cannot be redrawn, so an unusable clip there is an episode
+    that must be dropped and reported rather than resampled.
+    """
+    print(f"\n## Clippability (min turn {CLIP_MIN_TURN_S:g}s)")
+    print(
+        f"{'stratum':<34}{'n':>5}{'dominant':>10}"
+        f"{'1 turn only':>13}{'med turns':>11}{'all clusters':>14}"
+        f"{'unclip. secs':>13}"
+    )
+    strata = [
+        ("pre-2026, all shows", lambda e: e["year"] < "2026"),
+        ("2026, all shows", lambda e: e["year"] == "2026"),
+    ]
+    for show in sorted({e["show"] for e in episodes}):
+        strata.append((f"  {show}", lambda e, s=show: e["show"] == s))
+    for label, keep in strata:
+        rows = [e for e in episodes if keep(e) and e["shares"]["total_s"] > 0]
+        if not rows:
+            continue
+        eligible_counts = []
+        dominant_ok = 0
+        clusters_total = 0
+        clusters_ok = 0
+        seconds_total = 0.0
+        seconds_unclippable = 0.0
+        for e in rows:
+            shares = e["shares"]
+            dominant = max(
+                shares["by_speaker_s"], key=lambda k: shares["by_speaker_s"][k]
+            )
+            n_eligible = len(
+                [
+                    t
+                    for t in e["turns"]
+                    if t["speaker"] == dominant and t["duration_s"] >= CLIP_MIN_TURN_S
+                ]
+            )
+            eligible_counts.append(n_eligible)
+            if n_eligible:
+                dominant_ok += 1
+            for speaker, seconds in shares["by_speaker_s"].items():
+                clusters_total += 1
+                seconds_total += seconds
+                if pick_clip_turn(
+                    e["turns"], speaker, seed=e["name"], min_turn_s=CLIP_MIN_TURN_S
+                ):
+                    clusters_ok += 1
+                else:
+                    # An unclippable cluster is an UNKNOWN, not a non-host.
+                    # Coverage's denominator is the host's own seconds, so
+                    # assuming these are not the host overstates coverage and
+                    # assuming they are understates it. This column is the
+                    # size of that uncertainty, in the units it matters in.
+                    seconds_unclippable += seconds
+        only_one = sum(1 for c in eligible_counts if c == 1)
+        print(
+            f"{label:<34}{len(rows):>5}{dominant_ok / len(rows):>9.1%}"
+            f"{only_one:>13}{statistics.median(eligible_counts):>11g}"
+            f"{clusters_ok / clusters_total:>13.1%}"
+            f"{seconds_unclippable / seconds_total:>13.2%}"
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dir", default="downloaded", type=Path)
     parser.add_argument("--cap", default=GAP_CAP_S, type=float)
     parser.add_argument("--by-year", action="store_true")
+    parser.add_argument("--clippable", action="store_true")
     args = parser.parse_args()
 
     episodes = load(args.dir, args.cap)
@@ -261,6 +335,8 @@ def main() -> None:
     report_segments_vs_turns(episodes, args.cap)
     report_concentration(episodes)
     report_words_cross_check(episodes)
+    if args.clippable:
+        report_clippable(episodes)
     if args.by_year:
         report_by_year(episodes)
 

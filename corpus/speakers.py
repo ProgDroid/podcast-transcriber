@@ -28,6 +28,18 @@ that does not exist yet, and none of them belong here until it does.
 
 from __future__ import annotations
 
+import random
+
+# The clip a labeller hears. 10s is enough to recognise a familiar voice and
+# short enough that 400-odd of them stay a single sitting. The lead-in skips
+# the head of the turn, where the previous speaker's tail bleeds across a
+# diarisation boundary -- a clip that opens on the wrong voice is worse than
+# no clip, because it is labelled rather than discarded. The minimum turn
+# length is the sum: below it there is no full clip to cut.
+CLIP_LENGTH_S = 10.0
+CLIP_LEAD_IN_S = 2.0
+CLIP_MIN_TURN_S = CLIP_LEAD_IN_S + CLIP_LENGTH_S
+
 # The ceiling on a single segment's derived duration. Measured over the 400
 # transcripts of the 2026-05-06 snapshot: 262,402 gaps, p50 4.2s, p90 11.1s,
 # p99 22.3s, p99.9 29.4s, max 127.1s. At 30s the cap removes 0.01% of derived
@@ -137,3 +149,65 @@ def speech_shares(turns: list[dict], *, min_turn_s: float) -> dict:
         "top2_s_share": (sum(ranked_s[:2]) / total_s) if total_s else 0.0,
         "top1_words_share": (ranked_words[0] / total_words) if total_words else 0.0,
     }
+
+
+def pick_clip_turn(
+    turns: list[dict],
+    speaker: str,
+    *,
+    seed: str,
+    min_turn_s: float,
+    draw: int = 0,
+) -> dict | None:
+    """Choose which of a speaker's turns to cut a clip from.
+
+    Uniform at random over the eligible turns, seeded so the choice is
+    reproducible from the record alone. **Not the longest turn**: the longest
+    turn is the cleanest, longest-uninterrupted speech in the episode, which
+    is exactly the condition the matcher performs best under. Selecting it
+    would bias the precision estimate the same way picking easy-looking
+    episodes would, one level further down.
+
+    `seed` is a string the caller composes from a campaign seed and the
+    episode's identity, so one campaign draws differently per episode while
+    staying reproducible as a whole.
+
+    `draw` is the redraw index, for when a clip turns out to be unusable
+    (crosstalk, music over the voice). Successive draws walk a seeded
+    permutation, so a redraw cannot return the turn just rejected -- without
+    that, "redraw until it sounds clean" quietly becomes the
+    longest-clearest-turn selection this function exists to avoid. Every
+    redraw must be recorded with its draw index; an unrecorded one is a
+    silent resample.
+
+    Returns None when the speaker has no turn long enough. None, never a
+    truncated clip: two seconds of a voice is not evidence about who is
+    speaking, and one of those inside a set whose whole claim is zero errors
+    would be a label nobody could stand behind.
+    """
+    eligible = [
+        t for t in turns if t["speaker"] == speaker and t["duration_s"] >= min_turn_s
+    ]
+    if not eligible:
+        return None
+    order = list(range(len(eligible)))
+    random.Random(seed).shuffle(order)
+    return eligible[order[draw % len(order)]]
+
+
+def clip_window(
+    turn: dict, *, lead_in_s: float, length_s: float
+) -> tuple[float, float]:
+    """The (start, length) in seconds to cut from the audio for this turn.
+
+    Never runs past the turn's end. Overrunning would capture the NEXT
+    speaker, which is precisely how a clip labelled for one cluster ends up
+    containing another -- and a contaminated clip scores the matcher as
+    correct or incorrect for the wrong reason, invisibly.
+    """
+    duration = turn["duration_s"]
+    if duration <= lead_in_s:
+        # Too short to skip into. Take it from the top and let it be short;
+        # the caller decides whether a stub is worth showing.
+        return (turn["start"], min(length_s, duration))
+    return (turn["start"] + lead_in_s, min(length_s, duration - lead_in_s))

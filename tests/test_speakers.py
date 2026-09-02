@@ -12,7 +12,13 @@ from __future__ import annotations
 import math
 
 from corpus.chunking import build_chunks
-from corpus.speakers import count_non_monotonic, merge_turns, speech_shares
+from corpus.speakers import (
+    clip_window,
+    count_non_monotonic,
+    merge_turns,
+    pick_clip_turn,
+    speech_shares,
+)
 
 # Four segments, three turns: A speaks twice, B interrupts, A returns last.
 SEGMENTS = [
@@ -156,3 +162,114 @@ def test_no_turns_yields_zeroes_rather_than_a_division_error():
     assert s["total_s"] == 0.0
     assert s["top1_s_share"] == 0.0
     assert s["n_speakers"] == 0
+
+
+# Six turns for A, deliberately varied in length, plus a B turn that must
+# never be selected when A is the target.
+CLIP_TURNS = [
+    {"speaker": "A", "start": 0.0, "duration_s": 40.0, "n_words": 90, "n_segments": 4},
+    {
+        "speaker": "B",
+        "start": 40.0,
+        "duration_s": 60.0,
+        "n_words": 130,
+        "n_segments": 5,
+    },
+    {"speaker": "A", "start": 100.0, "duration_s": 5.0, "n_words": 12, "n_segments": 1},
+    {
+        "speaker": "A",
+        "start": 105.0,
+        "duration_s": 30.0,
+        "n_words": 70,
+        "n_segments": 3,
+    },
+    {
+        "speaker": "A",
+        "start": 135.0,
+        "duration_s": 13.0,
+        "n_words": 30,
+        "n_segments": 2,
+    },
+    {
+        "speaker": "A",
+        "start": 148.0,
+        "duration_s": 11.9,
+        "n_words": 27,
+        "n_segments": 2,
+    },
+]
+
+
+def _pick(seed="campaign:ep1", draw=0):
+    return pick_clip_turn(CLIP_TURNS, "A", seed=seed, min_turn_s=12.0, draw=draw)
+
+
+def test_the_same_seed_always_picks_the_same_turn():
+    # The draw has to be reproducible from the record alone, or a clip that
+    # someone disputes cannot be re-cut and re-checked.
+    assert _pick()["start"] == _pick()["start"]
+
+
+def test_a_different_seed_can_pick_a_different_turn():
+    picks = {_pick(seed=f"campaign:ep{i}")["start"] for i in range(20)}
+    assert len(picks) > 1
+
+
+def test_successive_draws_do_not_repeat_a_turn():
+    # A redraw exists for unusable audio. If it could hand back the turn just
+    # rejected, "redraw until it sounds clean" would silently become the
+    # longest-clearest-turn selection this design rejected.
+    eligible = [
+        t for t in CLIP_TURNS if t["speaker"] == "A" and t["duration_s"] >= 12.0
+    ]
+    seen = [_pick(draw=d)["start"] for d in range(len(eligible))]
+    assert len(set(seen)) == len(eligible)
+
+
+def test_turns_under_the_minimum_are_never_selected():
+    # The 5.0s A turn cannot yield a lead-in plus a full clip.
+    starts = {_pick(seed=f"s{i}", draw=d)["start"] for i in range(30) for d in range(3)}
+    assert 100.0 not in starts
+
+
+def test_another_speakers_turn_is_never_selected():
+    starts = {_pick(seed=f"s{i}", draw=d)["start"] for i in range(30) for d in range(3)}
+    assert 40.0 not in starts
+
+
+def test_a_speaker_with_no_eligible_turn_yields_none():
+    # None, never a truncated clip: a two-second sample of a voice is not
+    # evidence about who is speaking, and returning one would put an
+    # unlabellable clip into a set whose whole claim is zero errors.
+    short_only = [
+        {"speaker": "A", "start": 0.0, "duration_s": 4.0, "n_words": 9, "n_segments": 1}
+    ]
+    assert pick_clip_turn(short_only, "A", seed="s", min_turn_s=12.0, draw=0) is None
+    assert pick_clip_turn([], "A", seed="s", min_turn_s=12.0, draw=0) is None
+
+
+def test_the_clip_starts_inside_the_turn_and_ends_within_it():
+    turn = {"speaker": "A", "start": 100.0, "duration_s": 30.0}
+    start, length = clip_window(turn, lead_in_s=2.0, length_s=10.0)
+    assert start == 102.0
+    assert length == 10.0
+    assert start + length <= turn["start"] + turn["duration_s"]
+
+
+def test_a_short_turn_yields_a_short_clip_rather_than_one_past_its_end():
+    # Running past the end would capture the NEXT speaker, which is how a
+    # clip labelled for one cluster ends up containing another.
+    turn = {"speaker": "A", "start": 0.0, "duration_s": 13.0}
+    start, length = clip_window(turn, lead_in_s=2.0, length_s=10.0)
+    assert start == 2.0
+    assert length == 10.0
+    turn = {"speaker": "A", "start": 0.0, "duration_s": 8.0}
+    start, length = clip_window(turn, lead_in_s=2.0, length_s=10.0)
+    assert start + length <= 8.0
+
+
+def test_a_turn_shorter_than_the_lead_in_falls_back_to_its_start():
+    turn = {"speaker": "A", "start": 50.0, "duration_s": 1.0}
+    start, length = clip_window(turn, lead_in_s=2.0, length_s=10.0)
+    assert start == 50.0
+    assert length == 1.0
