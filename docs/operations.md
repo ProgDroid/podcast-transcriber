@@ -90,8 +90,15 @@ MCP endpoint to `421` on every call.
 
 ## Deleting records
 
-The only deletions ever performed here were two cross-post duplicates, and the
-procedure is worth repeating because the ordering is load-bearing:
+> **There is no second copy of the corpus.** The v1 collection
+> `podcast_transcripts` (28,541 records) was deleted on 2026-09-02 after a clean
+> reconciliation, so `podcast_transcripts_v2` in `geo-podcasts-us` is now the
+> only copy that exists — as is already true of the region, since the EU
+> database went in July. Any destructive operation here is unrecoverable.
+
+Two deletions have been performed: two cross-post duplicate episodes, and the
+v1 collection. The procedure is worth repeating because the ordering is
+load-bearing:
 
 1. **Add the exclusion first, and deploy it.** Otherwise the 09:00 UTC cron
    restores what you deleted the next morning.
