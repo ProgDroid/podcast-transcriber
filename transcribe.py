@@ -3,7 +3,7 @@ import os
 import re
 
 from corpus.chunking import build_chunks, build_chunks_from_text
-from corpus.feed import entry_guid
+from corpus.feed import entry_guid, episode_number_of
 from corpus.store import episode_where, is_complete, paged_get_ids
 
 image = (
@@ -46,25 +46,11 @@ def parse_all_episodes(feed_url: str):
     for entry in feed.entries:
         title = entry.get("title", "Unknown Title")
 
-        # This fallback matches "Ep 5", "Ep. 5" and "Ep5" but NOT the word
-        # "Episode 5" -- after `Ep` the pattern allows only an optional dot
-        # and whitespace before the digits. Three Observing Japan episodes
-        # carry their number plainly in the title and are filed "Unknown"
-        # because of it (5 of 439 transcripts overall, verified 2026-09-02).
-        #
-        # DO NOT "fix" it. That publisher's two numbering signals disagree by
-        # one wherever both exist -- <itunes:episode>7</itunes:episode> on an
-        # item titled "Episode 6", and 4 on one titled "Episode 3", because
-        # they count the trailer as episode 1. Widening the regex would number
-        # the show 7, 5, 4, 4, 3, 2, Unknown: two "Episode 4"s from two
-        # different sources. `corpus/identity.py` keys on the (show, episode,
-        # date) triple precisely because episode_number is a display attribute,
-        # so neither form is a correctness bug -- but "Unknown" is a visible
-        # gap where a duplicated number is an invisible collision.
-        episode_number = entry.get("itunes_episode", None)
-        if episode_number is None:
-            match = re.search(r"\b[Ee]p\.?\s*(\d+)", title)
-            episode_number = match.group(1) if match else "Unknown"
+        # Derived in corpus/feed.py so speaker_tool.py can resolve a
+        # transcript filename back to its feed entry using the SAME rule.
+        # Read its docstring before touching the fallback -- widening it is
+        # actively wrong here, for a reason that is not obvious.
+        episode_number = episode_number_of(entry)
 
         published = entry.get("published", None)
         if published:

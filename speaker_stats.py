@@ -27,23 +27,15 @@ import statistics
 from collections import Counter
 from pathlib import Path
 
-from corpus.chunking import parse_transcript_segments
-from corpus.identity import parse_transcript_filename
 from corpus.speakers import (
     CLIP_MIN_TURN_S,
     GAP_CAP_S,
     MIN_TURN_S,
-    count_non_monotonic,
-    merge_turns,
     pick_clip_turn,
-    speech_shares,
 )
+from corpus.transcripts import load_episodes
 
 CONCENTRATION_FLOOR = 0.70
-
-
-def show_of(name: str) -> str:
-    return name.split(" - Episode ")[0]
 
 
 def percentile(values: list[float], q: float) -> float:
@@ -63,35 +55,8 @@ def raw_gaps(segments: list[dict]) -> list[float]:
     ]
 
 
-def load(directory: Path, cap: float) -> list[dict]:
-    episodes = []
-    for path in sorted(directory.glob("*.txt")):
-        segments = parse_transcript_segments(path.read_text(encoding="utf-8"))
-        if not segments:
-            continue
-        turns = merge_turns(segments, gap_cap_s=cap)
-        shares = speech_shares(turns, min_turn_s=MIN_TURN_S)
-        # Reuse the tested parser rather than slicing the filename here: a
-        # second date derivation is a second thing that can disagree.
-        parsed = parse_transcript_filename(path.name)
-        episodes.append(
-            {
-                "show": show_of(path.name),
-                "name": path.name,
-                "year": parsed[2][:4] if parsed else "unparsed",
-                "segments": segments,
-                "n_segments": len(segments),
-                "turns": turns,
-                "gaps": raw_gaps(segments),
-                "shares": shares,
-                "non_monotonic": count_non_monotonic(segments),
-            }
-        )
-    return episodes
-
-
 def report_gaps(episodes: list[dict]) -> None:
-    gaps = [g for e in episodes for g in e["gaps"]]
+    gaps = [g for e in episodes for g in raw_gaps(e["segments"])]
     total = sum(gaps)
     print("\n## Inter-segment gap distribution (uncapped)")
     print(f"gaps: {len(gaps):,}   total: {total / 3600:,.1f} h")
@@ -321,7 +286,7 @@ def main() -> None:
     parser.add_argument("--clippable", action="store_true")
     args = parser.parse_args()
 
-    episodes = load(args.dir, args.cap)
+    episodes = load_episodes(args.dir, cap=args.cap)
     if not episodes:
         raise SystemExit(f"No parseable transcripts in {args.dir}")
 
