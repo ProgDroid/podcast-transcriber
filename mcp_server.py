@@ -1,6 +1,8 @@
 import modal
 import os
 
+from corpus.rendering import format_results
+
 
 def download_bge_model():
     from sentence_transformers import SentenceTransformer
@@ -22,6 +24,13 @@ image = (
         "starlette==1.0.0",
     )
     .run_function(download_bge_model)
+    # Must stay LAST in the chain, as in transcribe.py. This mounts local
+    # source and does not resolve dependencies, so it must not trigger an
+    # image rebuild -- a rebuild here would re-resolve the unpinned `mcp`
+    # package and can silently change the host-header behaviour documented
+    # in mcp_server() below. Confirm from the deploy log, per
+    # docs/operations.md.
+    .add_local_python_source("corpus")
 )
 
 app = modal.App("podcast-mcp-server", image=image)
@@ -213,14 +222,7 @@ def mcp_server():
         if not results:
             return "No results found."
 
-        lines = []
-        for r in results:
-            lines.append(
-                f"[{r['date']}] {r['show']} - Episode {r['episode_number']} "
-                f"({r['episode_title']}) @ {r['start_time']:.1f}s "
-                f"[relevance: {r['relevance_score']}]\n{r['text']}\n"
-            )
-        return "\n---\n".join(lines)
+        return format_results(results)
 
     @mcp.tool()
     def latest_on_topic(topic: str, n_results: int = 5) -> str:
@@ -241,12 +243,6 @@ def mcp_server():
         if not results:
             return "No results found."
 
-        lines = []
-        for r in results:
-            lines.append(
-                f"[{r['date']}] {r['show']} - Episode {r['episode_number']} "
-                f"({r['episode_title']}) @ {r['start_time']:.1f}s\n{r['text']}\n"
-            )
-        return "\n---\n".join(lines)
+        return format_results(results, include_relevance=False)
 
     return mcp.streamable_http_app()
