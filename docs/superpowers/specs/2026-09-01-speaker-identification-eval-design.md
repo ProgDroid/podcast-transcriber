@@ -1,7 +1,9 @@
 # Design: naming speakers where it matters
 
-**Status: the measurement layer is built; the matcher is not, and is not ready
-to implement without re-reading Part 7. Written 2026-09-01, three defects
+**Status: MEASURED AND FAILED. Tier 1 does not ship — see Part 8. The gate was
+run once as pre-registered, the dominant cluster is the host in under a third
+of episodes, and the labelled set is now a dev set. Part 5 passed. Read Part 8
+before anything else here. Written 2026-09-01, three defects
 repaired the same day; Part 2 recomputed 2026-09-02.**
 
 Its one precondition has shipped: `67e5720` made the MCP render emit `speaker`,
@@ -533,6 +535,127 @@ cluster *count* materially overstates how many voices an episode really has.
 That is consistent with the diarisation-change reading of Part 2's drift and
 equally consistent with the format-change reading — more speakers also means
 more small clusters — so it discriminates nothing and the unknown stands.
+
+## Part 8 — RESULT: Tier 1 measured, and it fails (2026-09-02)
+
+**The gate was run once, as pre-registered, and Tier 1 does not ship.**
+
+381 clips cut, 379 labelled by ear. Scoring the precision set against §3.1's
+rule -- the dominant cluster is the show's host:
+
+| | planned | scored | correct | misattributions |
+|---|---|---|---|---|
+| pre-2026 | 150 | 72 | 51 | **21** |
+| 2026 | 42 | 8 | 5 | **3** |
+| The Jacob Shapiro Podcast | 185 | 78 | 54 | 24 |
+| The Observing Japan Podcast | 7 | 2 | 2 | 0 |
+
+The gate required **zero misattributions**. There are 24.
+
+### 8.1 The verdict does not depend on the unlabelled clips
+
+112 of 192 precision clips were skipped, so precision is bounded rather than
+pointed:
+
+| | |
+|---|---|
+| if **every** skip were the host | 87.5% (ceiling) |
+| on identified clips only | 70.0% |
+| if **no** skip were the host | 29.2% (floor) |
+
+**Even the ceiling fails the >=98% gate by more than ten points**, so no
+assignment of the unknown 112 rescues Tier 1. That is what makes this a
+verdict rather than an estimate.
+
+The labeller's own account settles where in the range the truth sits: the
+skips are *recognised voices whose names he could not recall*. He named Jacob
+Shapiro 148 times, so a skip is "familiar, but not the host" -- which is a
+misattribution. **The realistic figure is near the 29.2% floor.** The dominant
+cluster is the host in under a third of episodes.
+
+### 8.2 The cross-check cannot be repaired
+
+The failure is not that guests occasionally dominate. The Jacob Shapiro
+Podcast has **recurring co-hosts who out-talk the host** -- Rob Larity appears
+40 times in the labels and Marko Papic 19. **Larity was not in §3.1's roster
+at all**; the design was scoped against a cast list that was wrong.
+
+Completing the roster does not fix it, for two measured reasons:
+
+- **Surface collapses.** `larity` appears in 149 of 356 Jacob Shapiro
+  transcripts. A complete roster routes 161 of 356 to Tier 2, leaving Tier 1
+  with 195 -- so its archive coverage falls from the claimed **~76% to 46%**
+  (195 + 7 of 439). Tier 1's entire justification was covering three quarters
+  of the corpus without a GPU.
+- **7 misattributions survive it.** 13 of the 24 occur in episodes that never
+  name the speaker anywhere, and 7 remain uncatchable even with every known
+  surname in the roster. A text cross-check is structurally blind to a
+  co-host who is present and unnamed.
+
+### 8.3 The bound in §3.1 was inverted
+
+§3.1 concluded "real co-host evidence is **at most** 24 episodes (7.0%)",
+treating spoken-name hits as a ceiling on co-host presence. It is a **floor**.
+Co-hosting without being named is invisible to a text probe, so the true rate
+can only be higher -- and it is roughly four times higher. That single phrase
+carried Tier 1's claim to cover 76% of the archive.
+
+### 8.4 Text cannot identify speakers in this corpus
+
+Two independent probes now fail the same way. §3.1's `marco` hit 36 episodes
+of which 27 were Marco Rubio. And an attempt to recover the skipped names from
+spoken introduction frames ("joined by X", "my name is X") fired on 55% of
+episodes and returned Xi Jinping, Donald Trump, El Nino, New Zealand and Bruce
+Willis -- people being *discussed*, not *speaking*.
+
+**In a geopolitics corpus the discussed vastly outnumber the present, and both
+appear in identical grammatical frames.** This is a property of the corpus, not
+a weakness of one regex, and it forecloses every text-only route to speaker
+identity.
+
+### 8.5 What passed, and what carries forward
+
+**Part 5 passed.** 0 of 15 clusters show more than one person (12 carried
+enough labels to judge; 3 were skipped entirely). Per-cluster ground truth is
+valid, so Tier 2 may score per-cluster rather than per-turn -- the decision
+rule Part 5 existed to settle, settled.
+
+Carried forward: 214 voice-verified labels across Jacob Shapiro (148), Rob
+Larity (40), Marko Papic (19), Tobias Harris (6) and Matt Gertken (1) -- an
+enrolment seed at the `basis: voice` standard. The clip pipeline, the
+plan/dry-run/cut loop and the scoring transfer unchanged.
+
+**Per §3.4 these labels are now a dev set.** Learning from them that Larity is
+a co-host is exactly what a dev set is for; making any new precision claim
+requires a fresh sample.
+
+### 8.6 The labelling task was mis-specified
+
+The prompt asked "who is this?", which demands **recall of a name**. What the
+labeller can actually do -- and what the task needed -- is **recognition**:
+"is this the same voice as that one?" Those are different cognitive jobs, and
+the harder one was built.
+
+This matters beyond ergonomics, because it is what a voice-embedding model
+computes. **Grouping is not naming, and the corpus only needs grouping.**
+Stable identity is what makes "what has this recurring voice said about
+Taiwan, and has the view moved" answerable; the name is an optional label
+attached to a group afterwards, or never -- `unknown_1` is a perfectly good
+identity. The 2026-08-31 note listed auto-enrolment of recurring unknowns as
+an optional extra. Given a listener who recognises voices but cannot name
+them, it is the main feature.
+
+### 8.7 The cost case inverts
+
+Part 1 held that voice identification was *uniquely* needed on ~24% of the
+archive and that a cheap tier covered the rest. The measurement says the cheap
+tier's hypothesis is false wherever it was load-bearing, so voice
+identification is needed on essentially all of it.
+
+Tier 1 was attractive precisely because it needed no model, and that is the
+same reason it could not answer the question. **Dominance is a fact about
+airtime; identity is a fact about voice, and no amount of text analysis
+converts one into the other.**
 
 ## Part 4 — Tier 2: scope, deferred
 
