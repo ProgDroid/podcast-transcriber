@@ -1,0 +1,30 @@
+{
+  "dir": "downloaded",
+  "files": 439,
+  "shows": [
+    {
+      "show": "Geopolitical Cousins",
+      "total": 76,
+      "ok": 76,
+      "absent": 0,
+      "dead": 0,
+      "unknown": 0
+    },
+    {
+      "show": "The Jacob Shapiro Podcast",
+      "total": 356,
+      "ok": 350,
+      "absent": 6,
+      "dead": 0,
+      "unknown": 0
+    },
+    {
+      "show": "The Observing Japan Podcast",
+      "total": 7,
+      "ok": 7,
+      "absent": 0,
+      "dead": 0,
+      "unknown": 0
+    }
+  ]
+}
