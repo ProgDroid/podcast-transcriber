@@ -34,6 +34,7 @@ model can reason about whether a view is current or stale.
 | `transcribe.py` | Modal app `podcast-transcriber`. Fetches RSS, transcribes with WhisperX on a T4, diarises speakers, chunks, embeds, upserts to Chroma. Includes a daily cron and a bulk backfill entrypoint. |
 | `mcp_server.py` | Modal app `podcast-mcp-server`. Serves `search_podcasts` and `latest_on_topic` over MCP's streamable HTTP transport. |
 | `upload_book.py` | One-off: chunk, embed and upload a PDF into the same collection. |
+| `speaker_stats.py` | Local, no Modal. Recomputes the corpus's turn and speech-concentration figures from a transcript directory, so they can be reproduced rather than remembered. |
 | `migration/` | Copy a Chroma Cloud collection between databases or regions, with validation. Chroma cannot move a database's region in place, so this exists to do it as a copy-validate-cutover. |
 | `corpus/` | The pure logic: episode identity, planning, completeness, writes, exclusions, reconciliation. No Modal imports, so all of it is unit-tested. |
 
