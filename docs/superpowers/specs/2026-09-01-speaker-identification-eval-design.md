@@ -401,13 +401,21 @@ not just the dominant one. One clip cannot see it, and 121 of 400 episodes have
 three or more clusters, so host speech split across clusters is the live risk
 rather than a hypothetical.
 
-At a mean of 2.39 clusters, 30 fully-labelled episodes is ~72 clips.
+**Drawn as a subset of the precision set** (20 pre-2026, 10 from 2026), so
+each coverage episode's dominant-cluster clip is already planned and is reused
+rather than cut twice. Measured 2026-09-02: 30 episodes, **69 clusters**, of
+which 30 are already precision clips — so coverage costs **39 new clips**, not
+the ~72 estimated here from a mean cluster count.
 
-**Budget.** 150 pre-2026 clips + 42 exhaustive 2026 clips + 72 coverage clips +
-Part 5's 150 turn clips = 414 clips at ~10s = **69 minutes of audio**. Wall
-clock runs roughly double once replay and typing are counted, so call it
-**~2.5 hours**, resumable. Taking the 2026 era whole rather than sampling it
-costs 42 clips, about seven minutes. Draft 2 estimated "twenty
+**Budget, as planned rather than as estimated.** `speaker_tool.py plan`
+produces **381 clips**: 192 precision (150 pre-2026 + 42 for 2026), 39 new
+coverage clips once the shared dominant-cluster clips are counted once, and
+Part 5's 150 turn clips. At 10s for precision and coverage and 5s for impurity
+that is **51 minutes of audio**, not the 69 first estimated here — the
+difference is entirely clip REUSE and the shorter impurity clip, not a reduced
+scope. Wall clock runs roughly double once replay and typing are counted, so
+call it **~1.7 hours**, resumable. Taking the 2026 era whole rather than
+sampling it costs 42 clips, about seven minutes. Draft 2 estimated "twenty
 minutes" for a design that was 24 minutes of audio before any replay; estimates
 in this document are now stated as audio-minutes first and wall clock second,
 because that is the error that keeps recurring.
@@ -563,7 +571,22 @@ tested with roughly 2x downward bias.
 
 Instead: take **15 clusters** and label **10 randomly-drawn turns** from each.
 Ten draws detect 20% contamination 89.3% of the time and 10% contamination
-65.1%. **150 turn clips, 25 minutes of audio.**
+65.1%. **150 turn clips, 12.5 minutes of audio.**
+
+**Drawn from the coverage set's clusters**, because those are exactly the
+clusters whose per-cluster ground truth this probe exists to validate — testing
+purity on clusters nothing depends on would answer a question nobody asked.
+
+**Shorter clips at a lower floor: 5s at a 6s minimum turn, against 10s at 12s
+elsewhere.** Deliberate, and the reason inverts the usual one. A cluster is
+contaminated by BRIEF interjections from another voice, so a 12s minimum would
+systematically exclude the very turns most likely to contain the second
+speaker — the probe would then be least sensitive exactly where the fault
+lives. 5s is enough to hear that the speaker changed, which is the only
+question asked here.
+
+Measured 2026-09-02: 11 of the 69 coverage clusters have fewer than 10 turns
+even at the 6s floor and are not eligible; 15 are drawn from the remaining 58.
 
 **Decision rule.** If *any* cluster shows two speakers, per-cluster ground truth
 is invalid and Tier 2 must score per-turn — decided before Tier 2 is built,

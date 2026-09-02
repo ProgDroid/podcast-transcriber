@@ -65,6 +65,23 @@ FEEDS = {
 PRE_2026_TARGET = 150
 ERA_BOUNDARY = "2026"
 
+# Coverage (§3.2): every cluster in 30 episodes, split across the same two
+# eras as precision. Drawn as a SUBSET of the precision episodes so their
+# dominant-cluster clips are shared rather than cut twice.
+COVERAGE_EPISODES_PRE = 20
+COVERAGE_EPISODES_RECENT = 10
+
+# Impurity (Part 5): 15 clusters, 10 turns each. Shorter clips at a lower
+# floor than the rest of the eval, deliberately -- a cluster is contaminated
+# by brief interjections from another voice, and a 12s minimum would exclude
+# precisely the turns most likely to carry one. 5s is enough to hear that the
+# speaker changed, which is the only question this probe asks.
+IMPURITY_CLUSTERS = 15
+IMPURITY_TURNS_PER_CLUSTER = 10
+IMPURITY_LENGTH_S = 5.0
+IMPURITY_LEAD_IN_S = 1.0
+IMPURITY_MIN_TURN_S = IMPURITY_LEAD_IN_S + IMPURITY_LENGTH_S
+
 PLAN_PATH = Path("speakers/clip_plan.json")
 LABELS_PATH = Path("speakers/labels.json")
 CLIPS_DIR = Path("clips")
@@ -158,42 +175,125 @@ def build_plan(directory: Path, *, campaign_seed: str) -> tuple[list[dict], dict
         "clip_min_turn_s": CLIP_MIN_TURN_S,
     }
 
-    plan = []
-    for item in chosen:
+    # One clip can serve more than one purpose, so clips are keyed by id and
+    # accumulate purposes. Cutting or labelling the same audio twice because
+    # two parts of the eval asked for it separately would be waste the
+    # labeller pays for in minutes.
+    plan: dict[str, dict] = {}
+
+    def add(item, speaker, *, purpose, draw, min_turn_s, lead_in_s, length_s):
         episode = item["episode"]
+        seed = f"{item['seed']}:{speaker}" if purpose == "impurity" else item["seed"]
         turn = pick_clip_turn(
-            episode["turns"],
-            item["speaker"],
-            seed=item["seed"],
-            min_turn_s=CLIP_MIN_TURN_S,
+            episode["turns"], speaker, seed=seed, min_turn_s=min_turn_s, draw=draw
         )
-        start, length = clip_window(
-            turn, lead_in_s=CLIP_LEAD_IN_S, length_s=CLIP_LENGTH_S
+        if turn is None:
+            return None
+        start, length = clip_window(turn, lead_in_s=lead_in_s, length_s=length_s)
+        clip_id = (
+            f"{Path(episode['name']).stem}--{speaker}--{purpose[0]}{draw}"
+            if purpose == "impurity"
+            else f"{Path(episode['name']).stem}--{speaker}--d{draw}"
         )
+        existing = plan.get(clip_id)
+        if existing:
+            if purpose not in existing["purposes"]:
+                existing["purposes"].append(purpose)
+            return existing
         parsed = parse_transcript_filename(episode["name"])
-        plan.append(
-            {
-                "clip_id": f"{Path(episode['name']).stem}--{item['speaker']}--d0",
-                "episode": episode["name"],
-                "show": episode["show"],
-                "episode_number": parsed[1] if parsed else "Unknown",
-                "date": episode["date"],
-                "stratum": (
-                    ERA_BOUNDARY
-                    if episode["year"] >= ERA_BOUNDARY
-                    else f"pre-{ERA_BOUNDARY}"
-                ),
-                "purpose": "precision",
-                "cluster": item["speaker"],
-                "seed": item["seed"],
-                "draw": 0,
-                "turn_start": turn["start"],
-                "turn_duration_s": turn["duration_s"],
-                "clip_start_s": start,
-                "clip_length_s": length,
-            }
+        plan[clip_id] = {
+            "clip_id": clip_id,
+            "episode": episode["name"],
+            "show": episode["show"],
+            "episode_number": parsed[1] if parsed else "Unknown",
+            "date": episode["date"],
+            "stratum": (
+                ERA_BOUNDARY
+                if episode["year"] >= ERA_BOUNDARY
+                else f"pre-{ERA_BOUNDARY}"
+            ),
+            "purposes": [purpose],
+            "cluster": speaker,
+            "seed": seed,
+            "draw": draw,
+            "turn_start": turn["start"],
+            "turn_duration_s": turn["duration_s"],
+            "clip_start_s": start,
+            "clip_length_s": length,
+        }
+        return plan[clip_id]
+
+    for item in chosen:
+        add(
+            item,
+            item["speaker"],
+            purpose="precision",
+            draw=0,
+            min_turn_s=CLIP_MIN_TURN_S,
+            lead_in_s=CLIP_LEAD_IN_S,
+            length_s=CLIP_LENGTH_S,
         )
-    return plan, meta
+
+    # Coverage: every cluster in a subset of the precision episodes. A subset
+    # on purpose -- each one's dominant-cluster clip is already planned, so
+    # coverage only pays for the OTHER clusters.
+    coverage = evenly_spaced(
+        [i for i in chosen if i["episode"]["year"] < ERA_BOUNDARY],
+        COVERAGE_EPISODES_PRE,
+    ) + evenly_spaced(
+        [i for i in chosen if i["episode"]["year"] >= ERA_BOUNDARY],
+        COVERAGE_EPISODES_RECENT,
+    )
+    coverage_clusters: list[tuple[dict, str]] = []
+    for item in coverage:
+        for speaker in sorted(item["episode"]["shares"]["by_speaker_s"]):
+            entry = add(
+                item,
+                speaker,
+                purpose="coverage",
+                draw=0,
+                min_turn_s=CLIP_MIN_TURN_S,
+                lead_in_s=CLIP_LEAD_IN_S,
+                length_s=CLIP_LENGTH_S,
+            )
+            if entry is not None:
+                coverage_clusters.append((item, speaker))
+
+    # Impurity (Part 5): does a cluster hold one person? Drawn from the
+    # coverage clusters, because those are exactly the clusters whose
+    # per-cluster ground truth this probe exists to validate.
+    #
+    # Shorter clips at a lower floor than the rest: contamination hides in
+    # brief interjections, and a 12s minimum would systematically exclude the
+    # turns most likely to contain a second voice.
+    eligible_for_impurity = [
+        (item, speaker)
+        for item, speaker in coverage_clusters
+        if sum(
+            1
+            for t in item["episode"]["turns"]
+            if t["speaker"] == speaker and t["duration_s"] >= IMPURITY_MIN_TURN_S
+        )
+        >= IMPURITY_TURNS_PER_CLUSTER
+    ]
+    impurity_short = len(coverage_clusters) - len(eligible_for_impurity)
+    for item, speaker in evenly_spaced(eligible_for_impurity, IMPURITY_CLUSTERS):
+        for draw in range(IMPURITY_TURNS_PER_CLUSTER):
+            add(
+                item,
+                speaker,
+                purpose="impurity",
+                draw=draw,
+                min_turn_s=IMPURITY_MIN_TURN_S,
+                lead_in_s=IMPURITY_LEAD_IN_S,
+                length_s=IMPURITY_LENGTH_S,
+            )
+
+    meta["coverage_episodes"] = len(coverage)
+    meta["coverage_clusters"] = len(coverage_clusters)
+    meta["impurity_clusters"] = min(IMPURITY_CLUSTERS, len(eligible_for_impurity))
+    meta["impurity_clusters_too_short"] = impurity_short
+    return list(plan.values()), meta
 
 
 def cmd_plan(args: argparse.Namespace) -> None:
@@ -218,6 +318,15 @@ def cmd_plan(args: argparse.Namespace) -> None:
     )
     print(f"  dropped, routed to Tier 2: {meta['routed_to_tier2']}")
     print(f"  dropped, no clippable turn: {meta['no_clippable_turn']}")
+    print(
+        f"  coverage {meta['coverage_episodes']} episodes / "
+        f"{meta['coverage_clusters']} clusters"
+    )
+    print(
+        f"  impurity {meta['impurity_clusters']} clusters x "
+        f"{IMPURITY_TURNS_PER_CLUSTER} turns "
+        f"({meta['impurity_clusters_too_short']} clusters had too few turns)"
+    )
 
 
 # ---------------------------------------------------------------- cut
@@ -406,7 +515,10 @@ def cmd_label(args: argparse.Namespace) -> None:
     for clip in pending:
         names = sorted({v["person"] for v in labels.values() if v.get("person")})
         path = clips_dir / f"{clip['clip_id']}.mp3"
-        print(f"--- {clip['show']} — {clip['date']} ({clip['stratum']})")
+        print(
+            f"--- {clip['show']} — {clip['date']} "
+            f"({clip['stratum']}, {'+'.join(clip['purposes'])})"
+        )
         print(
             f"    cluster {clip['cluster']}, {clip['clip_length_s']:.0f}s from "
             f"{clip['clip_start_s']:.0f}s   draw {clip['draw']}"

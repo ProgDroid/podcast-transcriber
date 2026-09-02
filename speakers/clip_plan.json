@@ -10,7 +10,11 @@
     "no_clippable_turn": 0,
     "era_boundary": "2026",
     "gap_cap_s": 30.0,
-    "clip_min_turn_s": 12.0
+    "clip_min_turn_s": 12.0,
+    "coverage_episodes": 30,
+    "coverage_clusters": 69,
+    "impurity_clusters": 15,
+    "impurity_clusters_too_short": 11
   },
   "clips": [
     {
@@ -20,7 +24,10 @@
       "episode_number": "1",
       "date": "2022-05-02",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
       "draw": 0,
@@ -36,7 +43,9 @@
       "episode_number": "2",
       "date": "2022-05-06",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 2 - 2022-05-06.txt",
       "draw": 0,
@@ -52,7 +61,9 @@
       "episode_number": "4",
       "date": "2022-05-16",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 4 - 2022-05-16.txt",
       "draw": 0,
@@ -68,7 +79,9 @@
       "episode_number": "6",
       "date": "2022-05-27",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 6 - 2022-05-27.txt",
       "draw": 0,
@@ -84,7 +97,9 @@
       "episode_number": "9",
       "date": "2022-06-13",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 9 - 2022-06-13.txt",
       "draw": 0,
@@ -100,7 +115,9 @@
       "episode_number": "11",
       "date": "2022-06-20",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 11 - 2022-06-20.txt",
       "draw": 0,
@@ -116,7 +133,9 @@
       "episode_number": "14",
       "date": "2022-07-01",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 14 - 2022-07-01.txt",
       "draw": 0,
@@ -132,7 +151,10 @@
       "episode_number": "16",
       "date": "2022-07-15",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
       "draw": 0,
@@ -148,7 +170,9 @@
       "episode_number": "19",
       "date": "2022-07-29",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 19 - 2022-07-29.txt",
       "draw": 0,
@@ -164,7 +188,9 @@
       "episode_number": "21",
       "date": "2022-08-05",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 21 - 2022-08-05.txt",
       "draw": 0,
@@ -180,7 +206,9 @@
       "episode_number": "23",
       "date": "2022-08-12",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 23 - 2022-08-12.txt",
       "draw": 0,
@@ -196,7 +224,9 @@
       "episode_number": "25",
       "date": "2022-08-19",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 25 - 2022-08-19.txt",
       "draw": 0,
@@ -212,7 +242,9 @@
       "episode_number": "27",
       "date": "2022-08-29",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 27 - 2022-08-29.txt",
       "draw": 0,
@@ -228,7 +260,9 @@
       "episode_number": "29",
       "date": "2022-09-16",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 29 - 2022-09-16.txt",
       "draw": 0,
@@ -244,7 +278,9 @@
       "episode_number": "32",
       "date": "2022-09-30",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 32 - 2022-09-30.txt",
       "draw": 0,
@@ -260,7 +296,10 @@
       "episode_number": "35",
       "date": "2022-10-10",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 35 - 2022-10-10.txt",
       "draw": 0,
@@ -276,7 +315,9 @@
       "episode_number": "37",
       "date": "2022-10-21",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 37 - 2022-10-21.txt",
       "draw": 0,
@@ -292,7 +333,9 @@
       "episode_number": "39",
       "date": "2022-10-31",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 39 - 2022-10-31.txt",
       "draw": 0,
@@ -308,7 +351,9 @@
       "episode_number": "42",
       "date": "2022-11-11",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 42 - 2022-11-11.txt",
       "draw": 0,
@@ -324,7 +369,9 @@
       "episode_number": "44",
       "date": "2022-11-18",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 44 - 2022-11-18.txt",
       "draw": 0,
@@ -340,7 +387,9 @@
       "episode_number": "46",
       "date": "2022-11-23",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 46 - 2022-11-23.txt",
       "draw": 0,
@@ -356,7 +405,9 @@
       "episode_number": "48",
       "date": "2022-12-05",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 48 - 2022-12-05.txt",
       "draw": 0,
@@ -372,7 +423,10 @@
       "episode_number": "50",
       "date": "2022-12-10",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
       "draw": 0,
@@ -388,7 +442,9 @@
       "episode_number": "52",
       "date": "2022-12-19",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 52 - 2022-12-19.txt",
       "draw": 0,
@@ -404,7 +460,9 @@
       "episode_number": "55",
       "date": "2023-01-06",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 55 - 2023-01-06.txt",
       "draw": 0,
@@ -420,7 +478,9 @@
       "episode_number": "57",
       "date": "2023-01-13",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 57 - 2023-01-13.txt",
       "draw": 0,
@@ -436,7 +496,9 @@
       "episode_number": "59",
       "date": "2023-01-20",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 59 - 2023-01-20.txt",
       "draw": 0,
@@ -452,7 +514,9 @@
       "episode_number": "61",
       "date": "2023-01-27",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 61 - 2023-01-27.txt",
       "draw": 0,
@@ -468,7 +532,9 @@
       "episode_number": "63",
       "date": "2023-02-03",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 63 - 2023-02-03.txt",
       "draw": 0,
@@ -484,7 +550,9 @@
       "episode_number": "65",
       "date": "2023-02-07",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 65 - 2023-02-07.txt",
       "draw": 0,
@@ -500,7 +568,10 @@
       "episode_number": "68",
       "date": "2023-02-15",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 68 - 2023-02-15.txt",
       "draw": 0,
@@ -516,7 +587,9 @@
       "episode_number": "69",
       "date": "2023-02-17",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 69 - 2023-02-17.txt",
       "draw": 0,
@@ -532,7 +605,9 @@
       "episode_number": "71",
       "date": "2023-02-27",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 71 - 2023-02-27.txt",
       "draw": 0,
@@ -548,7 +623,9 @@
       "episode_number": "73",
       "date": "2023-03-06",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 73 - 2023-03-06.txt",
       "draw": 0,
@@ -564,7 +641,9 @@
       "episode_number": "76",
       "date": "2023-03-17",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 76 - 2023-03-17.txt",
       "draw": 0,
@@ -580,7 +659,9 @@
       "episode_number": "78",
       "date": "2023-03-24",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 78 - 2023-03-24.txt",
       "draw": 0,
@@ -596,7 +677,9 @@
       "episode_number": "80",
       "date": "2023-03-28",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 80 - 2023-03-28.txt",
       "draw": 0,
@@ -612,7 +695,10 @@
       "episode_number": "82",
       "date": "2023-04-03",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
       "draw": 0,
@@ -628,7 +714,9 @@
       "episode_number": "84",
       "date": "2023-04-17",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 84 - 2023-04-17.txt",
       "draw": 0,
@@ -644,7 +732,9 @@
       "episode_number": "86",
       "date": "2023-04-26",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 86 - 2023-04-26.txt",
       "draw": 0,
@@ -660,7 +750,9 @@
       "episode_number": "88",
       "date": "2023-04-30",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 88 - 2023-04-30.txt",
       "draw": 0,
@@ -676,7 +768,9 @@
       "episode_number": "91",
       "date": "2023-05-15",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 91 - 2023-05-15.txt",
       "draw": 0,
@@ -692,7 +786,9 @@
       "episode_number": "93",
       "date": "2023-05-20",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 93 - 2023-05-20.txt",
       "draw": 0,
@@ -708,7 +804,9 @@
       "episode_number": "96",
       "date": "2023-05-26",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 96 - 2023-05-26.txt",
       "draw": 0,
@@ -724,7 +822,9 @@
       "episode_number": "98",
       "date": "2023-05-31",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 98 - 2023-05-31.txt",
       "draw": 0,
@@ -740,7 +840,10 @@
       "episode_number": "101",
       "date": "2023-06-09",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 101 - 2023-06-09.txt",
       "draw": 0,
@@ -756,7 +859,9 @@
       "episode_number": "104",
       "date": "2023-06-19",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 104 - 2023-06-19.txt",
       "draw": 0,
@@ -772,7 +877,9 @@
       "episode_number": "106",
       "date": "2023-06-23",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 106 - 2023-06-23.txt",
       "draw": 0,
@@ -788,7 +895,9 @@
       "episode_number": "109",
       "date": "2023-06-27",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 109 - 2023-06-27.txt",
       "draw": 0,
@@ -804,7 +913,9 @@
       "episode_number": "111",
       "date": "2023-07-03",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 111 - 2023-07-03.txt",
       "draw": 0,
@@ -820,7 +931,9 @@
       "episode_number": "113",
       "date": "2023-07-12",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 113 - 2023-07-12.txt",
       "draw": 0,
@@ -836,7 +949,9 @@
       "episode_number": "115",
       "date": "2023-07-20",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 115 - 2023-07-20.txt",
       "draw": 0,
@@ -852,7 +967,10 @@
       "episode_number": "117",
       "date": "2023-07-24",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
       "draw": 0,
@@ -868,7 +986,9 @@
       "episode_number": "119",
       "date": "2023-08-04",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 119 - 2023-08-04.txt",
       "draw": 0,
@@ -884,7 +1004,9 @@
       "episode_number": "121",
       "date": "2023-08-09",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 121 - 2023-08-09.txt",
       "draw": 0,
@@ -900,7 +1022,9 @@
       "episode_number": "123",
       "date": "2023-08-11",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 123 - 2023-08-11.txt",
       "draw": 0,
@@ -916,7 +1040,9 @@
       "episode_number": "125",
       "date": "2023-08-18",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 125 - 2023-08-18.txt",
       "draw": 0,
@@ -932,7 +1058,9 @@
       "episode_number": "127",
       "date": "2023-08-25",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 127 - 2023-08-25.txt",
       "draw": 0,
@@ -948,7 +1076,9 @@
       "episode_number": "130",
       "date": "2023-09-04",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 130 - 2023-09-04.txt",
       "draw": 0,
@@ -964,7 +1094,9 @@
       "episode_number": "132",
       "date": "2023-09-11",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 132 - 2023-09-11.txt",
       "draw": 0,
@@ -980,7 +1112,10 @@
       "episode_number": "134",
       "date": "2023-09-22",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 134 - 2023-09-22.txt",
       "draw": 0,
@@ -996,7 +1131,9 @@
       "episode_number": "135",
       "date": "2023-09-25",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 135 - 2023-09-25.txt",
       "draw": 0,
@@ -1012,7 +1149,9 @@
       "episode_number": "137",
       "date": "2023-10-02",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 137 - 2023-10-02.txt",
       "draw": 0,
@@ -1028,7 +1167,9 @@
       "episode_number": "139",
       "date": "2023-10-08",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 139 - 2023-10-08.txt",
       "draw": 0,
@@ -1044,7 +1185,9 @@
       "episode_number": "142",
       "date": "2023-10-12",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 142 - 2023-10-12.txt",
       "draw": 0,
@@ -1060,7 +1203,9 @@
       "episode_number": "145",
       "date": "2023-10-16",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 145 - 2023-10-16.txt",
       "draw": 0,
@@ -1076,7 +1221,9 @@
       "episode_number": "147",
       "date": "2023-10-20",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 147 - 2023-10-20.txt",
       "draw": 0,
@@ -1092,7 +1239,10 @@
       "episode_number": "149",
       "date": "2023-10-30",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
       "draw": 0,
@@ -1108,7 +1258,9 @@
       "episode_number": "151",
       "date": "2023-11-06",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 151 - 2023-11-06.txt",
       "draw": 0,
@@ -1124,7 +1276,9 @@
       "episode_number": "153",
       "date": "2023-11-10",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 153 - 2023-11-10.txt",
       "draw": 0,
@@ -1140,7 +1294,9 @@
       "episode_number": "155",
       "date": "2023-11-18",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 155 - 2023-11-18.txt",
       "draw": 0,
@@ -1156,7 +1312,9 @@
       "episode_number": "157",
       "date": "2023-11-20",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 157 - 2023-11-20.txt",
       "draw": 0,
@@ -1172,7 +1330,9 @@
       "episode_number": "159",
       "date": "2023-11-28",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 159 - 2023-11-28.txt",
       "draw": 0,
@@ -1188,7 +1348,9 @@
       "episode_number": "161",
       "date": "2023-12-08",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 161 - 2023-12-08.txt",
       "draw": 0,
@@ -1204,7 +1366,9 @@
       "episode_number": "163",
       "date": "2023-12-22",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 163 - 2023-12-22.txt",
       "draw": 0,
@@ -1220,7 +1384,10 @@
       "episode_number": "165",
       "date": "2024-01-08",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 165 - 2024-01-08.txt",
       "draw": 0,
@@ -1236,7 +1403,9 @@
       "episode_number": "167",
       "date": "2024-01-16",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 167 - 2024-01-16.txt",
       "draw": 0,
@@ -1252,7 +1421,9 @@
       "episode_number": "169",
       "date": "2024-01-22",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 169 - 2024-01-22.txt",
       "draw": 0,
@@ -1268,7 +1439,9 @@
       "episode_number": "171",
       "date": "2024-01-29",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 171 - 2024-01-29.txt",
       "draw": 0,
@@ -1284,7 +1457,9 @@
       "episode_number": "173",
       "date": "2024-02-03",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 173 - 2024-02-03.txt",
       "draw": 0,
@@ -1300,7 +1475,9 @@
       "episode_number": "175",
       "date": "2024-02-09",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 175 - 2024-02-09.txt",
       "draw": 0,
@@ -1316,7 +1493,9 @@
       "episode_number": "177",
       "date": "2024-02-23",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_04",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 177 - 2024-02-23.txt",
       "draw": 0,
@@ -1332,7 +1511,10 @@
       "episode_number": "179",
       "date": "2024-03-01",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
       "draw": 0,
@@ -1348,7 +1530,9 @@
       "episode_number": "181",
       "date": "2024-03-08",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 181 - 2024-03-08.txt",
       "draw": 0,
@@ -1364,7 +1548,9 @@
       "episode_number": "183",
       "date": "2024-03-15",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 183 - 2024-03-15.txt",
       "draw": 0,
@@ -1380,7 +1566,9 @@
       "episode_number": "185",
       "date": "2024-03-22",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 185 - 2024-03-22.txt",
       "draw": 0,
@@ -1396,7 +1584,9 @@
       "episode_number": "188",
       "date": "2024-04-01",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 188 - 2024-04-01.txt",
       "draw": 0,
@@ -1412,7 +1602,9 @@
       "episode_number": "190",
       "date": "2024-04-12",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 190 - 2024-04-12.txt",
       "draw": 0,
@@ -1428,7 +1620,9 @@
       "episode_number": "192",
       "date": "2024-04-17",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 192 - 2024-04-17.txt",
       "draw": 0,
@@ -1444,7 +1638,9 @@
       "episode_number": "195",
       "date": "2024-04-26",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 195 - 2024-04-26.txt",
       "draw": 0,
@@ -1460,7 +1656,10 @@
       "episode_number": "197",
       "date": "2024-05-03",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 197 - 2024-05-03.txt",
       "draw": 0,
@@ -1476,7 +1675,9 @@
       "episode_number": "198",
       "date": "2024-05-10",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 198 - 2024-05-10.txt",
       "draw": 0,
@@ -1492,7 +1693,9 @@
       "episode_number": "200",
       "date": "2024-05-17",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 200 - 2024-05-17.txt",
       "draw": 0,
@@ -1508,7 +1711,9 @@
       "episode_number": "203",
       "date": "2024-05-23",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 203 - 2024-05-23.txt",
       "draw": 0,
@@ -1524,7 +1729,9 @@
       "episode_number": "205",
       "date": "2024-05-27",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 205 - 2024-05-27.txt",
       "draw": 0,
@@ -1540,7 +1747,9 @@
       "episode_number": "207",
       "date": "2024-06-04",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 207 - 2024-06-04.txt",
       "draw": 0,
@@ -1556,7 +1765,9 @@
       "episode_number": "209",
       "date": "2024-06-14",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 209 - 2024-06-14.txt",
       "draw": 0,
@@ -1572,7 +1783,10 @@
       "episode_number": "211",
       "date": "2024-06-21",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 211 - 2024-06-21.txt",
       "draw": 0,
@@ -1588,7 +1802,9 @@
       "episode_number": "213",
       "date": "2024-07-01",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 213 - 2024-07-01.txt",
       "draw": 0,
@@ -1604,7 +1820,9 @@
       "episode_number": "215",
       "date": "2024-07-05",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 215 - 2024-07-05.txt",
       "draw": 0,
@@ -1620,7 +1838,9 @@
       "episode_number": "217",
       "date": "2024-07-10",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 217 - 2024-07-10.txt",
       "draw": 0,
@@ -1636,7 +1856,9 @@
       "episode_number": "219",
       "date": "2024-07-15",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 219 - 2024-07-15.txt",
       "draw": 0,
@@ -1652,7 +1874,9 @@
       "episode_number": "221",
       "date": "2024-07-26",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 221 - 2024-07-26.txt",
       "draw": 0,
@@ -1668,7 +1892,9 @@
       "episode_number": "223",
       "date": "2024-08-02",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 223 - 2024-08-02.txt",
       "draw": 0,
@@ -1684,7 +1910,9 @@
       "episode_number": "225",
       "date": "2024-08-12",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 225 - 2024-08-12.txt",
       "draw": 0,
@@ -1700,7 +1928,10 @@
       "episode_number": "227",
       "date": "2024-08-23",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
       "draw": 0,
@@ -1716,7 +1947,9 @@
       "episode_number": "229",
       "date": "2024-09-04",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 229 - 2024-09-04.txt",
       "draw": 0,
@@ -1732,7 +1965,9 @@
       "episode_number": "231",
       "date": "2024-09-20",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 231 - 2024-09-20.txt",
       "draw": 0,
@@ -1748,7 +1983,9 @@
       "episode_number": "233",
       "date": "2024-09-27",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 233 - 2024-09-27.txt",
       "draw": 0,
@@ -1764,7 +2001,9 @@
       "episode_number": "236",
       "date": "2024-10-02",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 236 - 2024-10-02.txt",
       "draw": 0,
@@ -1780,7 +2019,9 @@
       "episode_number": "238",
       "date": "2024-10-11",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 238 - 2024-10-11.txt",
       "draw": 0,
@@ -1796,7 +2037,9 @@
       "episode_number": "240",
       "date": "2024-10-22",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 240 - 2024-10-22.txt",
       "draw": 0,
@@ -1812,7 +2055,10 @@
       "episode_number": "242",
       "date": "2024-11-03",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 242 - 2024-11-03.txt",
       "draw": 0,
@@ -1828,7 +2074,9 @@
       "episode_number": "244",
       "date": "2024-11-11",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 244 - 2024-11-11.txt",
       "draw": 0,
@@ -1844,7 +2092,9 @@
       "episode_number": "246",
       "date": "2024-12-13",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 246 - 2024-12-13.txt",
       "draw": 0,
@@ -1860,7 +2110,9 @@
       "episode_number": "248",
       "date": "2025-01-10",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 248 - 2025-01-10.txt",
       "draw": 0,
@@ -1876,7 +2128,9 @@
       "episode_number": "250",
       "date": "2025-01-17",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 250 - 2025-01-17.txt",
       "draw": 0,
@@ -1892,7 +2146,9 @@
       "episode_number": "252",
       "date": "2025-01-31",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 252 - 2025-01-31.txt",
       "draw": 0,
@@ -1908,7 +2164,9 @@
       "episode_number": "254",
       "date": "2025-02-04",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 254 - 2025-02-04.txt",
       "draw": 0,
@@ -1924,7 +2182,9 @@
       "episode_number": "256",
       "date": "2025-02-11",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 256 - 2025-02-11.txt",
       "draw": 0,
@@ -1940,7 +2200,10 @@
       "episode_number": "258",
       "date": "2025-02-18",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
       "draw": 0,
@@ -1956,7 +2219,9 @@
       "episode_number": "259",
       "date": "2025-02-21",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 259 - 2025-02-21.txt",
       "draw": 0,
@@ -1972,7 +2237,9 @@
       "episode_number": "261",
       "date": "2025-02-28",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 261 - 2025-02-28.txt",
       "draw": 0,
@@ -1988,7 +2255,9 @@
       "episode_number": "263",
       "date": "2025-03-07",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 263 - 2025-03-07.txt",
       "draw": 0,
@@ -2004,7 +2273,9 @@
       "episode_number": "265",
       "date": "2025-03-14",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 265 - 2025-03-14.txt",
       "draw": 0,
@@ -2020,7 +2291,9 @@
       "episode_number": "267",
       "date": "2025-03-28",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 267 - 2025-03-28.txt",
       "draw": 0,
@@ -2036,7 +2309,9 @@
       "episode_number": "269",
       "date": "2025-03-31",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 269 - 2025-03-31.txt",
       "draw": 0,
@@ -2052,7 +2327,10 @@
       "episode_number": "271",
       "date": "2025-04-04",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_03",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
       "draw": 0,
@@ -2068,7 +2346,9 @@
       "episode_number": "273",
       "date": "2025-04-08",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 273 - 2025-04-08.txt",
       "draw": 0,
@@ -2084,7 +2364,9 @@
       "episode_number": "275",
       "date": "2025-04-25",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 275 - 2025-04-25.txt",
       "draw": 0,
@@ -2100,7 +2382,9 @@
       "episode_number": "277",
       "date": "2025-04-30",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 277 - 2025-04-30.txt",
       "draw": 0,
@@ -2116,7 +2400,9 @@
       "episode_number": "279",
       "date": "2025-05-07",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 279 - 2025-05-07.txt",
       "draw": 0,
@@ -2132,7 +2418,9 @@
       "episode_number": "281",
       "date": "2025-05-12",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_03",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 281 - 2025-05-12.txt",
       "draw": 0,
@@ -2148,7 +2436,9 @@
       "episode_number": "283",
       "date": "2025-05-23",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 283 - 2025-05-23.txt",
       "draw": 0,
@@ -2164,7 +2454,9 @@
       "episode_number": "285",
       "date": "2025-06-09",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 285 - 2025-06-09.txt",
       "draw": 0,
@@ -2180,7 +2472,10 @@
       "episode_number": "287",
       "date": "2025-06-13",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 287 - 2025-06-13.txt",
       "draw": 0,
@@ -2196,7 +2491,9 @@
       "episode_number": "289",
       "date": "2025-06-20",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 289 - 2025-06-20.txt",
       "draw": 0,
@@ -2212,7 +2509,9 @@
       "episode_number": "291",
       "date": "2025-06-30",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 291 - 2025-06-30.txt",
       "draw": 0,
@@ -2228,7 +2527,9 @@
       "episode_number": "293",
       "date": "2025-07-11",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 293 - 2025-07-11.txt",
       "draw": 0,
@@ -2244,7 +2545,9 @@
       "episode_number": "295",
       "date": "2025-07-29",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_03",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 295 - 2025-07-29.txt",
       "draw": 0,
@@ -2260,7 +2563,9 @@
       "episode_number": "298",
       "date": "2025-09-15",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 298 - 2025-09-15.txt",
       "draw": 0,
@@ -2276,7 +2581,9 @@
       "episode_number": "300",
       "date": "2025-09-22",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 300 - 2025-09-22.txt",
       "draw": 0,
@@ -2292,7 +2599,10 @@
       "episode_number": "302",
       "date": "2025-09-30",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
       "draw": 0,
@@ -2308,7 +2618,9 @@
       "episode_number": "305",
       "date": "2025-10-24",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 305 - 2025-10-24.txt",
       "draw": 0,
@@ -2324,7 +2636,9 @@
       "episode_number": "307",
       "date": "2025-10-31",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 307 - 2025-10-31.txt",
       "draw": 0,
@@ -2340,7 +2654,9 @@
       "episode_number": "309",
       "date": "2025-11-06",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 309 - 2025-11-06.txt",
       "draw": 0,
@@ -2356,7 +2672,9 @@
       "episode_number": "311",
       "date": "2025-11-17",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 311 - 2025-11-17.txt",
       "draw": 0,
@@ -2372,7 +2690,9 @@
       "episode_number": "313",
       "date": "2025-11-22",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 313 - 2025-11-22.txt",
       "draw": 0,
@@ -2388,7 +2708,9 @@
       "episode_number": "315",
       "date": "2025-12-02",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 315 - 2025-12-02.txt",
       "draw": 0,
@@ -2404,7 +2726,9 @@
       "episode_number": "317",
       "date": "2025-12-22",
       "stratum": "pre-2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 317 - 2025-12-22.txt",
       "draw": 0,
@@ -2420,7 +2744,10 @@
       "episode_number": "319",
       "date": "2026-01-03",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 319 - 2026-01-03.txt",
       "draw": 0,
@@ -2436,7 +2763,9 @@
       "episode_number": "320",
       "date": "2026-01-09",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 320 - 2026-01-09.txt",
       "draw": 0,
@@ -2452,7 +2781,9 @@
       "episode_number": "321",
       "date": "2026-01-13",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 321 - 2026-01-13.txt",
       "draw": 0,
@@ -2468,7 +2799,9 @@
       "episode_number": "322",
       "date": "2026-01-16",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 322 - 2026-01-16.txt",
       "draw": 0,
@@ -2484,7 +2817,10 @@
       "episode_number": "323",
       "date": "2026-01-19",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 323 - 2026-01-19.txt",
       "draw": 0,
@@ -2500,7 +2836,9 @@
       "episode_number": "324",
       "date": "2026-01-26",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 324 - 2026-01-26.txt",
       "draw": 0,
@@ -2516,7 +2854,9 @@
       "episode_number": "325",
       "date": "2026-01-30",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 325 - 2026-01-30.txt",
       "draw": 0,
@@ -2532,7 +2872,9 @@
       "episode_number": "326",
       "date": "2026-02-13",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 326 - 2026-02-13.txt",
       "draw": 0,
@@ -2548,7 +2890,10 @@
       "episode_number": "327",
       "date": "2026-02-18",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
       "draw": 0,
@@ -2564,7 +2909,9 @@
       "episode_number": "328",
       "date": "2026-02-23",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 328 - 2026-02-23.txt",
       "draw": 0,
@@ -2580,7 +2927,9 @@
       "episode_number": "329",
       "date": "2026-02-28",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 329 - 2026-02-28.txt",
       "draw": 0,
@@ -2596,7 +2945,9 @@
       "episode_number": "330",
       "date": "2026-03-06",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 330 - 2026-03-06.txt",
       "draw": 0,
@@ -2612,7 +2963,10 @@
       "episode_number": "331",
       "date": "2026-03-10",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 331 - 2026-03-10.txt",
       "draw": 0,
@@ -2628,7 +2982,9 @@
       "episode_number": "332",
       "date": "2026-03-13",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 332 - 2026-03-13.txt",
       "draw": 0,
@@ -2644,7 +3000,9 @@
       "episode_number": "333",
       "date": "2026-03-19",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 333 - 2026-03-19.txt",
       "draw": 0,
@@ -2660,7 +3018,9 @@
       "episode_number": "334",
       "date": "2026-03-23",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 334 - 2026-03-23.txt",
       "draw": 0,
@@ -2676,7 +3036,10 @@
       "episode_number": "335",
       "date": "2026-04-01",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
       "draw": 0,
@@ -2692,7 +3055,9 @@
       "episode_number": "336",
       "date": "2026-04-03",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 336 - 2026-04-03.txt",
       "draw": 0,
@@ -2708,7 +3073,9 @@
       "episode_number": "337",
       "date": "2026-04-16",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 337 - 2026-04-16.txt",
       "draw": 0,
@@ -2724,7 +3091,9 @@
       "episode_number": "338",
       "date": "2026-04-22",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 338 - 2026-04-22.txt",
       "draw": 0,
@@ -2740,7 +3109,9 @@
       "episode_number": "339",
       "date": "2026-04-29",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_03",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 339 - 2026-04-29.txt",
       "draw": 0,
@@ -2756,7 +3127,10 @@
       "episode_number": "340",
       "date": "2026-05-06",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 340 - 2026-05-06.txt",
       "draw": 0,
@@ -2772,7 +3146,9 @@
       "episode_number": "341",
       "date": "2026-05-14",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 341 - 2026-05-14.txt",
       "draw": 0,
@@ -2788,7 +3164,9 @@
       "episode_number": "342",
       "date": "2026-05-21",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 342 - 2026-05-21.txt",
       "draw": 0,
@@ -2804,7 +3182,9 @@
       "episode_number": "343",
       "date": "2026-06-03",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 343 - 2026-06-03.txt",
       "draw": 0,
@@ -2820,7 +3200,10 @@
       "episode_number": "344",
       "date": "2026-06-18",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
       "draw": 0,
@@ -2836,7 +3219,9 @@
       "episode_number": "345",
       "date": "2026-06-22",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 345 - 2026-06-22.txt",
       "draw": 0,
@@ -2852,7 +3237,9 @@
       "episode_number": "348",
       "date": "2026-07-14",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_03",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 348 - 2026-07-14.txt",
       "draw": 0,
@@ -2868,7 +3255,9 @@
       "episode_number": "349",
       "date": "2026-07-19",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_03",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 349 - 2026-07-19.txt",
       "draw": 0,
@@ -2884,7 +3273,10 @@
       "episode_number": "350",
       "date": "2026-07-21",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 350 - 2026-07-21.txt",
       "draw": 0,
@@ -2900,7 +3292,9 @@
       "episode_number": "Unknown",
       "date": "2026-07-29",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode Unknown - 2026-07-29.txt",
       "draw": 0,
@@ -2916,7 +3310,9 @@
       "episode_number": "Unknown",
       "date": "2026-07-31",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode Unknown - 2026-07-31.txt",
       "draw": 0,
@@ -2932,7 +3328,9 @@
       "episode_number": "351",
       "date": "2026-08-11",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 351 - 2026-08-11.txt",
       "draw": 0,
@@ -2948,7 +3346,10 @@
       "episode_number": "352",
       "date": "2026-08-24",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
       "draw": 0,
@@ -2964,7 +3365,9 @@
       "episode_number": "353",
       "date": "2026-08-31",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_02",
       "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 353 - 2026-08-31.txt",
       "draw": 0,
@@ -2980,7 +3383,9 @@
       "episode_number": "Unknown",
       "date": "2026-05-12",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Observing Japan Podcast - Episode Unknown - 2026-05-12.txt",
       "draw": 0,
@@ -2996,7 +3401,9 @@
       "episode_number": "2",
       "date": "2026-05-15",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Observing Japan Podcast - Episode 2 - 2026-05-15.txt",
       "draw": 0,
@@ -3012,7 +3419,10 @@
       "episode_number": "3",
       "date": "2026-05-22",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision",
+        "coverage"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Observing Japan Podcast - Episode 3 - 2026-05-22.txt",
       "draw": 0,
@@ -3028,7 +3438,9 @@
       "episode_number": "4",
       "date": "2026-05-29",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Observing Japan Podcast - Episode 4 - 2026-05-29.txt",
       "draw": 0,
@@ -3044,7 +3456,9 @@
       "episode_number": "Unknown",
       "date": "2026-06-05",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Observing Japan Podcast - Episode Unknown - 2026-06-05.txt",
       "draw": 0,
@@ -3060,7 +3474,9 @@
       "episode_number": "Unknown",
       "date": "2026-06-12",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_00",
       "seed": "tier1-precision-2026-09-02:The Observing Japan Podcast - Episode Unknown - 2026-06-12.txt",
       "draw": 0,
@@ -3076,7 +3492,9 @@
       "episode_number": "7",
       "date": "2026-06-19",
       "stratum": "2026",
-      "purpose": "precision",
+      "purposes": [
+        "precision"
+      ],
       "cluster": "SPEAKER_01",
       "seed": "tier1-precision-2026-09-02:The Observing Japan Podcast - Episode 7 - 2026-06-19.txt",
       "draw": 0,
@@ -3084,6 +3502,3408 @@
       "turn_duration_s": 20.600000000000364,
       "clip_start_s": 3342.2,
       "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "draw": 0,
+      "turn_start": 2342.7,
+      "turn_duration_s": 94.0,
+      "clip_start_s": 2344.7,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "draw": 0,
+      "turn_start": 281.9,
+      "turn_duration_s": 229.8,
+      "clip_start_s": 283.9,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 35 - 2022-10-10--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 35 - 2022-10-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "35",
+      "date": "2022-10-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 35 - 2022-10-10.txt",
+      "draw": 0,
+      "turn_start": 0.6,
+      "turn_duration_s": 134.70000000000002,
+      "clip_start_s": 2.6,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "draw": 0,
+      "turn_start": 0.7,
+      "turn_duration_s": 99.39999999999999,
+      "clip_start_s": 2.7,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 68 - 2023-02-15--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 68 - 2023-02-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "68",
+      "date": "2023-02-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 68 - 2023-02-15.txt",
+      "draw": 0,
+      "turn_start": 3101.8,
+      "turn_duration_s": 40.5,
+      "clip_start_s": 3103.8,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "draw": 0,
+      "turn_start": 1114.7,
+      "turn_duration_s": 231.5,
+      "clip_start_s": 1116.7,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 101 - 2023-06-09--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 101 - 2023-06-09.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "101",
+      "date": "2023-06-09",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 101 - 2023-06-09.txt",
+      "draw": 0,
+      "turn_start": 2862.2,
+      "turn_duration_s": 159.4000000000001,
+      "clip_start_s": 2864.2,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "draw": 0,
+      "turn_start": 1866.4,
+      "turn_duration_s": 28.199999999999818,
+      "clip_start_s": 1868.4,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 134 - 2023-09-22--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 134 - 2023-09-22.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "134",
+      "date": "2023-09-22",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 134 - 2023-09-22.txt",
+      "draw": 0,
+      "turn_start": 44.9,
+      "turn_duration_s": 35.9,
+      "clip_start_s": 46.9,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 134 - 2023-09-22--SPEAKER_02--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 134 - 2023-09-22.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "134",
+      "date": "2023-09-22",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_02",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 134 - 2023-09-22.txt",
+      "draw": 0,
+      "turn_start": 840.9,
+      "turn_duration_s": 126.60000000000002,
+      "clip_start_s": 842.9,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "draw": 0,
+      "turn_start": 3497.9,
+      "turn_duration_s": 165.79999999999973,
+      "clip_start_s": 3499.9,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_02--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_02",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "draw": 0,
+      "turn_start": 796.5,
+      "turn_duration_s": 18.700000000000045,
+      "clip_start_s": 798.5,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 165 - 2024-01-08--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 165 - 2024-01-08.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "165",
+      "date": "2024-01-08",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 165 - 2024-01-08.txt",
+      "draw": 0,
+      "turn_start": 1.0,
+      "turn_duration_s": 175.3,
+      "clip_start_s": 3.0,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "draw": 0,
+      "turn_start": 2759.2,
+      "turn_duration_s": 49.80000000000018,
+      "clip_start_s": 2761.2,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 197 - 2024-05-03--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 197 - 2024-05-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "197",
+      "date": "2024-05-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 197 - 2024-05-03.txt",
+      "draw": 0,
+      "turn_start": 304.1,
+      "turn_duration_s": 57.599999999999966,
+      "clip_start_s": 306.1,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 197 - 2024-05-03--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 197 - 2024-05-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "197",
+      "date": "2024-05-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 197 - 2024-05-03.txt",
+      "draw": 0,
+      "turn_start": 2980.6,
+      "turn_duration_s": 78.20000000000027,
+      "clip_start_s": 2982.6,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 211 - 2024-06-21--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 211 - 2024-06-21.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "211",
+      "date": "2024-06-21",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 211 - 2024-06-21.txt",
+      "draw": 0,
+      "turn_start": 402.2,
+      "turn_duration_s": 50.10000000000002,
+      "clip_start_s": 404.2,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "draw": 0,
+      "turn_start": 1843.3,
+      "turn_duration_s": 74.29999999999995,
+      "clip_start_s": 1845.3,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 242 - 2024-11-03--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 242 - 2024-11-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "242",
+      "date": "2024-11-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 242 - 2024-11-03.txt",
+      "draw": 0,
+      "turn_start": 2379.3,
+      "turn_duration_s": 17.0,
+      "clip_start_s": 2381.3,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "draw": 0,
+      "turn_start": 4620.3,
+      "turn_duration_s": 119.19999999999982,
+      "clip_start_s": 4622.3,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_03--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_03",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "draw": 0,
+      "turn_start": 4754.8,
+      "turn_duration_s": 132.80000000000018,
+      "clip_start_s": 4756.8,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "draw": 0,
+      "turn_start": 4740.2,
+      "turn_duration_s": 35.400000000000546,
+      "clip_start_s": 4742.2,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_02--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_02",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "draw": 0,
+      "turn_start": 4523.2,
+      "turn_duration_s": 107.80000000000018,
+      "clip_start_s": 4525.2,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "draw": 0,
+      "turn_start": 4037.7,
+      "turn_duration_s": 74.19999999999982,
+      "clip_start_s": 4039.7,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_05--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_05",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "draw": 0,
+      "turn_start": 3285.6,
+      "turn_duration_s": 307.8000000000002,
+      "clip_start_s": 3287.6,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 287 - 2025-06-13--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 287 - 2025-06-13.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "287",
+      "date": "2025-06-13",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 287 - 2025-06-13.txt",
+      "draw": 0,
+      "turn_start": 127.4,
+      "turn_duration_s": 44.5,
+      "clip_start_s": 129.4,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "draw": 0,
+      "turn_start": 1223.5,
+      "turn_duration_s": 109.90000000000009,
+      "clip_start_s": 1225.5,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 323 - 2026-01-19--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 323 - 2026-01-19.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "323",
+      "date": "2026-01-19",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 323 - 2026-01-19.txt",
+      "draw": 0,
+      "turn_start": 526.0,
+      "turn_duration_s": 64.89999999999998,
+      "clip_start_s": 528.0,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "draw": 0,
+      "turn_start": 3205.8,
+      "turn_duration_s": 28.09999999999991,
+      "clip_start_s": 3207.8,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 331 - 2026-03-10--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 331 - 2026-03-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "331",
+      "date": "2026-03-10",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 331 - 2026-03-10.txt",
+      "draw": 0,
+      "turn_start": 2456.3,
+      "turn_duration_s": 23.699999999999818,
+      "clip_start_s": 2458.3,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "draw": 0,
+      "turn_start": 3979.6,
+      "turn_duration_s": 37.09999999999991,
+      "clip_start_s": 3981.6,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 340 - 2026-05-06--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 340 - 2026-05-06.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "340",
+      "date": "2026-05-06",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 340 - 2026-05-06.txt",
+      "draw": 0,
+      "turn_start": 2132.2,
+      "turn_duration_s": 25.300000000000182,
+      "clip_start_s": 2134.2,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 340 - 2026-05-06--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 340 - 2026-05-06.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "340",
+      "date": "2026-05-06",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 340 - 2026-05-06.txt",
+      "draw": 0,
+      "turn_start": 4381.7,
+      "turn_duration_s": 29.300000000000182,
+      "clip_start_s": 4383.7,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "draw": 0,
+      "turn_start": 1.1,
+      "turn_duration_s": 29.2,
+      "clip_start_s": 3.1,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_02--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_02",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "draw": 0,
+      "turn_start": 555.5,
+      "turn_duration_s": 28.299999999999955,
+      "clip_start_s": 557.5,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 350 - 2026-07-21--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 350 - 2026-07-21.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "350",
+      "date": "2026-07-21",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 350 - 2026-07-21.txt",
+      "draw": 0,
+      "turn_start": 1210.1,
+      "turn_duration_s": 37.80000000000018,
+      "clip_start_s": 1212.1,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 350 - 2026-07-21--SPEAKER_03--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 350 - 2026-07-21.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "350",
+      "date": "2026-07-21",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_03",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 350 - 2026-07-21.txt",
+      "draw": 0,
+      "turn_start": 85.6,
+      "turn_duration_s": 23.5,
+      "clip_start_s": 87.6,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "draw": 0,
+      "turn_start": 531.4,
+      "turn_duration_s": 78.20000000000005,
+      "clip_start_s": 533.4,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Observing Japan Podcast - Episode 3 - 2026-05-22--SPEAKER_00--d0",
+      "episode": "The Observing Japan Podcast - Episode 3 - 2026-05-22.txt",
+      "show": "The Observing Japan Podcast",
+      "episode_number": "3",
+      "date": "2026-05-22",
+      "stratum": "2026",
+      "purposes": [
+        "coverage"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Observing Japan Podcast - Episode 3 - 2026-05-22.txt",
+      "draw": 0,
+      "turn_start": 2263.9,
+      "turn_duration_s": 76.0,
+      "clip_start_s": 2265.9,
+      "clip_length_s": 10.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 0,
+      "turn_start": 163.0,
+      "turn_duration_s": 62.80000000000001,
+      "clip_start_s": 164.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 1,
+      "turn_start": 2342.7,
+      "turn_duration_s": 94.0,
+      "clip_start_s": 2343.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 2,
+      "turn_start": 2836.8,
+      "turn_duration_s": 12.799999999999727,
+      "clip_start_s": 2837.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 3,
+      "turn_start": 589.3,
+      "turn_duration_s": 40.90000000000009,
+      "clip_start_s": 590.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 4,
+      "turn_start": 1441.4,
+      "turn_duration_s": 16.399999999999864,
+      "clip_start_s": 1442.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 5,
+      "turn_start": 2697.4,
+      "turn_duration_s": 25.0,
+      "clip_start_s": 2698.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 6,
+      "turn_start": 1823.7,
+      "turn_duration_s": 77.0,
+      "clip_start_s": 1824.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 7,
+      "turn_start": 1599.9,
+      "turn_duration_s": 56.19999999999982,
+      "clip_start_s": 1600.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 8,
+      "turn_start": 351.1,
+      "turn_duration_s": 24.0,
+      "clip_start_s": 352.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "1",
+      "date": "2022-05-02",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt:SPEAKER_00",
+      "draw": 9,
+      "turn_start": 1109.2,
+      "turn_duration_s": 15.200000000000045,
+      "clip_start_s": 1110.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 919.7,
+      "turn_duration_s": 337.70000000000005,
+      "clip_start_s": 920.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 1745.4,
+      "turn_duration_s": 66.19999999999982,
+      "clip_start_s": 1746.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 193.1,
+      "turn_duration_s": 83.50000000000003,
+      "clip_start_s": 194.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 2469.3,
+      "turn_duration_s": 114.39999999999964,
+      "clip_start_s": 2470.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 3138.9,
+      "turn_duration_s": 366.5,
+      "clip_start_s": 3139.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 2169.0,
+      "turn_duration_s": 29.800000000000182,
+      "clip_start_s": 2170.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 1359.1,
+      "turn_duration_s": 279.20000000000005,
+      "clip_start_s": 1360.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 176.3,
+      "turn_duration_s": 13.299999999999983,
+      "clip_start_s": 177.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 3904.6,
+      "turn_duration_s": 14.700000000000273,
+      "clip_start_s": 3905.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "16",
+      "date": "2022-07-15",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 16 - 2022-07-15.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 3697.1,
+      "turn_duration_s": 34.5,
+      "clip_start_s": 3698.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 792.9,
+      "turn_duration_s": 11.200000000000045,
+      "clip_start_s": 793.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 339.1,
+      "turn_duration_s": 120.79999999999995,
+      "clip_start_s": 340.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 854.4,
+      "turn_duration_s": 90.20000000000005,
+      "clip_start_s": 855.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 632.3,
+      "turn_duration_s": 29.700000000000045,
+      "clip_start_s": 633.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 461.9,
+      "turn_duration_s": 137.40000000000003,
+      "clip_start_s": 462.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 953.1,
+      "turn_duration_s": 180.60000000000002,
+      "clip_start_s": 954.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 695.3,
+      "turn_duration_s": 77.5,
+      "clip_start_s": 696.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 1208.9,
+      "turn_duration_s": 182.5,
+      "clip_start_s": 1209.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 100.1,
+      "turn_duration_s": 221.9,
+      "clip_start_s": 101.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "50",
+      "date": "2022-12-10",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 50 - 2022-12-10.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 1445.7,
+      "turn_duration_s": 29.0,
+      "clip_start_s": 1446.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 131.7,
+      "turn_duration_s": 16.200000000000017,
+      "clip_start_s": 132.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 245.8,
+      "turn_duration_s": 247.7,
+      "clip_start_s": 246.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 971.4,
+      "turn_duration_s": 143.30000000000007,
+      "clip_start_s": 972.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 3161.5,
+      "turn_duration_s": 38.30000000000018,
+      "clip_start_s": 3162.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 1695.0,
+      "turn_duration_s": 197.29999999999995,
+      "clip_start_s": 1696.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 1346.2,
+      "turn_duration_s": 295.29999999999995,
+      "clip_start_s": 1347.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 534.3,
+      "turn_duration_s": 76.90000000000009,
+      "clip_start_s": 535.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 2642.0,
+      "turn_duration_s": 450.6999999999998,
+      "clip_start_s": 2643.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 685.6,
+      "turn_duration_s": 182.10000000000002,
+      "clip_start_s": 686.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "82",
+      "date": "2023-04-03",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 82 - 2023-04-03.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 2067.3,
+      "turn_duration_s": 415.39999999999964,
+      "clip_start_s": 2068.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 126.9,
+      "turn_duration_s": 6.400000000000006,
+      "clip_start_s": 127.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 2888.1,
+      "turn_duration_s": 85.70000000000027,
+      "clip_start_s": 2889.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 2410.9,
+      "turn_duration_s": 225.0999999999999,
+      "clip_start_s": 2411.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 2283.5,
+      "turn_duration_s": 102.09999999999991,
+      "clip_start_s": 2284.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 84.8,
+      "turn_duration_s": 16.60000000000001,
+      "clip_start_s": 85.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 342.3,
+      "turn_duration_s": 86.09999999999997,
+      "clip_start_s": 343.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 190.3,
+      "turn_duration_s": 136.09999999999997,
+      "clip_start_s": 191.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 990.4,
+      "turn_duration_s": 119.89999999999998,
+      "clip_start_s": 991.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 1601.2,
+      "turn_duration_s": 57.200000000000045,
+      "clip_start_s": 1602.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "117",
+      "date": "2023-07-24",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 117 - 2023-07-24.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 848.0,
+      "turn_duration_s": 130.89999999999998,
+      "clip_start_s": 849.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 2312.4,
+      "turn_duration_s": 88.79999999999973,
+      "clip_start_s": 2313.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 1285.6,
+      "turn_duration_s": 97.0,
+      "clip_start_s": 1286.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 1626.8,
+      "turn_duration_s": 61.700000000000045,
+      "clip_start_s": 1627.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 2550.3,
+      "turn_duration_s": 57.399999999999636,
+      "clip_start_s": 2551.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 4110.8,
+      "turn_duration_s": 38.5,
+      "clip_start_s": 4111.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 609.0,
+      "turn_duration_s": 187.5,
+      "clip_start_s": 610.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 1187.8,
+      "turn_duration_s": 94.10000000000014,
+      "clip_start_s": 1188.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 1696.8,
+      "turn_duration_s": 31.100000000000136,
+      "clip_start_s": 1697.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 3942.7,
+      "turn_duration_s": 44.80000000000018,
+      "clip_start_s": 3943.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "149",
+      "date": "2023-10-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 149 - 2023-10-30.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 3128.9,
+      "turn_duration_s": 189.19999999999982,
+      "clip_start_s": 3129.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 0.9,
+      "turn_duration_s": 56.99999999999999,
+      "clip_start_s": 1.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 3689.3,
+      "turn_duration_s": 71.19999999999982,
+      "clip_start_s": 3690.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 2501.4,
+      "turn_duration_s": 257.7999999999997,
+      "clip_start_s": 2502.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 954.2,
+      "turn_duration_s": 273.0999999999999,
+      "clip_start_s": 955.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 1416.0,
+      "turn_duration_s": 254.4000000000001,
+      "clip_start_s": 1417.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 66.0,
+      "turn_duration_s": 9.900000000000006,
+      "clip_start_s": 67.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 688.1,
+      "turn_duration_s": 246.5,
+      "clip_start_s": 689.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 1739.8,
+      "turn_duration_s": 328.10000000000014,
+      "clip_start_s": 1740.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 3764.5,
+      "turn_duration_s": 101.69999999999982,
+      "clip_start_s": 3765.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "179",
+      "date": "2024-03-01",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 179 - 2024-03-01.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 3003.9,
+      "turn_duration_s": 53.59999999999991,
+      "clip_start_s": 3004.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 1614.0,
+      "turn_duration_s": 60.90000000000009,
+      "clip_start_s": 1615.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 1977.6,
+      "turn_duration_s": 54.600000000000136,
+      "clip_start_s": 1978.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 127.0,
+      "turn_duration_s": 15.0,
+      "clip_start_s": 128.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 1491.9,
+      "turn_duration_s": 54.5,
+      "clip_start_s": 1492.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 342.1,
+      "turn_duration_s": 6.7999999999999545,
+      "clip_start_s": 343.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 104.7,
+      "turn_duration_s": 13.700000000000003,
+      "clip_start_s": 105.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 1843.3,
+      "turn_duration_s": 74.29999999999995,
+      "clip_start_s": 1844.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 2629.3,
+      "turn_duration_s": 78.19999999999982,
+      "clip_start_s": 2630.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 893.9,
+      "turn_duration_s": 98.39999999999998,
+      "clip_start_s": 894.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "227",
+      "date": "2024-08-23",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 227 - 2024-08-23.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 2614.2,
+      "turn_duration_s": 6.700000000000273,
+      "clip_start_s": 2615.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 0,
+      "turn_start": 934.7,
+      "turn_duration_s": 99.0,
+      "clip_start_s": 935.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 1,
+      "turn_start": 1693.3,
+      "turn_duration_s": 59.700000000000045,
+      "clip_start_s": 1694.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 2,
+      "turn_start": 4887.6,
+      "turn_duration_s": 14.0,
+      "clip_start_s": 4888.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 3,
+      "turn_start": 2785.5,
+      "turn_duration_s": 15.300000000000182,
+      "clip_start_s": 2786.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 4,
+      "turn_start": 5389.3,
+      "turn_duration_s": 12.5,
+      "clip_start_s": 5390.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 5,
+      "turn_start": 3181.2,
+      "turn_duration_s": 147.0,
+      "clip_start_s": 3182.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 6,
+      "turn_start": 3603.0,
+      "turn_duration_s": 144.80000000000018,
+      "clip_start_s": 3604.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 7,
+      "turn_start": 2802.8,
+      "turn_duration_s": 100.5,
+      "clip_start_s": 2803.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 8,
+      "turn_start": 4601.2,
+      "turn_duration_s": 15.100000000000364,
+      "clip_start_s": 4602.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18--SPEAKER_00--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "258",
+      "date": "2025-02-18",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 258 - 2025-02-18.txt:SPEAKER_00",
+      "draw": 9,
+      "turn_start": 308.7,
+      "turn_duration_s": 42.19999999999999,
+      "clip_start_s": 309.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 0,
+      "turn_start": 6122.3,
+      "turn_duration_s": 6.300000000000182,
+      "clip_start_s": 6123.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 1,
+      "turn_start": 3696.6,
+      "turn_duration_s": 29.300000000000182,
+      "clip_start_s": 3697.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 2,
+      "turn_start": 4653.0,
+      "turn_duration_s": 70.19999999999982,
+      "clip_start_s": 4654.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 3,
+      "turn_start": 6048.0,
+      "turn_duration_s": 6.699999999999818,
+      "clip_start_s": 6049.0,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 4,
+      "turn_start": 3188.6,
+      "turn_duration_s": 35.80000000000018,
+      "clip_start_s": 3189.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 5,
+      "turn_start": 4037.7,
+      "turn_duration_s": 74.19999999999982,
+      "clip_start_s": 4038.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 6,
+      "turn_start": 4725.4,
+      "turn_duration_s": 14.800000000000182,
+      "clip_start_s": 4726.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 7,
+      "turn_start": 3241.4,
+      "turn_duration_s": 9.900000000000091,
+      "clip_start_s": 3242.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 8,
+      "turn_start": 4218.7,
+      "turn_duration_s": 119.30000000000018,
+      "clip_start_s": 4219.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04--SPEAKER_04--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "271",
+      "date": "2025-04-04",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_04",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 271 - 2025-04-04.txt:SPEAKER_04",
+      "draw": 9,
+      "turn_start": 5814.7,
+      "turn_duration_s": 116.40000000000055,
+      "clip_start_s": 5815.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 0,
+      "turn_start": 2155.4,
+      "turn_duration_s": 82.90000000000009,
+      "clip_start_s": 2156.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 1,
+      "turn_start": 518.4,
+      "turn_duration_s": 326.9,
+      "clip_start_s": 519.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 2,
+      "turn_start": 924.1,
+      "turn_duration_s": 299.4,
+      "clip_start_s": 925.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 3,
+      "turn_start": 1938.8,
+      "turn_duration_s": 216.10000000000014,
+      "clip_start_s": 1939.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 4,
+      "turn_start": 2780.5,
+      "turn_duration_s": 383.0,
+      "clip_start_s": 2781.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 5,
+      "turn_start": 3397.4,
+      "turn_duration_s": 131.4000000000001,
+      "clip_start_s": 3398.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 6,
+      "turn_start": 2353.5,
+      "turn_duration_s": 367.5999999999999,
+      "clip_start_s": 2354.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 7,
+      "turn_start": 65.1,
+      "turn_duration_s": 313.9,
+      "clip_start_s": 66.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 8,
+      "turn_start": 1333.4,
+      "turn_duration_s": 541.3,
+      "clip_start_s": 1334.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30--SPEAKER_00--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "302",
+      "date": "2025-09-30",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 302 - 2025-09-30.txt:SPEAKER_00",
+      "draw": 9,
+      "turn_start": 3238.5,
+      "turn_duration_s": 157.5999999999999,
+      "clip_start_s": 3239.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 0,
+      "turn_start": 3205.8,
+      "turn_duration_s": 28.09999999999991,
+      "clip_start_s": 3206.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 1,
+      "turn_start": 822.1,
+      "turn_duration_s": 90.19999999999993,
+      "clip_start_s": 823.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 2,
+      "turn_start": 1265.8,
+      "turn_duration_s": 13.400000000000091,
+      "clip_start_s": 1266.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 3,
+      "turn_start": 3060.4,
+      "turn_duration_s": 7.699999999999818,
+      "clip_start_s": 3061.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 4,
+      "turn_start": 2544.2,
+      "turn_duration_s": 6.200000000000273,
+      "clip_start_s": 2545.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 5,
+      "turn_start": 3492.2,
+      "turn_duration_s": 12.400000000000091,
+      "clip_start_s": 3493.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 6,
+      "turn_start": 55.7,
+      "turn_duration_s": 49.0,
+      "clip_start_s": 56.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 7,
+      "turn_start": 2157.2,
+      "turn_duration_s": 52.5,
+      "clip_start_s": 2158.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 8,
+      "turn_start": 1957.1,
+      "turn_duration_s": 14.800000000000182,
+      "clip_start_s": 1958.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18--SPEAKER_00--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "327",
+      "date": "2026-02-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_00",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 327 - 2026-02-18.txt:SPEAKER_00",
+      "draw": 9,
+      "turn_start": 2076.6,
+      "turn_duration_s": 10.200000000000273,
+      "clip_start_s": 2077.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 570.8,
+      "turn_duration_s": 23.5,
+      "clip_start_s": 571.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 1643.7,
+      "turn_duration_s": 58.299999999999955,
+      "clip_start_s": 1644.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 2784.5,
+      "turn_duration_s": 15.699999999999818,
+      "clip_start_s": 2785.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 1927.3,
+      "turn_duration_s": 93.20000000000005,
+      "clip_start_s": 1928.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 2658.3,
+      "turn_duration_s": 10.099999999999909,
+      "clip_start_s": 2659.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 2427.3,
+      "turn_duration_s": 101.59999999999991,
+      "clip_start_s": 2428.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 3328.3,
+      "turn_duration_s": 100.79999999999973,
+      "clip_start_s": 3329.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 1309.4,
+      "turn_duration_s": 97.19999999999982,
+      "clip_start_s": 1310.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 6.9,
+      "turn_duration_s": 63.699999999999996,
+      "clip_start_s": 7.9,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "335",
+      "date": "2026-04-01",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 335 - 2026-04-01.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 3673.6,
+      "turn_duration_s": 101.5,
+      "clip_start_s": 3674.6,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 1263.2,
+      "turn_duration_s": 149.39999999999986,
+      "clip_start_s": 1264.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 583.8,
+      "turn_duration_s": 76.30000000000007,
+      "clip_start_s": 584.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 1037.5,
+      "turn_duration_s": 184.4000000000001,
+      "clip_start_s": 1038.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 738.3,
+      "turn_duration_s": 6.7000000000000455,
+      "clip_start_s": 739.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 2119.7,
+      "turn_duration_s": 185.5,
+      "clip_start_s": 2120.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 1823.7,
+      "turn_duration_s": 28.700000000000045,
+      "clip_start_s": 1824.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 463.7,
+      "turn_duration_s": 50.19999999999999,
+      "clip_start_s": 464.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 520.1,
+      "turn_duration_s": 35.39999999999998,
+      "clip_start_s": 521.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 2384.8,
+      "turn_duration_s": 53.09999999999991,
+      "clip_start_s": 2385.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "344",
+      "date": "2026-06-18",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 344 - 2026-06-18.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 841.5,
+      "turn_duration_s": 170.0,
+      "clip_start_s": 842.5,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 0,
+      "turn_start": 1873.4,
+      "turn_duration_s": 24.59999999999991,
+      "clip_start_s": 1874.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 1,
+      "turn_start": 114.3,
+      "turn_duration_s": 144.5,
+      "clip_start_s": 115.3,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 2,
+      "turn_start": 1510.7,
+      "turn_duration_s": 7.099999999999909,
+      "clip_start_s": 1511.7,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 3,
+      "turn_start": 2766.8,
+      "turn_duration_s": 72.79999999999973,
+      "clip_start_s": 2767.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 4,
+      "turn_start": 1134.2,
+      "turn_duration_s": 37.799999999999955,
+      "clip_start_s": 1135.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 5,
+      "turn_start": 1302.2,
+      "turn_duration_s": 29.200000000000045,
+      "clip_start_s": 1303.2,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 6,
+      "turn_start": 2030.8,
+      "turn_duration_s": 99.39999999999986,
+      "clip_start_s": 2031.8,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 7,
+      "turn_start": 531.4,
+      "turn_duration_s": 78.20000000000005,
+      "clip_start_s": 532.4,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 8,
+      "turn_start": 1536.1,
+      "turn_duration_s": 50.90000000000009,
+      "clip_start_s": 1537.1,
+      "clip_length_s": 5.0
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24--SPEAKER_01--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt",
+      "show": "The Jacob Shapiro Podcast",
+      "episode_number": "352",
+      "date": "2026-08-24",
+      "stratum": "2026",
+      "purposes": [
+        "impurity"
+      ],
+      "cluster": "SPEAKER_01",
+      "seed": "tier1-precision-2026-09-02:The Jacob Shapiro Podcast - Episode 352 - 2026-08-24.txt:SPEAKER_01",
+      "draw": 9,
+      "turn_start": 3082.6,
+      "turn_duration_s": 42.09999999999991,
+      "clip_start_s": 3083.6,
+      "clip_length_s": 5.0
     }
   ]
 }
