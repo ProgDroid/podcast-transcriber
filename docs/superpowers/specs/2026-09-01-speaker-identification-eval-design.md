@@ -220,19 +220,46 @@ sample would have hidden it.** The 39 episodes added since, measured alone:
 | Pooled top-1 / top-2 | 65.6% / 98.6% | 59.2% / 91.3% |
 
 Composition explains part of it — Geopolitical Cousins is 44% of the new set
-against 15% of the old — but not all. **Within** the Jacob Shapiro Podcast the
-15 recent episodes run a median of 3 clusters against 2 across the older 341,
-with pooled top-2 at 92.4% against 99.1%: a third voice now holds real speaking
-time. At n=15 that is suggestive, not established, and it should be re-measured
-before it is relied on.
+against 15% of the old — but not all.
 
-Two consequences if it holds. Tier 1's hypothesis is under more strain on
-recent episodes than the corpus average suggests, since a less dominant top-1
-cluster is a harder call. And **§3.3's deterministic every-nth-by-date stride
-would weight the eval toward the older, easier population**, which is the
-same class of defect as Part 0's — a sampling rule that cannot produce an
-unflattering result. Stratifying the draw by era, or reporting precision
-split at the snapshot date, would answer it.
+**It is a step change at 2026, not a blip and not a gradual trend**
+(`speaker_stats.py --by-year`, 2026-09-02). A shift measured only against
+"everything before it" cannot tell those apart, because the same recent
+episodes are both the signal and the whole of the recent bucket. Split by
+calendar year, the Jacob Shapiro Podcast gives each era its own n:
+
+| Jacob Shapiro | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|
+| n | 53 | 110 | 85 | 71 | 37 |
+| median clusters | 2 | 2 | 2 | 2 | **3** |
+| pooled top-2 | 99.5% | 98.7% | 99.4% | 98.5% | **96.5%** |
+| median turn | 49.7s | 57.1s | 57.3s | 47.0s | **20.5s** |
+
+Four stable years, then a break. The 2026 cohort is 37 episodes rather than the
+15 an earlier draft of this paragraph worried about, so the small-sample doubt
+is resolved. Geopolitical Cousins moves the same direction more gently (pooled
+top-2 97.4% → 92.7%, median turn 19.7s → 13.3s across 2025 → 2026).
+
+Note the shape: in 2026 the top-1 cluster's share **rises** to 70.0% while
+top-2 falls — more speakers, with the dominant one talking more, which is what a
+multi-guest panel with a moderating host looks like. **An alternative this data
+cannot rule out is a diarisation change rather than a format change.** Audio is
+not retained (`transcribe.py`), so testing it means re-fetching audio for an
+older episode and re-running the current image; that is possible for episodes
+still on their feed and impossible for the six that have aged off.
+
+**The consequence for §3.3 is concrete.** 2026 is 84 of 439 episodes (19.1%),
+so a deterministic every-nth-by-date stride draws roughly four fifths of the
+precision set from the four stable years and about 29 episodes from the era the
+corpus is actually moving into. The gate would then be measured on the past and
+the matcher deployed on the future — a sampling rule that cannot produce an
+unflattering result, which is Part 0's failure mode with a date on it.
+
+**Not resolved here, because it changes a gate.** The options are to report
+precision split at 2026-01-01 with both strata required to clear zero
+misattributions, or to over-sample the recent era and size it for a bound of
+its own. Either is defensible; picking one is a decision about what the gate
+promises, not a measurement.
 
 **Hosts per episode is UNKNOWN** and not derivable from the clustering: Jacob
 Shapiro splits 66.5/98.7 top-1/top-2 and Geopolitical Cousins 60.4/94.9 — the
@@ -249,6 +276,15 @@ likely to break Tier 1**: on an interview show the guest can out-talk the host,
 and a 61/39 split is not a comfortable margin. It is also the cheapest thing in
 this spec to settle — 6 real episodes, labelled exhaustively rather than
 sampled, needs no statistics at all.
+
+**Its turn lengths sharpen the worry rather than easing it.** Observing Japan's
+median turn is **71.8s**, the longest of any show in any year measured — against
+20.5s for the Jacob Shapiro Podcast in 2026 and 13.3s for Geopolitical Cousins.
+Long turns and exactly two voices is what an interview sounds like when the
+guest answers at length, and a guest answering at length is precisely how the
+dominant cluster ends up being the person who is *not* the host. Tier 1 would
+then misattribute every such episode confidently — the one failure the design
+forbids. Six clips settle it.
 
 **Correcting this section's account of `downloaded/`.** The earlier text said
 `downloaded/` "holds 400 of 438 and contains no Observing Japan episodes —
@@ -472,9 +508,13 @@ remote path is rewritten to a Windows path and the command fails with a bare
    scope question: whether a dormant six-episode interview show is worth
    Tier 1's remit at all, given it is the shape most likely to fail the
    precision gate.
-   **Newly opened by the same recompute:** whether the corpus's recent drift
-   (Part 2 — Jacob Shapiro moving from a median of 2 clusters to 3, n=15) is
-   real or a small-sample artefact. It bears directly on §3.3's sampling rule.
+   **Opened and then closed by the same recompute:** the corpus's 2026 drift
+   is real and is a step change, not a small-sample artefact — four stable
+   years then a break, at n=37 (Part 2). Two residues remain open. Whether its
+   cause is a format change or a diarisation change is **UNKNOWN** and costly
+   to test, since audio is not retained. And §3.3's sampling rule now needs a
+   decision rather than a measurement: the stride as written draws four fifths
+   of the precision set from the pre-2026 era.
 4. **Hosts per episode.** Needed by Tier 2 only, and unmeasurable from the
    clustering. Tier 1 is deliberately designed not to need it.
 5. **Hugging Face gating** (Tier 2 only). `README.md` records accepting terms for

@@ -28,6 +28,7 @@ from collections import Counter
 from pathlib import Path
 
 from corpus.chunking import parse_transcript_segments
+from corpus.identity import parse_transcript_filename
 from corpus.speakers import (
     GAP_CAP_S,
     MIN_TURN_S,
@@ -68,10 +69,14 @@ def load(directory: Path, cap: float) -> list[dict]:
             continue
         turns = merge_turns(segments, gap_cap_s=cap)
         shares = speech_shares(turns, min_turn_s=MIN_TURN_S)
+        # Reuse the tested parser rather than slicing the filename here: a
+        # second date derivation is a second thing that can disagree.
+        parsed = parse_transcript_filename(path.name)
         episodes.append(
             {
                 "show": show_of(path.name),
                 "name": path.name,
+                "year": parsed[2][:4] if parsed else "unparsed",
                 "segments": segments,
                 "n_segments": len(segments),
                 "turns": turns,
@@ -197,10 +202,49 @@ def report_words_cross_check(episodes: list[dict]) -> None:
         print(f"{show:<30}{a:>15.1%}{b:>16.1%}{b - a:>+10.1%}")
 
 
+def report_by_year(episodes: list[dict]) -> None:
+    """Is a recent shift a trend or a small-sample blip?
+
+    A shift measured only against "everything before it" cannot tell those
+    apart: the same 15 episodes are both the signal and the whole of the
+    recent bucket. Splitting the full history by year gives each bucket its
+    own n and shows whether a value moved progressively or jumped once.
+    """
+    print("\n## Drift by year")
+    print(
+        f"{'show':<28}{'year':>6}{'n':>5}{'clusters':>10}"
+        f"{'top-1':>8}{'top-2':>8}{'med turn':>10}"
+    )
+    for show in sorted({e["show"] for e in episodes}):
+        in_show = [e for e in episodes if e["show"] == show]
+        for year in sorted({e["year"] for e in in_show}):
+            rows = [
+                e for e in in_show if e["year"] == year and e["shares"]["total_s"] > 0
+            ]
+            if not rows:
+                continue
+            clusters = [len({t["speaker"] for t in e["turns"]}) for e in rows]
+            total = sum(e["shares"]["total_s"] for e in rows)
+            top1 = sum(
+                e["shares"]["top1_s_share"] * e["shares"]["total_s"] for e in rows
+            )
+            top2 = sum(
+                e["shares"]["top2_s_share"] * e["shares"]["total_s"] for e in rows
+            )
+            durations = [t["duration_s"] for e in rows for t in e["turns"]]
+            print(
+                f"{show:<28}{year:>6}{len(rows):>5}"
+                f"{statistics.median(clusters):>10g}"
+                f"{top1 / total:>8.1%}{top2 / total:>8.1%}"
+                f"{statistics.median(durations):>9.1f}s"
+            )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dir", default="downloaded", type=Path)
     parser.add_argument("--cap", default=GAP_CAP_S, type=float)
+    parser.add_argument("--by-year", action="store_true")
     args = parser.parse_args()
 
     episodes = load(args.dir, args.cap)
@@ -217,6 +261,8 @@ def main() -> None:
     report_segments_vs_turns(episodes, args.cap)
     report_concentration(episodes)
     report_words_cross_check(episodes)
+    if args.by_year:
+        report_by_year(episodes)
 
 
 if __name__ == "__main__":
