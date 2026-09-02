@@ -426,7 +426,11 @@ def resolve_audio_urls(feed_url: str, show_name: str) -> dict[str, str]:
     return urls
 
 
-@app.function(image=image, timeout=1800)
+# Capped deliberately. Modal would happily fan out to one container per
+# episode, which means ~190 simultaneous downloads pointed at a single
+# podcast host -- inconsiderate, and a good way to be rate-limited or blocked
+# midway through a run whose partial failures then look like audio rot.
+@app.function(image=image, timeout=1800, max_containers=8)
 def cut_one_episode(job: dict) -> list[dict]:
     """Download one episode's audio once and cut every clip it owes."""
     import requests

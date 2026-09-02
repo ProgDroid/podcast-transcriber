@@ -636,10 +636,31 @@ after every answer so an interrupted session resumes.
 ```
 modal volume get podcast-transcripts / downloaded --force   # refresh the corpus
 uv run python speaker_stats.py --dir downloaded --cap 30    # -> Part 2
-uv run modal run speaker_tool.py::cut_clips     # -> clips/ locally
+uv run python speaker_tool.py plan              # -> speakers/clip_plan.json
+modal run speaker_tool.py::cut_clips --dry-run  # resolve URLs, cut nothing
+uv run python speaker_tool.py plan              # substitute what rotted
+modal run speaker_tool.py::cut_clips            # -> clips/
 uv run python speaker_tool.py label             # -> speakers/labels.json
 uv run pytest tests/test_speakers.py            # rule, scoring, gate
 ```
+
+**Plan, dry-run, re-plan until the dry run reports nothing unresolved.** The
+loop is not ceremony: audio rot is only discoverable by asking the feed, and a
+substitute can itself be rotted — the first round of substitutes here landed on
+two episodes that were also gone. Two rounds converged; the cumulative ledger
+is what makes it converge rather than oscillate.
+
+**The dry run is worth its own step.** It resolves every clip's audio URL and
+downloads nothing, so the shape of the loss is visible before any spend — and
+critically, it tells you *which stratum* the loss falls in, which is the
+difference between a substitution and a reduced bound.
+
+**Feed resolution is flaky, and an empty result is not an empty feed.** This
+same code returned 0 entries for Observing Japan and 7 for the identical feed
+minutes later. Since an unresolved clip counts as reducing n, a transient
+failure would silently shrink the eval and be indistinguishable from real rot.
+`cut_clips` therefore asserts the resolved count against the episodes in the
+plan and refuses on a shortfall rather than recording it as rot.
 
 On Git Bash the volume pull needs `MSYS_NO_PATHCONV=1`, or the bare `/`
 remote path is rewritten to a Windows path and the command fails with a bare
@@ -676,8 +697,22 @@ remote path is rewritten to a Windows path and the command fails with a bare
    `docs/operations.md`, replicate the image spec **verbatim** so
    content-addressing reuses the cache; build lines mean the spec drifted.
    `.add_local_python_source("corpus")` stays **last**.
-7. **Audio URL rot.** A sampled episode whose audio 404s is replaced by the next
-   in deterministic order and **the substitution is recorded** — never silently
+7. ~~**Audio URL rot.**~~ **IMPLEMENTED and measured 2026-09-02.** The Jacob
+   Shapiro feed carries 350 of its 356 episodes; the missing six are its
+   oldest, and four of them fell in the pre-2026 draw. They are substituted by
+   the next available episode in date order and the substitutions are recorded
+   in the plan. It took two rounds to converge — the first round's substitutes
+   (Episodes 3 and 5) were themselves rotted. **No 2026 episode is affected**,
+   so §3.4's 42 and its 93.9% bound stand as written.
+   The two strata must differ here, and now do: pre-2026 is sampled and has a
+   neighbour to substitute, while 2026 is exhaustive and has none, so rot there
+   reduces n rather than being repaired. The ledger of unobtainable audio is
+   `speakers/unavailable.json`, **versioned and cumulative** — it decides which
+   episodes get substituted, and a run that overwrote it would erase the reason
+   for its own substitutions and re-select them next time.
+   The original rule, unchanged: a sampled episode whose audio 404s is replaced
+   by the next in deterministic order and **the substitution is recorded** —
+   never silently
    skipped, which would reintroduce selection.
 
 ## Self-Review
