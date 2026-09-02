@@ -468,6 +468,14 @@ def cut_one_episode(job: dict) -> list[dict]:
             str(clip["clip_length_s"]),
             "-ac",
             "1",
+            # Drop the source episode's ID3. Without this the tag is copied
+            # verbatim and ranges from 45 bytes to 204KB of chapters and
+            # artwork -- which made file size vary 5x across clips whose
+            # AUDIO is byte-identical in length (40,512 for 5s, 80,448 for
+            # 10s). Size is then useless for spotting a truncated clip, which
+            # is the one cheap integrity check available here.
+            "-map_metadata",
+            "-1",
             out,
         ]
         proc = subprocess.run(command, capture_output=True)
