@@ -73,16 +73,32 @@ Three things worth knowing:
   `get_or_create_collection` — a typo raises instead of silently creating an
   empty collection and serving zero results, which looks exactly like a broken
   query and is much harder to diagnose.
-- **`n_chunks` on a search result is the version tell.** It is absent from
-  pre-migration records and the reader passes it through with no default, so a
-  result carrying it came from the new collection. This does not depend on
-  trusting the deploy.
+- **There is no in-band version tell.** This runbook used to say `n_chunks` on
+  a search result was one. It is not: `n_chunks` is put into the searcher's
+  result dict at `mcp_server.py:126` and never rendered into the string a
+  caller receives, so no consumer has ever been able to see it. Verified
+  2026-09-02 against the deployed endpoint. It was also only ever a
+  discriminator by accident — v2 happened to add the field — so a future
+  migration that adds nothing would leave the tell silently useless, which is
+  worse than having none at all. Use the log line below instead.
 - **A warm container must be cycled, not waited out.** A container that
   entered `load()` before the cutover holds a `Collection` handle bound to the
   old collection. That handle has no name to re-resolve, so nothing raises and
   `get_collection` does not help — it serves the old data correctly and
   silently for as long as the container lives. `modal app stop
   podcast-mcp-server`, then redeploy.
+- **After cycling, the log line is authoritative.** `load()` prints
+  `Reading from collection: <name>` (`mcp_server.py:62`). That is the direct
+  answer to what the reader is bound to, rather than an inference from a schema
+  artefact. It is only unambiguous *after* a stop-and-redeploy, because that is
+  what guarantees a single generation of containers — which is the same step
+  the bullet above already requires, so the in-band tell was redundant with it.
+
+If a future migration needs a probe readable from a response without stopping
+production, **design one deliberately** — a small status tool returning the
+collection name and count — rather than inheriting whatever field the new
+schema happens to carry. Note it would cold-start a T4, since the search class
+holds a GPU.
 
 **`modal secret create --force` replaces the secret wholesale**, so re-supply
 every key or you will silently drop one. Losing `MCP_ALLOWED_HOST` returns the

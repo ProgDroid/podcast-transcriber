@@ -130,8 +130,14 @@ class PodcastSearch:
                     "date": meta.get("date"),
                     "speaker": meta.get("speaker"),
                     "start_time": meta.get("start_time"),
-                    # Cutover tell: populated proves v2, None proves v1 or a
-                    # stale warm container. Kept permanently.
+                    # Was documented as the cutover tell -- "populated proves
+                    # v2". It never worked as one: nothing renders it, so no
+                    # consumer has ever seen it (verified 2026-09-02 against
+                    # the deployed endpoint). Kept because it is cheap and a
+                    # direct caller of search.remote() can still read it, but
+                    # it is NOT an operational probe. What answers "which
+                    # collection is serving" is load()'s
+                    # `Reading from collection:` line, after cycling the app.
                     "n_chunks": meta.get("n_chunks"),
                     "episode_guid": meta.get("episode_guid"),
                     "relevance_score": round(1 - dist, 3),

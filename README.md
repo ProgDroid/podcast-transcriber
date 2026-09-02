@@ -119,11 +119,13 @@ that are worth knowing before you do it.
 collection and serving zero results, which is the same symptom as a broken
 query and considerably harder to diagnose.
 
-**`n_chunks` in a search result is the version tell.** It is written by the
-current schema and absent from pre-migration records, and the reader passes it
-through with no default — so a result carrying `n_chunks` came from the new
-collection and one without it did not. That gives you a check that does not
-depend on trusting the deploy.
+**There is no in-band version tell.** An earlier version of this section said
+`n_chunks` in a search result was one. It is not: the field is put into the
+searcher's result dict and never rendered into the string a caller receives, so
+no consumer can see it. What tells you which collection is serving is the
+`Reading from collection: <name>` line `load()` prints — authoritative once you
+have cycled the app, per the next paragraph, since that leaves one generation of
+containers.
 
 **A warm container must be cycled, not waited out.** A container that entered
 `load()` before the cutover holds a `Collection` handle bound to the old
