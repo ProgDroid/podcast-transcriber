@@ -145,7 +145,7 @@ Per Part 8 §8.6 the deliverable is **grouping, not naming**. `grp_007` is a
 complete identity: it makes the query work. A name is an optional label attached
 to a group afterwards, or never.
 
-### 1.2 Three decisions taken by the user, 2026-09-02
+### 1.2 Four decisions taken by the user, 2026-09-02
 
 1. **Identity reaches Chroma metadata**, not merely the rendered transcript — so
    cross-show filtering works rather than only cross-show reading.
@@ -155,36 +155,80 @@ to a group afterwards, or never.
    the user happens to care about one.
 3. **A fresh recognition gate before the archive is written**, sized at ~45
    pairs / ~15 minutes (§4.2).
+4. **Two ships with a measurement between them** (§1.3), enrolment first — and
+   the gate stays on Ship 2 rather than being replaced by a held-out split of
+   the dev set.
 
 Decision 2 follows the standing constraint that friction governs adoption: a
 design that adds a step the user must remember loses to one that does not. Here
 the remembering is put on the tooling — naming is available at the moment of
 curiosity and never scheduled.
 
-### 1.3 Build order: the pass, then a checkpoint
+### 1.3 Build order: two ships, with a measurement between them
 
 **The audio pass is unavoidable and costs the same under every design
-considered.** Everything downstream of it — `corpus/grouping.py`, the gate, the
-naming commands — is justified only if there is a substantial population of
-**recurring unnamed** voices. A one-off guest has no "has the view moved"
-question, so grouping them buys nothing.
+considered.** To assign identity to a cluster in episode 312 you must fetch,
+decode, crop and embed episode 312, whether you then compare its centroid to
+five enrolled voices or to 969 other centroids. **No version of this skips the
+56.1 GB or the GPU**, so the pass is not where a simpler design saves anything.
+The saving is entirely in what is built *after* the vectors land.
 
-**That population is unmeasured, and it falls out of the pass itself** as a
-group-size histogram: how many identities recur across how many episodes, and
-how many of those are unnamed. So the build splits, with a real checkpoint:
+That is where the build splits.
 
-- **Stage A** — the audio pass (§2.1), the histogram, and §4.1b's co-membership
-  flag. Ends with a number that says whether Stage B is worth building.
-- **Stage B** — grouping tooling, the naming path, the gate, the backfill.
+#### Ship 1 — enrolment against the known cast
 
-This ordering costs nothing: Stage A's artifacts are required by Stage B
-regardless, and the histogram is a by-product rather than extra work. **It was
-added after a fresh-context review observed that this spec committed to the
-machinery before taking the one cheap measurement that sizes it** — the same
-error as its predecessor's, which built a tier around a coverage figure it had
-not measured.
+Match clusters against the five people already labelled. This needs no
+clustering code, no new labelling, and no time from the user.
 
-Pre-register the threshold at the checkpoint, before the histogram is seen.
+**Its seeds cost zero new audio.** `clips/` still holds all 381 cut clips
+(49 MB), and **all 208 `basis: voice` clips are present, none missing** —
+verified 2026-09-02. So the five enrolment centroids are built from files
+already on disk. Two consequences, both large:
+
+- **§3.3's embedder question is settled before the pass, not after.**
+  community-1's embedder versus wespeaker can be compared on real,
+  voice-verified labelled clips at CPU cost. UNKNOWN 1 stops being a risk
+  carried into a GPU run and becomes a local bake-off.
+- Ship 1 delivers something usable on its own: the five known voices named
+  across the whole archive, which is most of the archive's speech.
+
+Assignment is §3.1's threshold-and-margin applied to a five-way decision. No
+match writes nothing.
+
+#### The measurement between the ships
+
+After the pass, before a line of `corpus/grouping.py` exists: cluster the
+unmatched centroids locally and **print the group-size histogram** — how many
+identities recur across how many episodes. Seconds of compute on vectors
+already held.
+
+This answers the question Ship 2 assumes and no one has measured: **how many
+recurring unnamed voices are there?** A one-off guest has no "has the view
+moved" question, so grouping them buys nothing; a fat tail of recurring
+unnamed voices is the whole case for Ship 2. **Pre-register the threshold
+before the histogram is seen.**
+
+#### Ship 2 — grouping the unnamed
+
+Archive-wide clustering, naming-on-demand, and the recognition gate (§4.2).
+Built only if the histogram justifies it, and then built with the score
+distribution in hand — which also closes §6.7, where threshold and margin are
+deliberately left unset.
+
+**This structure came from a fresh-context review** which observed that draft 1
+committed to the grouping machinery before taking the one cheap measurement
+that sizes it — the same error as its predecessor, which built a tier around a
+coverage figure it had not measured.
+
+**One part of that proposal was refused.** It also recommended replacing §4.2's
+recognition gate with a held-out split of the 208 voice labels: zero user time,
+a computed precision figure. Rejected for two reasons. §3.4 of the eval design
+makes those labels a dev set, and the five-person cast list was *derived from
+them*, so the enrolment set is defined by the thing being measured — honest for
+"can we recognise these five", optimistic as a general claim. More decisively,
+it cannot validate the deliverable: **no existing label can validate a merge
+between two voices nobody has named**, which is precisely what Ship 2 does. The
+gate is not replaced; it moves to where it is the only instrument that works.
 
 ### 1.4 What is deliberately NOT in scope
 
@@ -407,8 +451,17 @@ Two are reachable and they are not equivalent:
 
 **The preference rests on an unverified capability** (§6.1): the probe confirmed
 community-1's embedder is *present and instantiated inside the pipeline*, not
-that it can be used standalone on arbitrary crops. That is one cheap CPU probe,
-and it is the first task in the plan, not a discovery to be made mid-build.
+that it can be used standalone on arbitrary crops.
+
+**This is settled before the pass, on real data, for free.** All 208
+`basis: voice` clips are on disk (§1.3), so the two embedders are compared by
+building the five enrolment centroids with each and scoring the labelled
+clusters — a CPU bake-off on voice-verified ground truth, run before a byte of
+the 56.1 GB is spent. The choice is then measured rather than argued, and
+UNKNOWN 1 stops being a risk carried into a GPU run.
+
+If community-1's embedder cannot be used standalone, wespeaker is verified
+end-to-end and the design proceeds unchanged.
 
 ## Part 4 — Validation
 
@@ -480,6 +533,10 @@ first and obvious to the second.
 
 ### 4.2 The recognition gate — pre-registered
 
+**Belongs to Ship 2, not Ship 1** (§1.3). Ship 1 assigns only the five enrolled
+identities and is validated by §4.1 and §4.1b. This gate exists for the thing
+those cannot reach: a merge between two voices nobody has named.
+
 The user is shown pairs of clips and answers only **same voice / different
 voice**.
 
@@ -530,15 +587,27 @@ deliberately rather than by reflex.
 
 ## Part 5 — Files and tests
 
+**Ship 1** — everything needed to name the five known voices archive-wide:
+
 | file | role | tested |
 |---|---|---|
 | `corpus/embedding.py` | crop selection, duration-weighted centroids | unit, pure |
-| `corpus/grouping.py` | clustering, threshold+margin, seeding, conflict detection | unit, pure |
+| `corpus/enrolment.py` | build centroids from labels, score, threshold+margin | unit, pure |
 | `speaker_embed.py` | Modal app: fetch → crop → embed → discard | dry-run |
-| `speaker_tool.py` | gains `groups`, `name`, `gate-plan`, `gate-score`; retires the `who is this?` prompt | unit on plan/score |
 | `mcp_server.py`, `corpus/rendering.py` | resolve `speaker_id` → name; speaker filter | unit on render |
+| backfill script | additive `collection.update()`, counts pre-registered | unit on the where-clause |
 
-The two pure modules hold all the logic worth being wrong about and need no GPU,
+§4.1b's co-membership flag ships here too — it is a few lines and covers all
+970 clusters, against the 373 the label check reaches.
+
+**Ship 2** — built only if the histogram justifies it (§1.3):
+
+| file | role | tested |
+|---|---|---|
+| `corpus/grouping.py` | archive-wide clustering, seeding, conflict detection | unit, pure |
+| `speaker_tool.py` | gains `groups`, `name`, `gate-plan`, `gate-score`; retires the `who is this?` prompt | unit on plan/score |
+
+The pure modules hold all the logic worth being wrong about and need no GPU,
 no audio and no network, which is what allows them to be built test-first rather
 than validated by running the expensive pass.
 
@@ -554,7 +623,9 @@ name the test that fails if it is false:
 
 1. **Can community-1's embedder be used standalone?** §3.3's preference depends
    on it. Probed as present inside the pipeline, not as callable on arbitrary
-   crops. **One cheap CPU probe, first task in the plan.** Fallback verified.
+   crops. **Settled before the pass by a local bake-off on the 208 labelled
+   clips already on disk** (§1.3, §3.3) — no GPU, no download. Fallback
+   verified end-to-end.
 2. **The 44 real clusters with no turn >=12s.** They get no centroid and no identity.
    Whether lowering the crop floor recovers useful ones is unmeasured; the floor
    trades embedding quality against coverage and the trade is not yet sized.
@@ -569,8 +640,9 @@ name the test that fails if it is false:
    into two clusters within an episode. Part 5 tested the inverse and never
    this. Unknown, consequential for reading §4.1b's flag, and free from the
    same run.
-6. **How many recurring UNNAMED voices the archive holds.** Stage B's whole
-   justification (§1.3). Measured at the Stage A checkpoint, not before.
+6. **How many recurring UNNAMED voices the archive holds.** Ship 2's whole
+   justification (§1.3). Measured at the between-ships checkpoint, from vectors
+   Ship 1 already produced — not before, and not by argument.
 7. **Threshold and margin values.** Deliberately unset here. They are local
    decisions by §2.1's design and must be derived from the measured score
    distribution, not asserted in a spec.
@@ -617,9 +689,23 @@ before being accepted:
 Two of those — the reversibility claim and the 214 checks — were **load-bearing
 for §4.2's gate sizing**, which is the one number a reader would act on. The
 review also contributed §4.1b's co-membership detector (better coverage than
-anything this draft had), §1.3's staging (the machinery was committed before the
-measurement that sizes it), and §2.3's output contract (the deliverable is
-"identity in MCP results" and draft 1 never wrote the output line).
+anything this draft had), §1.3's two-ship structure (the machinery was committed
+before the measurement that sizes it), and §2.3's output contract (the
+deliverable is "identity in MCP results" and draft 1 never wrote the output
+line).
+
+**The single most useful thing it found was already on disk.** `clips/` still
+holds all 381 cut clips, and all 208 `basis: voice` clips are present with none
+missing. Draft 1 treated the embedder choice as a risk to carry into a GPU run;
+it is instead a CPU bake-off on voice-verified ground truth that can be run
+today, and the enrolment seeds cost no new audio at all. Nothing had to be
+computed to discover this — the artifacts of the failed Tier 1 evaluation were
+simply still there, and no one had looked.
+
+**One recommendation was refused, and the refusal is recorded in §1.3**: it
+proposed replacing the recognition gate with a held-out split of the 208
+labels. Cheaper, and it measures the wrong thing — no label validates a merge
+between two voices nobody has named.
 
 **What is different about this draft.** Every load-bearing number was measured
 before the design was argued, and the ones that were not got caught by a review
