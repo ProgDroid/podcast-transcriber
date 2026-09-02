@@ -4,7 +4,13 @@
 episodes carry the literal string "Unknown") and occasionally repeat it
 (`Episode 243` exists on both 2024-11-07 and 2024-11-08). Neither is
 `date` a key on its own -- four (show, date) pairs are duplicated. Only the
-full triple is unique, at 438 distinct keys across 438 transcripts.
+full triple is unique, at 439 distinct keys across 439 transcripts
+(re-verified 2026-09-02 against the volume).
+
+That a publisher's own numbering can be self-contradictory is not
+hypothetical: see the comment at `transcribe.py`'s episode-number fallback
+for a feed whose `<itunes:episode>` disagrees with its own titles by one.
+Keying on the triple is what makes that harmless.
 """
 
 from __future__ import annotations
