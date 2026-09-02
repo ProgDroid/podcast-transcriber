@@ -16,10 +16,12 @@ from corpus.speakers import (
     clip_window,
     count_non_monotonic,
     evenly_spaced,
+    evenly_spaced_indices,
     merge_turns,
     pick_clip_turn,
     routes_to_tier2,
     speech_shares,
+    substitute_unavailable,
 )
 
 # Four segments, three turns: A speaks twice, B interrupts, A returns last.
@@ -328,3 +330,46 @@ def test_the_surname_window_is_the_whole_transcript():
 
 def test_a_show_with_no_roster_never_routes():
     assert not routes_to_tier2("The Observing Japan Podcast", "Papic Papic Papic")
+
+
+def test_an_available_pick_is_left_alone():
+    chosen, subs = substitute_unavailable([0, 2, 4], 10, set())
+    assert chosen == [0, 2, 4]
+    assert subs == []
+
+
+def test_an_unavailable_pick_takes_the_next_free_index():
+    chosen, subs = substitute_unavailable([0, 2, 4], 10, {2})
+    assert chosen == [0, 3, 4]
+    assert subs == [(2, 3)]
+
+
+def test_a_substitute_never_collides_with_another_pick():
+    # Index 3 is already selected, so 2 must skip past it to 5 rather than
+    # duplicating an episode and quietly shrinking the sample by one.
+    chosen, subs = substitute_unavailable([2, 3], 10, {2})
+    assert sorted(chosen) == [3, 4]
+    assert subs == [(2, 4)]
+
+
+def test_consecutive_unavailable_indices_are_skipped_over():
+    chosen, subs = substitute_unavailable([0], 10, {0, 1, 2})
+    assert chosen == [3]
+    assert subs == [(0, 3)]
+
+
+def test_a_pick_with_no_successor_is_reported_as_lost():
+    # Nothing to substitute: n really does fall, and the caller must be able
+    # to see that rather than infer it from a shorter list.
+    chosen, subs = substitute_unavailable([9], 10, {9})
+    assert chosen == []
+    assert subs == [(9, None)]
+
+
+def test_indices_span_the_pool_the_same_way_the_items_do():
+    assert evenly_spaced_indices(295, 150)[0] == 0
+    assert evenly_spaced_indices(295, 150)[-1] > 250
+    assert evenly_spaced_indices(3, 10) == [0, 1, 2]
+    assert evenly_spaced_indices(0, 5) == []
+    pool = list(range(97))
+    assert [pool[i] for i in evenly_spaced_indices(97, 31)] == evenly_spaced(pool, 31)

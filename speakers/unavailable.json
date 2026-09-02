@@ -1,0 +1,231 @@
+{
+  "unresolved": [
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "precision",
+        "coverage"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 2 - 2022-05-06--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 2 - 2022-05-06.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "precision"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 4 - 2022-05-16--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 4 - 2022-05-16.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "precision"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 6 - 2022-05-27--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 6 - 2022-05-27.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "precision"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02--SPEAKER_00--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 1 - 2022-05-02.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "precision",
+        "coverage"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 5 - 2022-05-20--SPEAKER_00--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 5 - 2022-05-20.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "precision"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_01--d0",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "coverage"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i0",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i1",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i2",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i3",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i4",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i5",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i6",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i7",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i8",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    },
+    {
+      "clip_id": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13--SPEAKER_00--i9",
+      "episode": "The Jacob Shapiro Podcast - Episode 3 - 2022-05-13.txt",
+      "stratum": "pre-2026",
+      "purposes": [
+        "impurity"
+      ]
+    }
+  ],
+  "failed": []
+}

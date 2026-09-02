@@ -247,18 +247,56 @@ def routes_to_tier2(show: str, transcript_text: str) -> bool:
     return any(surname in lowered for surname in CO_HOST_SURNAMES.get(show, ()))
 
 
-def evenly_spaced(items: list, target: int) -> list:
-    """`target` items spread across the whole of `items`, in order.
+def evenly_spaced_indices(count: int, target: int) -> list[int]:
+    """Indices of `target` items spread across a pool of `count`, in order.
 
-    Not `items[::stride]` with an integer stride. When the pool is less than
-    twice the target that stride collapses to 1 and the result is the pool's
-    OLDEST `target` entries -- not a sample of the archive but its beginning,
-    which for a date-ordered pool hands the eval precisely the era the corpus
-    has moved away from.
+    Not `range(0, count, stride)` with an integer stride. When the pool is
+    less than twice the target that stride collapses to 1 and the result is
+    the pool's FIRST `target` entries -- not a sample of the archive but its
+    beginning, which for a date-ordered pool hands the eval precisely the era
+    the corpus has moved away from.
     """
-    if target <= 0 or not items:
+    if target <= 0 or count <= 0:
         return []
-    if target >= len(items):
-        return list(items)
-    step = len(items) / target
-    return [items[int(i * step)] for i in range(target)]
+    if target >= count:
+        return list(range(count))
+    step = count / target
+    return [int(i * step) for i in range(target)]
+
+
+def evenly_spaced(items: list, target: int) -> list:
+    """`target` items spread across the whole of `items`, in order."""
+    return [items[i] for i in evenly_spaced_indices(len(items), target)]
+
+
+def substitute_unavailable(
+    indices: list[int], count: int, unavailable: set[int]
+) -> tuple[list[int], list[tuple[int, int | None]]]:
+    """Replace each unavailable pick with the next available one, in order.
+
+    Audio rot is not random with respect to anything the eval cares about --
+    it is the OLDEST episodes that age off a feed -- so dropping them would
+    quietly shift a date-ordered sample newer. Substituting the neighbour
+    keeps the sample's shape; the returned substitution list is what stops
+    the repair from being invisible.
+
+    A pick with no available successor is returned as `(i, None)`: there is
+    nothing to substitute, and the stratum's n really does fall.
+    """
+    used = set(indices)
+    chosen: list[int] = []
+    substitutions: list[tuple[int, int | None]] = []
+    for index in indices:
+        if index not in unavailable:
+            chosen.append(index)
+            continue
+        candidate = index + 1
+        while candidate < count and (candidate in used or candidate in unavailable):
+            candidate += 1
+        if candidate >= count:
+            substitutions.append((index, None))
+            continue
+        used.add(candidate)
+        chosen.append(candidate)
+        substitutions.append((index, candidate))
+    return sorted(chosen), substitutions

@@ -47,8 +47,10 @@ from corpus.speakers import (
     GAP_CAP_S,
     clip_window,
     evenly_spaced,
+    evenly_spaced_indices,
     pick_clip_turn,
     routes_to_tier2,
+    substitute_unavailable,
 )
 from corpus.transcripts import dominant_speaker, load_episodes
 
@@ -83,6 +85,10 @@ IMPURITY_LEAD_IN_S = 1.0
 IMPURITY_MIN_TURN_S = IMPURITY_LEAD_IN_S + IMPURITY_LENGTH_S
 
 PLAN_PATH = Path("speakers/clip_plan.json")
+# Versioned alongside the plan, NOT under the gitignored clips/: this
+# ledger decides which episodes get substituted, so a fresh clone without
+# it would silently re-select the rotted episodes it exists to avoid.
+UNAVAILABLE_PATH = Path("speakers/unavailable.json")
 LABELS_PATH = Path("speakers/labels.json")
 CLIPS_DIR = Path("clips")
 
@@ -119,7 +125,9 @@ else:
 # ---------------------------------------------------------------- plan
 
 
-def build_plan(directory: Path, *, campaign_seed: str) -> tuple[list[dict], dict]:
+def build_plan(
+    directory: Path, *, campaign_seed: str, unavailable: frozenset[str] = frozenset()
+) -> tuple[list[dict], dict]:
     """Choose the episodes and the exact clip windows, and explain nothing away.
 
     Tier 1 makes one assignment per episode -- the dominant cluster -- so the
@@ -158,11 +166,33 @@ def build_plan(directory: Path, *, campaign_seed: str) -> tuple[list[dict], dict
         (e for e in eligible if e["episode"]["year"] >= ERA_BOUNDARY),
         key=lambda e: (e["episode"]["show"], e["episode"]["date"]),
     )
-    selected_pre = evenly_spaced(pre, PRE_2026_TARGET)
+    # Pre-2026 is SAMPLED, so a rotted episode is replaced by its neighbour
+    # (Part 7 §7): audio rot hits the oldest episodes, so dropping them would
+    # shift a date-ordered sample newer. 2026 is EXHAUSTIVE, so there is no
+    # neighbour to substitute -- a rotted episode there genuinely reduces n
+    # and §3.4's bound with it, which is why the two are handled differently.
+    indices = evenly_spaced_indices(len(pre), PRE_2026_TARGET)
+    unavailable_idx = {
+        i for i, item in enumerate(pre) if item["episode"]["name"] in unavailable
+    }
+    chosen_idx, substitutions = substitute_unavailable(
+        indices, len(pre), unavailable_idx
+    )
+    selected_pre = [pre[i] for i in chosen_idx]
+    recent_lost = [i for i in recent if i["episode"]["name"] in unavailable]
+    recent = [i for i in recent if i["episode"]["name"] not in unavailable]
     chosen = selected_pre + recent
     meta = {
         "pre_pool": len(pre),
         "pre_selected": len(selected_pre),
+        "pre_substitutions": [
+            {
+                "replaced": pre[a]["episode"]["name"],
+                "with": pre[b]["episode"]["name"] if b is not None else None,
+            }
+            for a, b in substitutions
+        ],
+        "recent_lost_to_audio_rot": [i["episode"]["name"] for i in recent_lost],
         # Recorded because §3.3 requires it: without the stride and the pool
         # size, "every nth by date" is not a reproducible instruction.
         "pre_stride": (len(pre) / len(selected_pre)) if selected_pre else 0.0,
@@ -296,8 +326,22 @@ def build_plan(directory: Path, *, campaign_seed: str) -> tuple[list[dict], dict
     return list(plan.values()), meta
 
 
+def _load_unavailable(path: str | None) -> frozenset[str]:
+    if not path or not Path(path).exists():
+        return frozenset()
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    names = {u["episode"] for u in data.get("unresolved", [])}
+    names |= {f.get("episode", "") for f in data.get("failed", [])} - {""}
+    print(f"excluding {len(names)} episodes with unobtainable audio")
+    return frozenset(names)
+
+
 def cmd_plan(args: argparse.Namespace) -> None:
-    plan, meta = build_plan(args.dir, campaign_seed=args.seed)
+    plan, meta = build_plan(
+        args.dir,
+        campaign_seed=args.seed,
+        unavailable=_load_unavailable(args.unavailable),
+    )
     PLAN_PATH.parent.mkdir(parents=True, exist_ok=True)
     _write_json(
         PLAN_PATH, {"campaign_seed": args.seed, "sampling": meta, "clips": plan}
@@ -316,6 +360,11 @@ def cmd_plan(args: argparse.Namespace) -> None:
         f"  {ERA_BOUNDARY} pool {meta['recent_pool']} -> {meta['recent_selected']} "
         f"(exhaustive, no sampling)"
     )
+    for sub in meta["pre_substitutions"]:
+        print(f"  substituted {sub['replaced']}")
+        print(f"         with {sub['with']}")
+    for lost in meta["recent_lost_to_audio_rot"]:
+        print(f"  LOST from the exhaustive 2026 stratum (n falls): {lost}")
     print(f"  dropped, routed to Tier 2: {meta['routed_to_tier2']}")
     print(f"  dropped, no clippable turn: {meta['no_clippable_turn']}")
     print(
@@ -348,19 +397,32 @@ def resolve_audio_urls(feed_url: str, show_name: str) -> dict[str, str]:
 
     parsed = feedparser.parse(feed_url)
     urls: dict[str, str] = {}
+    no_enclosure = 0
+    no_date = 0
     for entry in parsed.entries:
         enclosures = entry.get("enclosures") or []
         if not enclosures:
+            no_enclosure += 1
             continue
         published = entry.get("published")
         if not published:
+            no_date += 1
             continue
         try:
             date_str = email.utils.parsedate_to_datetime(published).strftime("%Y-%m-%d")
         except Exception:
+            no_date += 1
             continue
         urls[f"{episode_number_of(entry)}|{date_str}"] = enclosures[0].get("url", "")
-    print(f"{show_name}: {len(urls)} entries with audio")
+    # An empty result is ambiguous between "this feed has no audio" and "the
+    # fetch never worked", and those call for opposite responses. Report the
+    # discriminating fields rather than the conclusion.
+    print(
+        f"{show_name}: {len(urls)} usable | http={parsed.get('status')} "
+        f"entries={len(parsed.entries)} bozo={parsed.get('bozo')} "
+        f"no_enclosure={no_enclosure} no_date={no_date} "
+        f"err={str(parsed.get('bozo_exception'))[:120]}"
+    )
     return urls
 
 
@@ -419,8 +481,41 @@ def cut_one_episode(job: dict) -> list[dict]:
     return results
 
 
+def _record_unavailable(unresolved: list[dict], failed: list[dict]) -> Path:
+    """Merge into a CUMULATIVE ledger of audio that cannot be obtained.
+
+    Overwriting would be self-undoing. Once `plan` substitutes a rotted
+    episode away, the next run no longer asks for it, so a fresh report would
+    record zero unresolved -- and the run after that would re-select the very
+    episodes just substituted out, forever. The ledger only grows; an entry
+    leaves it when someone removes it deliberately.
+    """
+    report = UNAVAILABLE_PATH
+    existing = (
+        json.loads(report.read_text(encoding="utf-8"))
+        if report.exists()
+        else {"unresolved": [], "failed": []}
+    )
+    merged_unresolved = {u["clip_id"]: u for u in existing.get("unresolved", [])}
+    merged_unresolved.update({u["clip_id"]: u for u in unresolved})
+    merged_failed = {f["clip_id"]: f for f in existing.get("failed", [])}
+    merged_failed.update({f["clip_id"]: f for f in failed})
+    _write_json(
+        report,
+        {
+            "unresolved": list(merged_unresolved.values()),
+            "failed": list(merged_failed.values()),
+        },
+    )
+    return report
+
+
 @app.local_entrypoint()
-def cut_clips(plan_path: str = str(PLAN_PATH), out_dir: str = str(CLIPS_DIR)) -> None:
+def cut_clips(
+    plan_path: str = str(PLAN_PATH),
+    out_dir: str = str(CLIPS_DIR),
+    dry_run: bool = False,
+) -> None:
     plan = json.loads(Path(plan_path).read_text(encoding="utf-8"))
     clips = plan["clips"]
     destination = Path(out_dir)
@@ -435,21 +530,75 @@ def cut_clips(plan_path: str = str(PLAN_PATH), out_dir: str = str(CLIPS_DIR)) ->
         )
     )
 
-    jobs: list[dict] = []
-    unresolved: list[str] = []
+    # A feed fetch that half-fails is the dangerous case, and it is REAL: on
+    # 2026-09-02 this same code returned 0 entries for Observing Japan and 7
+    # for the identical feed minutes later. An unresolved clip is recorded as
+    # reducing the stratum's n (§3.4), so a transient fetch failure would
+    # quietly shrink the eval and move the bound with it -- and nothing
+    # downstream could tell that from a genuinely aged-off episode.
+    #
+    # So the expected count is asserted rather than trusted. Episodes in the
+    # plan are the floor: a feed offering far fewer than the transcripts we
+    # already hold has not aged them off, it has failed.
+    expected = {s: len({c["episode"] for c in clips if c["show"] == s}) for s in shows}
+    for show in shows:
+        resolved = len(url_maps[show])
+        if resolved < expected[show] * 0.9:
+            raise RuntimeError(
+                f"{show}: feed resolved only {resolved} entries for "
+                f"{expected[show]} planned episodes. Refusing rather than "
+                f"recording the shortfall as aged-off audio. Re-run; if it "
+                f"persists, the feed really has changed and §3.4's n must be "
+                f"revised deliberately."
+            )
+
+    # Grouped by EPISODE, not by clip. One container downloads one episode's
+    # audio once and cuts everything that episode owes. Per-clip jobs would
+    # re-fetch the same 40MB file ten times over for an impurity cluster, and
+    # each of those fetches is a request to someone else's server.
+    by_episode: dict[str, dict] = {}
+    unresolved: list[dict] = []
+    already = 0
     for clip in clips:
         if (destination / f"{clip['clip_id']}.mp3").exists():
+            already += 1
             continue
         url = url_maps[clip["show"]].get(f"{clip['episode_number']}|{clip['date']}")
         if not url:
-            unresolved.append(clip["clip_id"])
+            unresolved.append(
+                {
+                    "clip_id": clip["clip_id"],
+                    "episode": clip["episode"],
+                    "stratum": clip["stratum"],
+                    "purposes": clip["purposes"],
+                }
+            )
             continue
-        jobs.append({"episode": clip["episode"], "audio_url": url, "clips": [clip]})
+        job = by_episode.setdefault(
+            clip["episode"],
+            {"episode": clip["episode"], "audio_url": url, "clips": []},
+        )
+        job["clips"].append(clip)
+
+    jobs = list(by_episode.values())
+    to_cut = sum(len(j["clips"]) for j in jobs)
+    print(f"\n{len(clips)} clips planned, {already} already on disk")
+    print(f"{len(jobs)} episodes to download, {to_cut} clips to cut")
 
     if unresolved:
-        print(f"{len(unresolved)} clips have no audio URL in their feed:")
-        for clip_id in unresolved[:10]:
-            print(f"  {clip_id}")
+        per_stratum: dict[str, int] = {}
+        for item in unresolved:
+            per_stratum[item["stratum"]] = per_stratum.get(item["stratum"], 0) + 1
+        print(f"\n{len(unresolved)} clips have no audio URL in their feed:")
+        for stratum, count in sorted(per_stratum.items()):
+            print(f"  {stratum}: {count}")
+        for item in sorted({i["episode"] for i in unresolved})[:10]:
+            print(f"    {item}")
+
+    if dry_run:
+        report = _record_unavailable(unresolved, [])
+        print(f"\nDRY RUN — nothing downloaded. Resolution recorded in {report}")
+        return
 
     written = 0
     failures: list[dict] = []
@@ -463,8 +612,7 @@ def cut_clips(plan_path: str = str(PLAN_PATH), out_dir: str = str(CLIPS_DIR)) ->
 
     print(f"\nwrote {written} clips to {destination}")
     if failures or unresolved:
-        report = destination / "unavailable.json"
-        _write_json(report, {"unresolved": unresolved, "failed": failures})
+        report = _record_unavailable(unresolved, failures)
         print(
             f"{len(failures) + len(unresolved)} clips unavailable, recorded in "
             f"{report}. These REDUCE the stratum's n (§3.4); they are not "
@@ -563,6 +711,7 @@ def main() -> None:
     plan_parser = sub.add_parser("plan", help="choose episodes and clip windows")
     plan_parser.add_argument("--dir", default=Path("downloaded"), type=Path)
     plan_parser.add_argument("--seed", default="tier1-precision-2026-09-02")
+    plan_parser.add_argument("--unavailable", default=str(UNAVAILABLE_PATH))
     plan_parser.set_defaults(func=cmd_plan)
 
     label_parser = sub.add_parser("label", help="label the cut clips")
