@@ -1,7 +1,11 @@
 # Design: naming speakers where it matters
 
-**Status: approved in brainstorming after three rounds of adversarial review,
-not yet implemented. Written 2026-09-01.**
+**Status: not implemented, and not ready to implement without re-reading Part 7.
+Written 2026-09-01, three defects repaired the same day.**
+
+Its one precondition has shipped: `67e5720` made the MCP render emit `speaker`,
+without which none of this reaches a consumer (§1.3). Nothing else here is
+built.
 
 Supersedes the scoping half of
 [`2026-08-31-speaker-identification-design.md`](2026-08-31-speaker-identification-design.md)
@@ -61,18 +65,53 @@ cross-show host detection**, and is specified only after Tier 1 is measured.
 **New episodes.** The name is written at transcribe time into both the `speaker`
 metadata and the chunk text. Free — the chunks are being built anyway.
 
-**The archive.** A **metadata-only** `collection.update()`. No GPU, no re-embed.
+**The archive.** Rewrite the transcript file's speaker labels **first**, then a
+**metadata-only** `collection.update()`. No GPU, no re-embed.
 
-### 1.3 Correcting the 2026-08-31 note
+**The transcript rewrite is not optional, and the reason is a trap.** A
+metadata-only update changes `speaker` without changing the chunk text or the
+`rules_version` stamp, and `corpus/identity.py:13-19` says that stamp exists to
+answer "were those chunks built by current rules" — today, specifically, the
+speaker labels. Both ways of resolving that look wrong at first:
+
+- **Do not bump `RULES_VERSION`.** The records then claim to be current while
+  their metadata disagrees with their own document text, and nothing detects it.
+- **Bump `RULES_VERSION`.** `decide_action` returns `EMBED_ONLY` for every
+  record stamped `"1"`, and `transcribe.py:313-325` re-chunks from the **stored
+  transcript** — which still says `SPEAKER_00`. The nightly cron would then
+  overwrite every name it just took a manual hour to assign. **The bump actively
+  destroys the backfill.**
+
+Rewriting the transcript files removes the dilemma: the transcript becomes the
+single source of truth it already is everywhere else, a future re-embed
+regenerates names rather than reverting them, and the bump becomes safe. The
+metadata update is then only a shortcut to get attribution correct *before* that
+re-embed is paid for.
+
+### 1.3 Correcting the 2026-08-31 note — and a claim this spec got wrong first
 
 That note states: "Renaming retroactively is a re-embed, not a cheap
 `collection.update()` on metadata." That is true for the *embedding* and false
 for *attribution*, and the distinction decides the backfill's cost.
 
-`mcp_server.py:122` builds each search result's speaker field from
-`meta.get("speaker")` — it reads **metadata**, and never parses the document
-text. So a metadata-only update makes every search result attribute correctly,
-immediately, at Chroma-update cost alone.
+**But attribution did not reach any consumer at all until `67e5720`.** An
+earlier draft of this section cited `mcp_server.py:122` — which does copy
+`meta["speaker"]` into the searcher's result dict — and concluded that
+attribution therefore worked. It did not. Both MCP tools rendered their output
+from a separate f-string ninety lines further down that **never emitted
+`speaker`**, so the only speaker text any caller ever received was the
+`[SPEAKER_00]` prefix inside the document. The docstring and the README
+advertised attribution the entire time.
+
+That was the-probe-measured-the-wrong-layer: a correct fact about the dict,
+used to answer a question about the rendered string. The tell was available and
+missed — had attribution worked, `[SPEAKER_00]` would already have been a
+visible annoyance in daily use.
+
+`67e5720` moved the render into `corpus/rendering.py` and made the metadata
+field authoritative for what a caller sees. **Only now** is a metadata-only
+`collection.update()` sufficient to change attribution, at Chroma-update cost
+alone. This section is a precondition of the design, not a free property of it.
 
 What a metadata-only backfill does *not* buy is the name inside the embedded
 string. `corpus/chunking.py:83` builds `f"[{speaker}] {text}"`, so archive chunks
@@ -136,25 +175,67 @@ For an episode with one enrolled voice, assign the show's host to the cluster
 holding the most speech time. Assign nothing else. Every other cluster keeps its
 `SPEAKER_XX` label.
 
-**Cross-check, not label:** grep the episode's first 40 segments for the host's
-name and for known co-host names. A hit for a *second* enrolled voice routes the
-episode to Tier 2 rather than to a Tier 1 assignment.
+**Cross-check, not label:** grep the episode for known co-host **surnames**. A
+hit for a *second* enrolled voice routes the episode to Tier 2 rather than to a
+Tier 1 assignment.
 
-### 3.2 The measurement is one clip per episode
+**Surnames, because forenames do not discriminate.** Measured over the 341
+Jacob Shapiro transcripts:
 
-Tier 1 makes **exactly one assignment per episode**, so its precision
-denominator is one per episode and verifying it needs **one clip**: listen, and
-answer whether the dominant cluster is the host.
+| Probe | Episodes |
+|---|---|
+| `marco` in first 40 segments | 36 |
+| `papic` in first 40 segments | **10** |
+| `marco` OR `papic` in first 40 segments | 37 |
+| `papic` anywhere in the full transcript | **24** |
+| first-40 hit containing no `papic` anywhere | **27** |
 
-This is what makes a real statistical claim affordable. Zero errors on 150
-episodes gives a one-sided 95% lower bound of `150 / (150 + 1.645^2) = 98.2%`,
-clearing the >=98% bar with margin — where draft 1's n=133 sat one episode from
-failing on arithmetic alone.
+An earlier draft routed on `marco OR papic` in the first 40 segments and took
+the resulting 37 as co-host episodes. **27 of those 37 never say `papic`
+anywhere** — the signal is dominated by Marco Rubio, in a geopolitics podcast.
+Real co-host evidence is at most 24 episodes (7.0%); within the first 40
+segments it is 10 (2.9%).
 
-**Budget: 150 episodes x one 10s clip = 25 minutes of audio.** Wall clock runs
-roughly double once replay and typing are counted, so call it **45–60 minutes**.
-Draft 2 estimated "twenty minutes" for a design that was 24 minutes of audio
-before any replay; that estimate is not repeated here.
+Two consequences. The window must be the **whole transcript**, not the first 40
+segments, or 14 of the 24 are missed. And the routing rate is low enough that
+**Tier 2's surface is ~21% of the archive, not 24%** — Geopolitical Cousins
+(14.8%) plus at most 6.0%.
+
+The false-positive rate is itself unmeasured for the surname probe: `papic`
+could appear because Marco is *discussed* rather than present. Routing on it
+sends such an episode to Tier 2, which fails safe — Tier 2 declines to name
+rather than misattributing — but it inflates Tier 2's workload by an unknown
+amount.
+
+### 3.2 Two instruments, because precision and coverage are different questions
+
+An earlier draft used one sample for both. **One clip per episode measures
+precision and cannot measure coverage**, and the draft let a single instrument
+carry a gate that needed two.
+
+**Precision — one clip per episode, 150 episodes.** Tier 1 makes exactly one
+assignment per episode, so its precision denominator is one per episode and
+verifying it needs one clip: listen, and answer whether the dominant cluster is
+the host. Zero errors on 150 gives a one-sided 95% lower bound of
+`150 / (150 + 1.645^2) = 98.2%`, clearing the >=98% bar with margin — where
+draft 1's n=133 sat one episode from failing on arithmetic alone.
+
+**Coverage — every cluster, 30 episodes.** Coverage asks what fraction of the
+host's speech the named cluster holds, so its denominator is the host's *total*
+seconds across the episode. Answering that requires knowing which of the
+episode's *other* clusters are also the host — i.e. labelling **every** cluster,
+not just the dominant one. One clip cannot see it, and 121 of 400 episodes have
+three or more clusters, so host speech split across clusters is the live risk
+rather than a hypothetical.
+
+At a mean of 2.39 clusters, 30 fully-labelled episodes is ~72 clips.
+
+**Budget.** 150 clips + 72 clips + Part 5's 150 turn clips = 372 clips at ~10s
+= **62 minutes of audio**. Wall clock runs roughly double once replay and typing
+are counted, so call it **~2 hours**, resumable. Draft 2 estimated "twenty
+minutes" for a design that was 24 minutes of audio before any replay; estimates
+in this document are now stated as audio-minutes first and wall clock second,
+because that is the error that keeps recurring.
 
 ### 3.3 Sampling
 
@@ -168,14 +249,18 @@ so it cannot select for a flattering result.
 
 ### 3.4 The gate
 
-- **Zero misattributions** across the labelled episodes.
-- **Coverage >= 90% of true host seconds** on single-host episodes.
+- **Zero misattributions** on the 150-episode precision set.
+- **Coverage >= 90% of true host seconds** on the 30-episode coverage set.
+
+The two bullets are measured by two different instruments (§3.2) and must not
+be collapsed into one sample.
 
 Coverage is host-relative by construction: Tier 1 either names the dominant
 cluster or names nothing, so the denominator is the host's own speech, not the
 show's guest ratio. This is stated as a principle rather than derived from a
 small pilot — 90% of a host's speech is what "attribution works" means, and it
-is not a quantity a 20-episode sample should be allowed to set.
+is not a quantity a 30-episode sample should be allowed to set. What the sample
+does is *test* the principle, not choose it.
 
 **Measured once.** If the gate fails, the labelled set becomes a dev set and a
 fresh sample must be labelled before any new claim.
@@ -286,13 +371,21 @@ archive backfill from a ~30k-chunk re-embed into a `collection.update()` and is
 the reason this design ships something. And Part 2's segment/turn measurement,
 which was a defect in draft 2 rather than a scope choice.
 
-**Where this is still weak.** Tier 1's gate assumes single-host episodes can be
-identified as such *before* labelling; the name grep is the mechanism and its
-false-negative rate is unmeasured — an episode with an unannounced second host
-would be scored as a Tier 1 failure when it is really a routing failure. Part 2
-covers two of three shows. And Tier 2 remains genuinely unspecified; this
-document should not be read as though its scope were settled beyond §4's
-boundary.
+**Three defects found after drafting, repaired here.** §1.3 cited the wrong
+layer and concluded attribution worked when no consumer had ever seen a speaker
+name. §3.1 routed on a forename and took 37 hits as co-host episodes when 27 of
+them were a different Marco. §3.2 used one instrument for two gates, and the
+coverage half was unmeasurable by it. All three were plausible numbers or
+plausible readings that became load-bearing without a probe — the same failure
+Part 0 records, recurring twice more after Part 0 was written.
+
+**Where this is still weak.** The surname probe's own false-positive rate is
+unmeasured: `papic` in a transcript may mean Marco is being discussed rather
+than present, which inflates Tier 2's workload by an unknown amount (it fails
+safe, since Tier 2 declines rather than misattributes). Part 2 covers two of
+three shows. Tier 2 remains genuinely unspecified. And the 90% coverage
+principle is asserted, not derived — the 30-episode set tests it and cannot
+justify it.
 
 **One boundary worth defending.** Re-embedding the archive so names enter the
 vector text stays out, even though `RULES_VERSION` makes it schedulable, because
