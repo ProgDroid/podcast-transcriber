@@ -37,3 +37,7 @@ Thumbs.db
 
 # SDD scratch workspace (ledger, briefs, review packages) -- regenerable
 .superpowers/
+
+# Clip audio cut for the speaker eval -- regenerable from speakers/clip_plan.json
+# plus the feeds. The PLAN and the LABELS are versioned; the audio is not.
+clips/

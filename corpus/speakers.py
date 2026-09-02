@@ -211,3 +211,54 @@ def clip_window(
         # the caller decides whether a stub is worth showing.
         return (turn["start"], min(length_s, duration))
     return (turn["start"] + lead_in_s, min(length_s, duration - lead_in_s))
+
+
+# Shows with two recurring hosts. Tier 1 assigns one name per episode, so a
+# two-host show is not a Tier 1 case at all -- it is Tier 2's entire reason
+# for existing (§1.1). Routing the whole show away is deliberate: the
+# alternative is naming one of two hosts and being right half the time.
+TWO_HOST_SHOWS = frozenset({"Geopolitical Cousins"})
+
+# Co-host SURNAMES, per show. Surnames, never forenames: measured over 341
+# Jacob Shapiro transcripts, `marco` hit 36 episodes and `papic` hit 10, and
+# 27 of the 37 `marco OR papic` hits never say `papic` anywhere -- the signal
+# is dominated by Marco Rubio, in a geopolitics podcast. Routing on the
+# forename would send a quarter of the archive to Tier 2 over a different
+# person.
+CO_HOST_SURNAMES: dict[str, tuple[str, ...]] = {
+    "The Jacob Shapiro Podcast": ("papic",),
+}
+
+
+def routes_to_tier2(show: str, transcript_text: str) -> bool:
+    """Whether this episode is Tier 2's problem rather than Tier 1's.
+
+    The window is the WHOLE transcript, not the opening segments: 14 of the
+    24 episodes with real co-host evidence say the name only later, so a
+    windowed check misses more than half of them.
+
+    This fails safe. A false positive costs Tier 1 an episode it could have
+    named; a false negative hands Tier 1 a two-voice episode and invites the
+    confident misattribution the design forbids.
+    """
+    if show in TWO_HOST_SHOWS:
+        return True
+    lowered = transcript_text.lower()
+    return any(surname in lowered for surname in CO_HOST_SURNAMES.get(show, ()))
+
+
+def evenly_spaced(items: list, target: int) -> list:
+    """`target` items spread across the whole of `items`, in order.
+
+    Not `items[::stride]` with an integer stride. When the pool is less than
+    twice the target that stride collapses to 1 and the result is the pool's
+    OLDEST `target` entries -- not a sample of the archive but its beginning,
+    which for a date-ordered pool hands the eval precisely the era the corpus
+    has moved away from.
+    """
+    if target <= 0 or not items:
+        return []
+    if target >= len(items):
+        return list(items)
+    step = len(items) / target
+    return [items[int(i * step)] for i in range(target)]

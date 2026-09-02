@@ -6,10 +6,12 @@ repaired the same day; Part 2 recomputed 2026-09-02.**
 
 Its one precondition has shipped: `67e5720` made the MCP render emit `speaker`,
 without which none of this reaches a consumer (§1.3). Since then
-`corpus/speakers.py`, `speaker_stats.py` and `tests/test_speakers.py` have
-shipped, and Part 2's figures are reproducible rather than remembered (Part 6).
-The dominant-cluster rule, the surname check, the clip tool, the labelling
-prompt and every gate remain unbuilt.
+`corpus/speakers.py`, `corpus/transcripts.py`, `speaker_stats.py`,
+`speaker_tool.py` and their tests have shipped; Part 2's figures are
+reproducible rather than remembered, and the clip plan is built and reviewable
+(Part 6). **The dominant-cluster rule itself is still unbuilt** — nothing yet
+asserts that the dominant cluster IS the host, which is the hypothesis the
+labelling exists to test — and so are the scoring and every gate.
 
 Supersedes the scoping half of
 [`2026-08-31-speaker-identification-design.md`](2026-08-31-speaker-identification-design.md)
@@ -257,8 +259,8 @@ unflattering result, which is Part 0's failure mode with a date on it.
 
 **Resolved 2026-09-02: the gate splits at 2026-01-01 and both strata must clear
 zero misattributions** (§3.3, §3.4). Sizing the recent stratum then turned up a
-hard ceiling — the eligible 2026 population is 41 episodes, so it is labelled
-exhaustively rather than sampled, and its bound is capped at 93.8% by how many
+hard ceiling — the eligible 2026 population is 42 episodes, so it is labelled
+exhaustively rather than sampled, and its bound is capped at 93.9% by how many
 episodes the shows have published rather than by how much labelling is done.
 Demanding 98% of both strata would have been a bar no matcher could clear.
 
@@ -287,7 +289,7 @@ dominant cluster ends up being the person who is *not* the host. Tier 1 would
 then misattribute every such episode confidently — the one failure the design
 forbids.
 
-**Decided 2026-09-02: Observing Japan stays in, and all six real episodes are
+**Decided 2026-09-02: Observing Japan stays in, and all seven episodes are
 labelled.** They form part of the exhaustive 2026 stratum (§3.3), so they cost
 six clips and no statistics. Ruling the show out by argument would have been
 cheaper and would have thrown away the only direct evidence available on how
@@ -311,8 +313,17 @@ exactly 7 items dated 2026-05-12 to 2026-06-19, matching the 7 transcripts
 one-for-one; nothing is being dropped and `scheduled_job` is healthy. The show
 has simply not published since 2026-06-19. Its 2026-05-12 entry is a 2.5 MB
 enclosure against 37–57 MB for the rest and yields a 2.3 KiB transcript — a
-trailer, correctly transcribed, and **not an eval episode**. That leaves six
-usable episodes, 1.4% of the archive, on a show that may never grow.
+trailer, correctly transcribed.
+
+**An earlier draft of this section excluded that trailer from the eval and was
+wrong to.** It is a real episode in the corpus, Tier 1 will assign a name to it
+in production, and it is the *easiest* case on the show: a 17-segment solo
+introduction by Tobias Harris, single-cluster, with a 102-second turn and
+comfortably clippable. Dropping it would have been dropping an episode for being
+atypical — the selection bias this design rejects everywhere else. It was caught
+only because `speaker_tool.py plan` counted 42 where this document had said 41;
+the tool was right. All seven episodes are in, 1.6% of the archive, on a show
+that may never grow.
 
 **Audio is not retained** (`transcribe.py:378` writes `/tmp`, `:455` deletes).
 **Six episodes have no obtainable audio** (`FEED_UNREACHABLE`, aged off feed) and
@@ -354,7 +365,7 @@ segments, or 14 of the 24 are missed. And the routing rate is low enough that
 **Re-measured 2026-09-02 on the full 439.** `papic` anywhere in the transcript
 now hits **26 of 356** Jacob Shapiro episodes (7.3%), against 24 of 341 (7.0%)
 before — the rate is stable, and only **2 of the 37** 2026 episodes hit, which
-is what sizes the 2026 precision stratum at 41 (§3.3). Tier 2's surface is
+is what sizes the 2026 precision stratum at 42 (§3.3). Tier 2's surface is
 therefore Geopolitical Cousins (76 of 439, 17.3%) plus those 26 (5.9%) =
 **23.2%**. The first-40-segment figures in the table above were measured on the
 341-episode population and have not been recomputed; nothing depends on them,
@@ -372,13 +383,13 @@ An earlier draft used one sample for both. **One clip per episode measures
 precision and cannot measure coverage**, and the draft let a single instrument
 carry a gate that needed two.
 
-**Precision — one clip per episode, 191 episodes across two strata.** Tier 1
+**Precision — one clip per episode, 192 episodes across two strata.** Tier 1
 makes exactly one assignment per episode, so its precision denominator is one
 per episode and verifying it needs one clip: listen, and answer whether the
 dominant cluster is the host. Zero errors on the 150 sampled pre-2026 episodes
 gives a one-sided 95% lower bound of `150 / (150 + 1.645^2) = 98.2%`, clearing
 the >=98% bar with margin — where draft 1's n=133 sat one episode from failing
-on arithmetic alone. The 41 episodes of the 2026 stratum are labelled
+on arithmetic alone. The 42 episodes of the 2026 stratum are labelled
 exhaustively rather than sampled (§3.3) and carry their own, necessarily
 weaker, bound (§3.4).
 
@@ -392,11 +403,11 @@ rather than a hypothetical.
 
 At a mean of 2.39 clusters, 30 fully-labelled episodes is ~72 clips.
 
-**Budget.** 150 pre-2026 clips + 41 exhaustive 2026 clips + 72 coverage clips +
-Part 5's 150 turn clips = 413 clips at ~10s = **69 minutes of audio**. Wall
+**Budget.** 150 pre-2026 clips + 42 exhaustive 2026 clips + 72 coverage clips +
+Part 5's 150 turn clips = 414 clips at ~10s = **69 minutes of audio**. Wall
 clock runs roughly double once replay and typing are counted, so call it
 **~2.5 hours**, resumable. Taking the 2026 era whole rather than sampling it
-costs 41 clips, about seven minutes. Draft 2 estimated "twenty
+costs 42 clips, about seven minutes. Draft 2 estimated "twenty
 minutes" for a design that was 24 minutes of audio before any replay; estimates
 in this document are now stated as audio-minutes first and wall clock second,
 because that is the error that keeps recurring.
@@ -414,7 +425,7 @@ Labelling proceeds **in deterministic order until 150 single-host episodes are
 labelled**. The stopping rule keys on the label count, never on matcher output,
 so it cannot select for a flattering result.
 
-**2026 — exhaustive, not sampled.** The eligible population is **41 episodes**
+**2026 — exhaustive, not sampled.** The eligible population is **42 episodes**
 and is small enough to take whole: Jacob Shapiro's 37, less the 2 that the
 co-host surname check routes to Tier 2, plus Observing Japan's 6 real episodes.
 Geopolitical Cousins is excluded throughout — it is a two-host show and is
@@ -422,7 +433,7 @@ Tier 2's remit by §1.1, not a Tier 1 precision case.
 
 Taking the era whole removes the sampling question from it entirely: no stride,
 no stopping rule, no selection risk, and no argument about representativeness,
-because it *is* the population. What it cannot do is grow. A census of 41 is a
+because it *is* the population. What it cannot do is grow. A census of 42 is a
 complete statement about episodes published to 2026-09-02 and a weak one about
 episodes not yet published, and §3.4 says so in the only place that matters.
 
@@ -430,7 +441,7 @@ episodes not yet published, and §3.4 says so in the only place that matters.
 
 - **Zero misattributions on the pre-2026 precision set** (150 episodes,
   sampled). One-sided 95% lower bound `150 / (150 + 1.645^2)` = **98.2%**.
-- **Zero misattributions on the 2026 set** (41 episodes, exhaustive).
+- **Zero misattributions on the 2026 set** (42 episodes, exhaustive).
 - **Coverage >= 90% of true host seconds** on the 30-episode coverage set.
 
 **Both precision strata must clear zero. Neither substitutes for the other, and
@@ -439,8 +450,8 @@ fails on the new one clears any pooled bar at a 4:1 mix, which is precisely the
 failure the split exists to catch.
 
 **The two strata do not carry the same bound, and requiring that they did would
-be Part 0's mistake again.** Zero errors on 41 supports `41 / (41 + 1.645^2)` =
-**93.8%**, not 98.2%, and no amount of labelling changes that: 41 is the entire
+be Part 0's mistake again.** Zero errors on 42 supports `42 / (42 + 1.645^2)` =
+**93.9%**, not 98.2%, and no amount of labelling changes that: 42 is the entire
 eligible 2026 population, so the bound is capped by how many episodes the shows
 have published, not by effort. Writing "98% on both" into this gate would have
 pre-registered a bar a *perfect* matcher cannot pass — the same shape as
@@ -449,7 +460,7 @@ draft 1's coverage denominator.
 So the gate promises two different things on purpose. On pre-2026, 81% of the
 archive: 98.2% precision, estimated from a sample. On 2026: **no misattribution
 anywhere in the era**, counted rather than estimated, projecting to future
-episodes at 93.8%. The second is weaker as a projection and stronger as a
+episodes at 93.9%. The second is weaker as a projection and stronger as a
 statement of fact, and both are worth having.
 
 The two bullets are measured by two different instruments (§3.2) and must not
@@ -560,7 +571,7 @@ rather than discovered after it fails.
 
 ## Part 6 — Architecture
 
-Two files, not four. 191 precision labels does not need a module hierarchy.
+Two files, not four. 192 precision labels does not need a module hierarchy.
 
 | Unit | Purpose |
 |---|---|
@@ -569,12 +580,20 @@ Two files, not four. 191 precision labels does not need a module hierarchy.
 | `speaker_tool.py` | Modal app plus local entrypoints: cut clips, prompt, report. |
 | `speakers/labels.json` | Ground truth. Hand-made, reviewable, in git. |
 
-**Built as of 2026-09-02:** `corpus/speakers.py`'s `merge_turns`,
-`speech_shares` and `count_non_monotonic`, with `GAP_CAP_S` and `MIN_TURN_S`;
-`speaker_stats.py`; `tests/test_speakers.py` (12 tests). The dominant-cluster
-rule, the surname check and the scoring are **not** built — they are gated on a
-labelled set that does not exist, and writing them before it does is how a
-threshold gets chosen to fit.
+**Built as of 2026-09-02:** `corpus/speakers.py` (`merge_turns`,
+`speech_shares`, `count_non_monotonic`, `pick_clip_turn`, `clip_window`,
+`evenly_spaced`, `routes_to_tier2`, and the `GAP_CAP_S` / `MIN_TURN_S` /
+`CLIP_*` constants); `corpus/transcripts.py`; `corpus/feed.py`'s
+`episode_number_of`, extracted from `transcribe.py` so the clip tool resolves a
+transcript filename back to its feed entry by the same rule that named the file;
+`speaker_stats.py`; `speaker_tool.py` (`plan`, `cut_clips`, `label`);
+`tests/test_speakers.py` (29 tests).
+
+**The dominant-cluster rule and the scoring are still NOT built.** Nothing in
+the repository asserts that the dominant cluster is the host — `dominant_speaker`
+reports which cluster holds the most speech and says nothing about whose voice it
+is. That assertion is the hypothesis the labelling exists to test, and writing it
+alongside the labels is how a threshold gets chosen to fit them.
 
 `speaker_stats.py` is separate from `speaker_tool.py` rather than another
 entrypoint on it because it needs no Modal at all: the measurement must stay
@@ -586,7 +605,7 @@ scoring run in the test suite on CPU — matching the split argued in
 `corpus/showplan.py`'s module docstring.
 
 The labelling prompt must have **name autocomplete from names already used**.
-Free-text entry across 263 answers reliably produces `Jacob Shapiro` and
+Free-text entry across 264 answers reliably produces `Jacob Shapiro` and
 `J. Shapiro` as distinct people, which silently splits a centroid in Tier 2 and
 is invisible in Tier 1's counts. It must also support undo and skip, and append
 after every answer so an interrupted session resumes.
@@ -613,7 +632,7 @@ remote path is rewritten to a Windows path and the command fails with a bare
    is a trailer, so six usable episodes remain. Every Part 2 figure now covers
    all three shows. The scope question it left behind — whether a dormant
    six-episode interview show is worth Tier 1's remit — is **decided**: the
-   show stays in, and all six real episodes are labelled as part of the
+   show stays in, and all seven episodes are labelled as part of the
    exhaustive 2026 stratum (§3.3). It is the only direct evidence available on
    how the rule behaves on an interview format, which the drift below makes a
    question about the corpus's future rather than about one dormant show.
@@ -680,8 +699,8 @@ history that an unmeasured input turned out to be load-bearing.
 
 **Both were decided the same day.** The gate splits at 2026-01-01 with zero
 misattributions required on each side, and Observing Japan stays in. Sizing the
-recent stratum then produced the finding that matters most here: at 41 eligible
-episodes it is capped at a 93.8% bound however much labelling is done, so the
+recent stratum then produced the finding that matters most here: at 42 eligible
+episodes it is capped at a 93.9% bound however much labelling is done, so the
 two strata are deliberately promised different things. Phrased as "98% on
 both" — which is how the split was first put — this document would have
 pre-registered an unpassable gate for the fourth time. The only reason it did

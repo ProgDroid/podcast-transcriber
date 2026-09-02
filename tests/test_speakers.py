@@ -15,8 +15,10 @@ from corpus.chunking import build_chunks
 from corpus.speakers import (
     clip_window,
     count_non_monotonic,
+    evenly_spaced,
     merge_turns,
     pick_clip_turn,
+    routes_to_tier2,
     speech_shares,
 )
 
@@ -273,3 +275,56 @@ def test_a_turn_shorter_than_the_lead_in_falls_back_to_its_start():
     start, length = clip_window(turn, lead_in_s=2.0, length_s=10.0)
     assert start == 50.0
     assert length == 1.0
+
+
+def test_evenly_spaced_spans_the_whole_pool_rather_than_its_head():
+    # A naive pool[::stride] with an integer stride of 1 returns the OLDEST
+    # `target` items, which is not a sample of the archive -- it is its
+    # beginning, and it would hand the eval the era the corpus has left.
+    pool = list(range(295))
+    picked = evenly_spaced(pool, 150)
+    assert len(picked) == 150
+    assert picked[0] == 0
+    assert picked[-1] > 250
+    assert picked == sorted(set(picked))
+
+
+def test_evenly_spaced_returns_everything_when_the_pool_is_small():
+    assert evenly_spaced([1, 2, 3], 10) == [1, 2, 3]
+    assert evenly_spaced([1, 2, 3], 3) == [1, 2, 3]
+    assert evenly_spaced([1, 2, 3], 0) == []
+    assert evenly_spaced([], 5) == []
+
+
+def test_evenly_spaced_is_deterministic():
+    pool = list(range(97))
+    assert evenly_spaced(pool, 31) == evenly_spaced(pool, 31)
+
+
+def test_a_two_host_show_always_routes_to_tier2():
+    assert routes_to_tier2("Geopolitical Cousins", "nothing relevant here")
+
+
+def test_a_co_host_surname_routes_and_is_case_insensitive():
+    assert routes_to_tier2("The Jacob Shapiro Podcast", "joined by Marco Papic today")
+    assert routes_to_tier2("The Jacob Shapiro Podcast", "PAPIC said")
+
+
+def test_a_forename_alone_does_not_route():
+    # 27 of 37 first-40 hits on "marco" were Marco Rubio, in a geopolitics
+    # podcast. Routing on the forename would send a quarter of the archive to
+    # Tier 2 over a different person entirely.
+    assert not routes_to_tier2(
+        "The Jacob Shapiro Podcast", "Marco Rubio gave a statement"
+    )
+
+
+def test_the_surname_window_is_the_whole_transcript():
+    # 14 of the 24 real co-host episodes say the name only after the first
+    # 40 segments, so a windowed check misses more than half of them.
+    late = "intro " * 5000 + "and here is Papic"
+    assert routes_to_tier2("The Jacob Shapiro Podcast", late)
+
+
+def test_a_show_with_no_roster_never_routes():
+    assert not routes_to_tier2("The Observing Japan Podcast", "Papic Papic Papic")
