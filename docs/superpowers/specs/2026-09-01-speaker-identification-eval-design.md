@@ -11,9 +11,50 @@ without which none of this reaches a consumer (§1.3). Since then
 `corpus/speakers.py`, `corpus/transcripts.py`, `speaker_stats.py`,
 `speaker_tool.py` and their tests have shipped; Part 2's figures are
 reproducible rather than remembered, and the clip plan is built and reviewable
-(Part 6). **The dominant-cluster rule itself is still unbuilt** — nothing yet
-asserts that the dominant cluster IS the host, which is the hypothesis the
-labelling exists to test — and so are the scoring and every gate.
+(Part 6). The dominant-cluster rule was never written as code and now never
+will be: the hypothesis it would have encoded — that the dominant cluster is
+the host — was tested directly against 379 hand labels and is false (Part 8).
+
+## NEXT SESSION STARTS HERE
+
+Read Part 8 first. Tier 1 is measured and dead; voice identification is the
+only remaining path. **Do not start by designing it.** Two unknowns can fail
+late and expensively, both are cheap to settle, and neither needs a GPU:
+
+1. **Hugging Face gating (Part 7 §5).** `README.md` records accepting terms for
+   `pyannote/speaker-diarization` and `pyannote/segmentation`. Whether that
+   covers an EMBEDDING model (`pyannote/embedding`,
+   `speechbrain/spkrec-ecapa-voxceleb`) is unknown, and a gated model fails at
+   runtime with an authorisation error rather than at setup — after the GPU is
+   already running.
+2. **What the deployed image exposes (Part 7 §6).** pyannote arrives
+   transitively via `whisperx==3.8.5`, unpinned and frozen at build time.
+   Probe the actual image rather than reading the spec. Per
+   `docs/operations.md`, replicate the image spec **verbatim** so
+   content-addressing reuses the cache; a build line means the spec drifted.
+   `.add_local_python_source("corpus")` stays **last**.
+
+Then re-spec Tier 2, with three corrections Part 8 forces:
+
+- **Scope is the whole archive, not 21%.** Part 4 below was written when Tier 1
+  was believed to cover 76%. It does not; §8.7 explains why the cost case
+  inverts.
+- **Group first, name second (§8.6).** The deliverable is stable identity, not
+  names. `unknown_1` answers "what has this recurring voice said about Taiwan,
+  and has the view moved". Naming is an optional label applied to a group, and
+  the human should be asked "same voice?", never "who is this?".
+- **The known cast is larger than the spec assumed.** Jacob Shapiro, Rob Larity
+  and Marko Papic on The Jacob Shapiro Podcast; Tobias Harris on Observing
+  Japan. Larity was absent from every roster in this document before 2026-09-02.
+
+Assets that carry forward: `speakers/labels.json` (214 voice-verified labels,
+enrolment seed — **dev set for any precision claim, per §3.4**),
+`speakers/clip_plan.json`, `speakers/unavailable.json`, the 381 cut clips (not
+in git; regenerable via the plan), and the whole plan/dry-run/cut/label
+pipeline in `speaker_tool.py`.
+
+**Do not re-run the Tier 1 gate on these labels.** If a text-based rule is ever
+revisited, it needs a fresh sample.
 
 Supersedes the scoping half of
 [`2026-08-31-speaker-identification-design.md`](2026-08-31-speaker-identification-design.md)
@@ -54,6 +95,13 @@ measurements rather than from argument.
 
 ### 1.1 Two tiers, sized to where the difficulty actually is
 
+> **SUPERSEDED by Part 8 (2026-09-02).** The surfaces below are wrong. Tier 1
+> was measured and fails its gate; a complete co-host roster leaves it at 46%
+> of the archive, not 76%, and 7 of its errors are uncatchable even then. Voice
+> identification is needed on essentially the whole corpus. The reasoning in
+> this section is kept because it records what was believed and why, not
+> because the numbers hold.
+
 | Tier | Method | Surface | Cost |
 |---|---|---|---|
 | **1** | Dominant cluster is the host, cross-checked by name grep | ~76% of the archive | No GPU, no model, no audio embedding |
@@ -69,6 +117,11 @@ Tier 2 is therefore scoped to **Geopolitical Cousins co-host separation and
 cross-show host detection**, and is specified only after Tier 1 is measured.
 
 ### 1.2 Tier 1 ships names, on new episodes and on the archive
+
+> **Did not happen — Part 8.** Tier 1 never reached the archive. The backfill
+> ORDERING argued below (transcripts, then metadata, then `RULES_VERSION`)
+> survives intact and applies unchanged to whatever eventually assigns names,
+> which is why this section is kept.
 
 **New episodes.** The name is written at transcribe time into both the `speaker`
 metadata and the chunk text. Free — the chunks are being built anyway.
@@ -659,9 +712,13 @@ converts one into the other.**
 
 ## Part 4 — Tier 2: scope, deferred
 
-Specified after Tier 1 is measured, and scoped to what Tier 1 provably cannot
-do: separating the two Geopolitical Cousins hosts, and recognising a known host
-appearing as a guest on another feed.
+**Superseded by Part 8 — read that first.** This section was written while
+Tier 1 was believed to cover 76% of the archive, and scoped Tier 2 to the
+residual: separating the two Geopolitical Cousins hosts, and recognising a
+known host appearing as a guest on another feed. Tier 1 is now measured and
+fails, so **Tier 2's scope is the whole archive**. The design decisions below
+survive that change and are the reason this section is kept rather than
+deleted; the surface estimate does not.
 
 Design decisions that already stand:
 
@@ -738,8 +795,9 @@ transcript filename back to its feed entry by the same rule that named the file;
 **The dominant-cluster rule and the scoring are still NOT built.** Nothing in
 the repository asserts that the dominant cluster is the host — `dominant_speaker`
 reports which cluster holds the most speech and says nothing about whose voice it
-is. That assertion is the hypothesis the labelling exists to test, and writing it
-alongside the labels is how a threshold gets chosen to fit them.
+is. That assertion was the hypothesis the labelling existed to test; it was
+tested on 2026-09-02 and is false (Part 8), so the rule was never written and
+should not be.
 
 `speaker_stats.py` is separate from `speaker_tool.py` rather than another
 entrypoint on it because it needs no Modal at all: the measurement must stay
