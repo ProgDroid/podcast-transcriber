@@ -255,11 +255,12 @@ corpus is actually moving into. The gate would then be measured on the past and
 the matcher deployed on the future — a sampling rule that cannot produce an
 unflattering result, which is Part 0's failure mode with a date on it.
 
-**Not resolved here, because it changes a gate.** The options are to report
-precision split at 2026-01-01 with both strata required to clear zero
-misattributions, or to over-sample the recent era and size it for a bound of
-its own. Either is defensible; picking one is a decision about what the gate
-promises, not a measurement.
+**Resolved 2026-09-02: the gate splits at 2026-01-01 and both strata must clear
+zero misattributions** (§3.3, §3.4). Sizing the recent stratum then turned up a
+hard ceiling — the eligible 2026 population is 41 episodes, so it is labelled
+exhaustively rather than sampled, and its bound is capped at 93.8% by how many
+episodes the shows have published rather than by how much labelling is done.
+Demanding 98% of both strata would have been a bar no matcher could clear.
 
 **Hosts per episode is UNKNOWN** and not derivable from the clustering: Jacob
 Shapiro splits 66.5/98.7 top-1/top-2 and Geopolitical Cousins 60.4/94.9 — the
@@ -284,7 +285,14 @@ Long turns and exactly two voices is what an interview sounds like when the
 guest answers at length, and a guest answering at length is precisely how the
 dominant cluster ends up being the person who is *not* the host. Tier 1 would
 then misattribute every such episode confidently — the one failure the design
-forbids. Six clips settle it.
+forbids.
+
+**Decided 2026-09-02: Observing Japan stays in, and all six real episodes are
+labelled.** They form part of the exhaustive 2026 stratum (§3.3), so they cost
+six clips and no statistics. Ruling the show out by argument would have been
+cheaper and would have thrown away the only direct evidence available on how
+the dominant-cluster rule behaves on an interview format — which the drift
+above makes a question about the corpus's future, not about one dormant show.
 
 **Correcting this section's account of `downloaded/`.** The earlier text said
 `downloaded/` "holds 400 of 438 and contains no Observing Japan episodes —
@@ -341,8 +349,16 @@ segments it is 10 (2.9%).
 
 Two consequences. The window must be the **whole transcript**, not the first 40
 segments, or 14 of the 24 are missed. And the routing rate is low enough that
-**Tier 2's surface is ~21% of the archive, not 24%** — Geopolitical Cousins
-(14.8%) plus at most 6.0%.
+**Tier 2's surface is a fifth of the archive, not a quarter.**
+
+**Re-measured 2026-09-02 on the full 439.** `papic` anywhere in the transcript
+now hits **26 of 356** Jacob Shapiro episodes (7.3%), against 24 of 341 (7.0%)
+before — the rate is stable, and only **2 of the 37** 2026 episodes hit, which
+is what sizes the 2026 precision stratum at 41 (§3.3). Tier 2's surface is
+therefore Geopolitical Cousins (76 of 439, 17.3%) plus those 26 (5.9%) =
+**23.2%**. The first-40-segment figures in the table above were measured on the
+341-episode population and have not been recomputed; nothing depends on them,
+since §3.1 already routes on the whole transcript.
 
 The false-positive rate is itself unmeasured for the surname probe: `papic`
 could appear because Marco is *discussed* rather than present. Routing on it
@@ -356,12 +372,15 @@ An earlier draft used one sample for both. **One clip per episode measures
 precision and cannot measure coverage**, and the draft let a single instrument
 carry a gate that needed two.
 
-**Precision — one clip per episode, 150 episodes.** Tier 1 makes exactly one
-assignment per episode, so its precision denominator is one per episode and
-verifying it needs one clip: listen, and answer whether the dominant cluster is
-the host. Zero errors on 150 gives a one-sided 95% lower bound of
-`150 / (150 + 1.645^2) = 98.2%`, clearing the >=98% bar with margin — where
-draft 1's n=133 sat one episode from failing on arithmetic alone.
+**Precision — one clip per episode, 191 episodes across two strata.** Tier 1
+makes exactly one assignment per episode, so its precision denominator is one
+per episode and verifying it needs one clip: listen, and answer whether the
+dominant cluster is the host. Zero errors on the 150 sampled pre-2026 episodes
+gives a one-sided 95% lower bound of `150 / (150 + 1.645^2) = 98.2%`, clearing
+the >=98% bar with margin — where draft 1's n=133 sat one episode from failing
+on arithmetic alone. The 41 episodes of the 2026 stratum are labelled
+exhaustively rather than sampled (§3.3) and carry their own, necessarily
+weaker, bound (§3.4).
 
 **Coverage — every cluster, 30 episodes.** Coverage asks what fraction of the
 host's speech the named cluster holds, so its denominator is the host's *total*
@@ -373,27 +392,65 @@ rather than a hypothetical.
 
 At a mean of 2.39 clusters, 30 fully-labelled episodes is ~72 clips.
 
-**Budget.** 150 clips + 72 clips + Part 5's 150 turn clips = 372 clips at ~10s
-= **62 minutes of audio**. Wall clock runs roughly double once replay and typing
-are counted, so call it **~2 hours**, resumable. Draft 2 estimated "twenty
+**Budget.** 150 pre-2026 clips + 41 exhaustive 2026 clips + 72 coverage clips +
+Part 5's 150 turn clips = 413 clips at ~10s = **69 minutes of audio**. Wall
+clock runs roughly double once replay and typing are counted, so call it
+**~2.5 hours**, resumable. Taking the 2026 era whole rather than sampling it
+costs 41 clips, about seven minutes. Draft 2 estimated "twenty
 minutes" for a design that was 24 minutes of audio before any replay; estimates
 in this document are now stated as audio-minutes first and wall clock second,
 because that is the error that keeps recurring.
 
 ### 3.3 Sampling
 
-Deterministic every-nth-by-date within each show, stride recorded. Not picked —
-episodes that look easy to label are the ones with clean audio, exactly the
-population the baseline performs best on.
+**Two strata, split at 2026-01-01**, because Part 2 measured a step change
+there and a single stride would draw four fifths of the set from the era the
+corpus is leaving.
 
+**Pre-2026 — sampled.** Deterministic every-nth-by-date within each show,
+stride recorded. Not picked — episodes that look easy to label are the ones
+with clean audio, exactly the population the baseline performs best on.
 Labelling proceeds **in deterministic order until 150 single-host episodes are
 labelled**. The stopping rule keys on the label count, never on matcher output,
 so it cannot select for a flattering result.
 
+**2026 — exhaustive, not sampled.** The eligible population is **41 episodes**
+and is small enough to take whole: Jacob Shapiro's 37, less the 2 that the
+co-host surname check routes to Tier 2, plus Observing Japan's 6 real episodes.
+Geopolitical Cousins is excluded throughout — it is a two-host show and is
+Tier 2's remit by §1.1, not a Tier 1 precision case.
+
+Taking the era whole removes the sampling question from it entirely: no stride,
+no stopping rule, no selection risk, and no argument about representativeness,
+because it *is* the population. What it cannot do is grow. A census of 41 is a
+complete statement about episodes published to 2026-09-02 and a weak one about
+episodes not yet published, and §3.4 says so in the only place that matters.
+
 ### 3.4 The gate
 
-- **Zero misattributions** on the 150-episode precision set.
+- **Zero misattributions on the pre-2026 precision set** (150 episodes,
+  sampled). One-sided 95% lower bound `150 / (150 + 1.645^2)` = **98.2%**.
+- **Zero misattributions on the 2026 set** (41 episodes, exhaustive).
 - **Coverage >= 90% of true host seconds** on the 30-episode coverage set.
+
+**Both precision strata must clear zero. Neither substitutes for the other, and
+the pooled figure is not the gate** — a matcher that works on the old format and
+fails on the new one clears any pooled bar at a 4:1 mix, which is precisely the
+failure the split exists to catch.
+
+**The two strata do not carry the same bound, and requiring that they did would
+be Part 0's mistake again.** Zero errors on 41 supports `41 / (41 + 1.645^2)` =
+**93.8%**, not 98.2%, and no amount of labelling changes that: 41 is the entire
+eligible 2026 population, so the bound is capped by how many episodes the shows
+have published, not by effort. Writing "98% on both" into this gate would have
+pre-registered a bar a *perfect* matcher cannot pass — the same shape as
+draft 1's coverage denominator.
+
+So the gate promises two different things on purpose. On pre-2026, 81% of the
+archive: 98.2% precision, estimated from a sample. On 2026: **no misattribution
+anywhere in the era**, counted rather than estimated, projecting to future
+episodes at 93.8%. The second is weaker as a projection and stronger as a
+statement of fact, and both are worth having.
 
 The two bullets are measured by two different instruments (§3.2) and must not
 be collapsed into one sample.
@@ -453,7 +510,7 @@ rather than discovered after it fails.
 
 ## Part 6 — Architecture
 
-Two files, not four. 150 labels does not need a module hierarchy.
+Two files, not four. 191 precision labels does not need a module hierarchy.
 
 | Unit | Purpose |
 |---|---|
@@ -479,7 +536,7 @@ scoring run in the test suite on CPU — matching the split argued in
 `corpus/showplan.py`'s module docstring.
 
 The labelling prompt must have **name autocomplete from names already used**.
-Free-text entry across 150 answers reliably produces `Jacob Shapiro` and
+Free-text entry across 263 answers reliably produces `Jacob Shapiro` and
 `J. Shapiro` as distinct people, which silently splits a centroid in Tier 2 and
 is invisible in Tier 1's counts. It must also support undo and skip, and append
 after every answer so an interrupted session resumes.
@@ -504,17 +561,18 @@ remote path is rewritten to a Windows path and the command fails with a bare
    2026-09-02.** Measured in Part 2: 7 episodes, cluster median 2, pooled top-2
    100.0%, top-1 61.0%. The show is dormant since 2026-06-19 and one of the 7
    is a trailer, so six usable episodes remain. Every Part 2 figure now covers
-   all three shows. What the probe left behind is not a measurement gap but a
-   scope question: whether a dormant six-episode interview show is worth
-   Tier 1's remit at all, given it is the shape most likely to fail the
-   precision gate.
+   all three shows. The scope question it left behind — whether a dormant
+   six-episode interview show is worth Tier 1's remit — is **decided**: the
+   show stays in, and all six real episodes are labelled as part of the
+   exhaustive 2026 stratum (§3.3). It is the only direct evidence available on
+   how the rule behaves on an interview format, which the drift below makes a
+   question about the corpus's future rather than about one dormant show.
    **Opened and then closed by the same recompute:** the corpus's 2026 drift
    is real and is a step change, not a small-sample artefact — four stable
-   years then a break, at n=37 (Part 2). Two residues remain open. Whether its
-   cause is a format change or a diarisation change is **UNKNOWN** and costly
-   to test, since audio is not retained. And §3.3's sampling rule now needs a
-   decision rather than a measurement: the stride as written draws four fifths
-   of the precision set from the pre-2026 era.
+   years then a break, at n=37 (Part 2). §3.3 and §3.4 are amended for it. One
+   residue stays open: whether the cause is a format change or a diarisation
+   change is **UNKNOWN** and costly to test, since audio is not retained and
+   six episodes have aged off their feeds entirely.
 4. **Hosts per episode.** Needed by Tier 2 only, and unmeasurable from the
    clustering. Tier 1 is deliberately designed not to need it.
 5. **Hugging Face gating** (Tier 2 only). `README.md` records accepting terms for
@@ -569,6 +627,15 @@ six-episode interview show, which is simultaneously the hardest case for Tier 1
 and the cheapest to settle exhaustively. What made both visible was replacing a
 remembered number with a recomputed one — the third time in this document's
 history that an unmeasured input turned out to be load-bearing.
+
+**Both were decided the same day.** The gate splits at 2026-01-01 with zero
+misattributions required on each side, and Observing Japan stays in. Sizing the
+recent stratum then produced the finding that matters most here: at 41 eligible
+episodes it is capped at a 93.8% bound however much labelling is done, so the
+two strata are deliberately promised different things. Phrased as "98% on
+both" — which is how the split was first put — this document would have
+pre-registered an unpassable gate for the fourth time. The only reason it did
+not is that the population was counted before the bar was set.
 
 **One boundary worth defending.** Re-embedding the archive so names enter the
 vector text stays out, even though `RULES_VERSION` makes it schedulable, because
