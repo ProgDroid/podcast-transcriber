@@ -1,11 +1,15 @@
 # Design: naming speakers where it matters
 
-**Status: not implemented, and not ready to implement without re-reading Part 7.
-Written 2026-09-01, three defects repaired the same day.**
+**Status: the measurement layer is built; the matcher is not, and is not ready
+to implement without re-reading Part 7. Written 2026-09-01, three defects
+repaired the same day; Part 2 recomputed 2026-09-02.**
 
 Its one precondition has shipped: `67e5720` made the MCP render emit `speaker`,
-without which none of this reaches a consumer (§1.3). Nothing else here is
-built.
+without which none of this reaches a consumer (§1.3). Since then
+`corpus/speakers.py`, `speaker_stats.py` and `tests/test_speakers.py` have
+shipped, and Part 2's figures are reproducible rather than remembered (Part 6).
+The dominant-cluster rule, the surname check, the clip tool, the labelling
+prompt and every gate remain unbuilt.
 
 Supersedes the scoping half of
 [`2026-08-31-speaker-identification-design.md`](2026-08-31-speaker-identification-design.md)
@@ -122,46 +126,149 @@ attribution.
 
 ## Part 2 — Measured facts
 
-All probed 2026-09-01. Assumptions are marked as such.
+Recomputed 2026-09-02 over all 439 transcripts on the `podcast-transcripts`
+volume. Assumptions are marked as such.
 
-**Clusters per episode**, across the 400 transcripts in `downloaded/`: median 2,
-mean 2.39, range 1–7. Geopolitical Cousins median 3 (n=59); The Jacob Shapiro
-Podcast median 2 (n=341). Distribution: 1x17, 2x262, 3x89, 4x21, 5x5, 6x3, 7x3.
+**Read the provenance before the numbers.** This section's first version was
+computed once by hand; the script never existed in the repository, and a figure
+that cannot be recomputed is not a measurement. Every number below now comes
+from `corpus/speakers.py` driven by `speaker_stats.py`, and reproduces with:
+
+```
+uv run python speaker_stats.py --dir downloaded --cap 30
+```
+
+**Durations are derived, and the derivation is part of the figure.** A
+transcript line carries a start time and nothing else, so a segment's duration
+is the gap to the next segment's start, clamped to `GAP_CAP_S = 30.0`, and an
+episode's final segment contributes nothing because it has no successor. The
+cap is close to a no-op here: across 297,726 inter-segment gaps, p50 is 4.1s,
+p99 21.9s, p99.9 29.3s and the maximum 127.1s, so a 30s ceiling trims **0.01%**
+of derived time and only one gap in the corpus exceeds 60s. Whisper segments
+are effectively contiguous; this corpus has no ad-break or music artefact to
+correct for. `MIN_TURN_S` remains 1.5s.
+
+**The replaced figures are reproduced, so what changed below is population and
+not method.** Running this code uncapped over a byte-identical copy of the
+400-file 2026-05-06 snapshot returns every COUNT exactly — 262,802 segments,
+19,782 turns, clusters 2 / 2.39 / 1–7, the histogram 1x17, 2x262, 3x89, 4x21,
+5x5, 6x3, 7x3, Geopolitical Cousins median 3 (n=59), Jacob Shapiro median 2
+(n=341), 51 of 59 GC episodes under 70% — and every percentage to within 0.4pp.
+The residual is consistently negative and moves exactly one episode across the
+70% line and one across the 50% line. Its cause is end-of-episode handling and
+it is **not recoverable**: the original rule was never written down.
+
+**Clusters per episode**, across all 439: median 2, mean 2.46, range 1–7.
+Geopolitical Cousins median 3 (n=76); The Jacob Shapiro Podcast median 2
+(n=356); The Observing Japan Podcast median 2 (n=7). Distribution: 1x18, 2x273,
+3x104, 4x27, 5x10, 6x4, 7x3.
 
 **Segments versus turns.** A transcript line is a whisper segment. Merging
-consecutive same-speaker segments, as `corpus/chunking.py::build_chunks` already
-does for chunking:
+consecutive same-speaker segments:
 
 | | count | median duration |
 |---|---|---|
-| Whisper segments | 262,802 | 4.2s |
-| Merged turns | 19,782 | 38.0s |
+| Whisper segments | 298,165 | 4.1s |
+| Merged turns | 23,852 | 31.4s |
 
-**Any voice work operates on merged turns, never on raw segments.** 13.3x fewer
+**Any voice work operates on merged turns, never on raw segments.** 12.5x fewer
 embeddings, far better input to a speaker-embedding model, and the derived
-end-time problem shrinks to 19,782 real speaker-change boundaries instead of
-262,802 arbitrary ones.
+end-time problem shrinks to 23,852 real speaker-change boundaries instead of
+298,165 arbitrary ones.
+
+**`build_chunks` is not a source of turns, and an earlier draft said it was.**
+It does merge consecutive same-speaker segments, but it also splits a long run
+at `MAX_CHUNK_WORDS` and carries `CHUNK_OVERLAP_WORDS` across every boundary,
+and it records `start_time` while never computing a duration. Its chunk count
+is therefore not a turn count and cannot become one. `corpus/speakers.py`
+implements the merge separately, and `tests/test_speakers.py` pins the
+distinction with a fixture long enough that `build_chunks` splits it and
+`merge_turns` does not.
 
 **Speech concentration**, turns under 1.5s dropped:
 
 | | pooled top-1 | pooled top-2 | median top-1 | episodes top-1 < 70% |
 |---|---|---|---|---|
-| The Jacob Shapiro Podcast | 66.7% | 99.1% | 68.2% | 193 / 341 |
-| Geopolitical Cousins | 62.0% | 96.7% | 62.8% | 51 / 59 |
-| All 400 | 65.7% | 98.6% | | |
+| The Jacob Shapiro Podcast | 66.5% | 98.7% | 68.1% | 198 / 356 |
+| Geopolitical Cousins | 60.4% | 94.9% | 62.2% | 66 / 76 |
+| The Observing Japan Podcast | 61.0% | 100.0% | 63.1% | 6 / 7 |
+| All 439 | 64.9% | 97.8% | 66.2% | 270 / 439 |
 
-389 of 400 episodes have a dominant cluster holding over 50% of speech, median
+421 of 439 episodes have a dominant cluster holding over 50% of speech, median
 share 66.2%. **That the dominant cluster is the host is the HYPOTHESIS Tier 1
 tests**, not a measured fact.
 
+**Seconds and words disagree, in one direction, on every show.** The two are
+computed independently and never derived from one another, so the gap is a
+finding rather than rounding: the top-1 cluster's share of *words* runs below
+its share of *seconds* by 2.0pp on Jacob Shapiro, 5.4pp on Geopolitical
+Cousins and 1.6pp on Observing Japan. The dominant speaker holds more airtime
+than text — they speak in longer stretches and absorb the inter-segment gaps
+that a start-only transcript cannot distinguish from speech. It does not flip
+which cluster is dominant on any show, which is all Tier 1 needs. It does bear
+on the **coverage gate**, which is written in seconds: 90% of a host's seconds
+is a slightly easier bar than 90% of their words.
+
+**The corpus has changed shape since the 2026-05-06 snapshot, and a stale
+sample would have hidden it.** The 39 episodes added since, measured alone:
+
+| | older 400 | recent 39 |
+|---|---|---|
+| Clusters per episode | median 2, mean 2.39 | median 3, mean 3.15 |
+| Merged turns, median | 38.4s | 13.3s |
+| Segment-to-turn reduction | 13.3x | 8.7x |
+| Pooled top-1 / top-2 | 65.6% / 98.6% | 59.2% / 91.3% |
+
+Composition explains part of it — Geopolitical Cousins is 44% of the new set
+against 15% of the old — but not all. **Within** the Jacob Shapiro Podcast the
+15 recent episodes run a median of 3 clusters against 2 across the older 341,
+with pooled top-2 at 92.4% against 99.1%: a third voice now holds real speaking
+time. At n=15 that is suggestive, not established, and it should be re-measured
+before it is relied on.
+
+Two consequences if it holds. Tier 1's hypothesis is under more strain on
+recent episodes than the corpus average suggests, since a less dominant top-1
+cluster is a harder call. And **§3.3's deterministic every-nth-by-date stride
+would weight the eval toward the older, easier population**, which is the
+same class of defect as Part 0's — a sampling rule that cannot produce an
+unflattering result. Stratifying the draw by era, or reporting precision
+split at the snapshot date, would answer it.
+
 **Hosts per episode is UNKNOWN** and not derivable from the clustering: Jacob
-Shapiro splits 66.7/99.1 top-1/top-2 and Geopolitical Cousins 62.0/96.7 — the
+Shapiro splits 66.5/98.7 top-1/top-2 and Geopolitical Cousins 60.4/94.9 — the
 same shape, so "one host plus a guest" and "two hosts" are indistinguishable
 without labels. Tier 1's design avoids needing this number; Tier 2's does not.
 
-**`downloaded/` holds 400 of 438 and contains no Observing Japan episodes** —
-verified twice, by filename-prefix enumeration and by a case-insensitive search.
-Every figure above therefore describes two of three shows.
+**Observing Japan is the sharpest case of that, and it is now measured.** Seven
+episodes, cluster median 2, pooled top-2 of **100.0%** — every episode is
+exactly two voices — with the dominant cluster holding 61.0% and 6 of 7
+episodes under the 70% line. The published titles are uniformly "…, with
+James David Malcolm" / "with Joshua Walker" / "with James Brown" / "with Dan
+Sneider", so it reads as a one-host interview show. **That is the shape most
+likely to break Tier 1**: on an interview show the guest can out-talk the host,
+and a 61/39 split is not a comfortable margin. It is also the cheapest thing in
+this spec to settle — 6 real episodes, labelled exhaustively rather than
+sampled, needs no statistics at all.
+
+**Correcting this section's account of `downloaded/`.** The earlier text said
+`downloaded/` "holds 400 of 438 and contains no Observing Japan episodes —
+verified twice". Both probes were right and the joined sentence was misleading:
+it invites the reading that the 38 missing files *are* Observing Japan. They
+are not. `downloaded/` was a **stale snapshot taken ~2026-05-06** (newest local
+file: Jacob Shapiro 2026-05-06, Geopolitical Cousins 2026-05-05), and the
+volume has since gained 15 Jacob Shapiro, 17 Geopolitical Cousins and 7
+Observing Japan episodes — 39, giving today's 439. Observing Japan was absent
+for a mundane reason: **its first episode is 2026-05-12, six days after the
+snapshot.** The show did not exist yet. `downloaded/` has been refreshed from
+the volume and every figure above covers all three shows.
+
+**Observing Japan is dormant, not broken.** Its feed returns HTTP 200 with
+exactly 7 items dated 2026-05-12 to 2026-06-19, matching the 7 transcripts
+one-for-one; nothing is being dropped and `scheduled_job` is healthy. The show
+has simply not published since 2026-06-19. Its 2026-05-12 entry is a 2.5 MB
+enclosure against 37–57 MB for the rest and yields a 2.3 KiB transcript — a
+trailer, correctly transcribed, and **not an eval episode**. That leaves six
+usable episodes, 1.4% of the archive, on a show that may never grow.
 
 **Audio is not retained** (`transcribe.py:378` writes `/tmp`, `:455` deletes).
 **Six episodes have no obtainable audio** (`FEED_UNREACHABLE`, aged off feed) and
@@ -315,8 +422,21 @@ Two files, not four. 150 labels does not need a module hierarchy.
 | Unit | Purpose |
 |---|---|
 | `corpus/speakers.py` | Pure: merge segments into turns, dominant-cluster rule, name grep, scoring. Tested. |
+| `speaker_stats.py` | Local, no Modal: recomputes Part 2 from a transcript directory. |
 | `speaker_tool.py` | Modal app plus local entrypoints: cut clips, prompt, report. |
 | `speakers/labels.json` | Ground truth. Hand-made, reviewable, in git. |
+
+**Built as of 2026-09-02:** `corpus/speakers.py`'s `merge_turns`,
+`speech_shares` and `count_non_monotonic`, with `GAP_CAP_S` and `MIN_TURN_S`;
+`speaker_stats.py`; `tests/test_speakers.py` (12 tests). The dominant-cluster
+rule, the surname check and the scoring are **not** built — they are gated on a
+labelled set that does not exist, and writing them before it does is how a
+threshold gets chosen to fit.
+
+`speaker_stats.py` is separate from `speaker_tool.py` rather than another
+entrypoint on it because it needs no Modal at all: the measurement must stay
+runnable on a laptop with no Modal auth, which is the same argument
+`corpus/showplan.py` makes for keeping planning off the GPU.
 
 `corpus/speakers.py` imports no Modal and no audio library, so the rule and the
 scoring run in the test suite on CPU — matching the split argued in
@@ -329,18 +449,32 @@ is invisible in Tier 1's counts. It must also support undo and skip, and append
 after every answer so an interrupted session resumes.
 
 ```
+modal volume get podcast-transcripts / downloaded --force   # refresh the corpus
+uv run python speaker_stats.py --dir downloaded --cap 30    # -> Part 2
 uv run modal run speaker_tool.py::cut_clips     # -> clips/ locally
 uv run python speaker_tool.py label             # -> speakers/labels.json
 uv run pytest tests/test_speakers.py            # rule, scoring, gate
 ```
 
+On Git Bash the volume pull needs `MSYS_NO_PATHCONV=1`, or the bare `/`
+remote path is rewritten to a Windows path and the command fails with a bare
+"No such file or directory" that names neither the path nor the cause.
+
 ## Part 7 — UNKNOWNs
 
 1. **Whether the dominant cluster is the host.** Tier 1's whole hypothesis.
 2. **Cluster purity.** Part 5. Invalidates per-cluster ground truth if it fails.
-3. **Observing Japan's clustering and speech concentration.** Absent from
-   `downloaded/`; every Part 2 figure covers two of three shows. Probe against
-   the Modal volume before sampling.
+3. ~~**Observing Japan's clustering and speech concentration.**~~ **CLOSED
+   2026-09-02.** Measured in Part 2: 7 episodes, cluster median 2, pooled top-2
+   100.0%, top-1 61.0%. The show is dormant since 2026-06-19 and one of the 7
+   is a trailer, so six usable episodes remain. Every Part 2 figure now covers
+   all three shows. What the probe left behind is not a measurement gap but a
+   scope question: whether a dormant six-episode interview show is worth
+   Tier 1's remit at all, given it is the shape most likely to fail the
+   precision gate.
+   **Newly opened by the same recompute:** whether the corpus's recent drift
+   (Part 2 — Jacob Shapiro moving from a median of 2 clusters to 3, n=15) is
+   real or a small-sample artefact. It bears directly on §3.3's sampling rule.
 4. **Hosts per episode.** Needed by Tier 2 only, and unmeasurable from the
    clustering. Tier 1 is deliberately designed not to need it.
 5. **Hugging Face gating** (Tier 2 only). `README.md` records accepting terms for
@@ -382,10 +516,19 @@ Part 0 records, recurring twice more after Part 0 was written.
 **Where this is still weak.** The surname probe's own false-positive rate is
 unmeasured: `papic` in a transcript may mean Marco is being discussed rather
 than present, which inflates Tier 2's workload by an unknown amount (it fails
-safe, since Tier 2 declines rather than misattributes). Part 2 covers two of
-three shows. Tier 2 remains genuinely unspecified. And the 90% coverage
-principle is asserted, not derived — the 30-episode set tests it and cannot
-justify it.
+safe, since Tier 2 declines rather than misattributes). Tier 2 remains
+genuinely unspecified. And the 90% coverage principle is asserted, not derived
+— the 30-episode set tests it and cannot justify it.
+
+**Amended 2026-09-02.** Part 2 now covers all three shows, and its figures are
+reproducible for the first time. Two of its findings were not sought and are
+the more consequential: the corpus has drifted toward more speakers and shorter
+turns since May 2026, which puts §3.3's date-ordered sampling rule under the
+same suspicion Part 0 records; and Observing Japan turns out to be a dormant
+six-episode interview show, which is simultaneously the hardest case for Tier 1
+and the cheapest to settle exhaustively. What made both visible was replacing a
+remembered number with a recomputed one — the third time in this document's
+history that an unmeasured input turned out to be load-bearing.
 
 **One boundary worth defending.** Re-embedding the archive so names enter the
 vector text stays out, even though `RULES_VERSION` makes it schedulable, because
