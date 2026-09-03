@@ -22,6 +22,8 @@ from pathlib import Path
 
 import modal
 
+from corpus.embedding import CROP_LENGTHS_S
+
 # --- VERBATIM from transcribe.py:9-27. Do not tidy. ---------------------
 _layers = (
     modal.Image.from_registry(
@@ -158,12 +160,154 @@ def embed_clips(embedder_name: str) -> dict[str, list[float]]:
     return out
 
 
+# Capped deliberately, matching cut_one_episode's cap and for the same reason:
+# Modal would happily fan out one container per episode, which is 433
+# simultaneous downloads pointed at one podcast host -- inconsiderate, and a
+# good way to be rate-limited midway through a run whose partial failures then
+# look like audio rot.
+@app.function(
+    image=image,
+    gpu="l4",
+    volumes={MODEL_PATH: model_cache},
+    secrets=[modal.Secret.from_name("podcast-secrets")],
+    timeout=3600,
+    max_containers=8,
+)
+def embed_episode(job: dict) -> list[dict]:
+    """Fetch one episode's audio, embed every crop it owes, discard the audio.
+
+    Returns one record per crop, each with its vector. The audio is never
+    persisted: 56.1 GB of storage to avoid a re-download that this design is
+    built never to need.
+    """
+    import tempfile
+
+    import requests
+
+    embedder = load_embedder(job["embedder"], os.environ["HF_TOKEN"])
+    out: list[dict] = []
+
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as handle:
+        audio_path = handle.name
+        with requests.get(job["audio_url"], stream=True, timeout=300) as response:
+            response.raise_for_status()
+            for block in response.iter_content(chunk_size=1 << 20):
+                handle.write(block)
+
+    try:
+        for crop in job["crops"]:
+            try:
+                vector = embedder.embed(
+                    audio_path, crop["crop_start_s"], crop["crop_length_s"]
+                )
+            except Exception as e:  # noqa: BLE001 - recorded, not swallowed
+                out.append(
+                    {**crop, "vector": None, "error": f"{type(e).__name__}: {e}"}
+                )
+                continue
+            out.append({**crop, "vector": vector})
+    finally:
+        Path(audio_path).unlink(missing_ok=True)
+
+    ok = sum(1 for r in out if r.get("vector") is not None)
+    print(f"{job['episode']}: {ok}/{len(out)} crops embedded")
+    return out
+
+
 @app.local_entrypoint()
-def main(mode: str = "clips", embedder: str = COMMUNITY) -> None:
-    if mode != "clips":
+def main(
+    mode: str = "clips",
+    embedder: str = COMMUNITY,
+    dry_run: bool = False,
+    limit: int = 0,
+) -> None:
+    if mode == "clips":
+        result = embed_clips.remote(embedder)
+        slug = embedder.split("/")[-1]
+        destination = Path("speakers") / f"clip_vectors_{slug}.json"
+        destination.write_text(json.dumps(result), encoding="utf-8")
+        print(f"wrote {len(result)} vectors to {destination}")
+        return
+
+    if mode != "archive":
         raise SystemExit(f"unknown mode {mode!r}")
-    result = embed_clips.remote(embedder)
-    slug = embedder.split("/")[-1]
-    destination = Path("speakers") / f"clip_vectors_{slug}.json"
-    destination.write_text(json.dumps(result), encoding="utf-8")
-    print(f"wrote {len(result)} vectors to {destination}")
+
+    from speaker_tool import FEEDS, resolve_audio_urls
+
+    from corpus.embedding import cluster_crop_plan
+    from corpus.identity import parse_transcript_filename
+    from corpus.speakers import CLIP_MIN_TURN_S, GAP_CAP_S
+    from corpus.transcripts import load_episodes
+
+    episodes = load_episodes(Path("downloaded"), cap=GAP_CAP_S)
+    print(f"dir=downloaded files={len(episodes)} gap_cap={GAP_CAP_S}")
+
+    url_maps = {
+        show: resolve_audio_urls.local(feed, show) for show, feed in FEEDS.items()
+    }
+
+    jobs = []
+    unresolved = 0
+    unparsed = 0
+    for episode in episodes:
+        crops = cluster_crop_plan(episode, min_turn_s=CLIP_MIN_TURN_S)
+        if not crops:
+            continue
+        # The repo's ONE episode-number rule (corpus/identity.py:48). A
+        # hand-rolled split would be a second derivation that can disagree
+        # with the first, which is the defect commit 2ce8264 removed.
+        parsed = parse_transcript_filename(episode["name"])
+        if parsed is None:
+            unparsed += 1
+            continue
+        _show, number, date_str = parsed
+        url = url_maps.get(episode["show"], {}).get(f"{number}|{date_str}")
+        if not url:
+            unresolved += 1
+            continue
+        jobs.append(
+            {
+                "episode": episode["name"],
+                "audio_url": url,
+                "embedder": embedder,
+                "crops": crops,
+            }
+        )
+
+    total_crops = sum(len(j["crops"]) for j in jobs)
+    print(
+        f"episodes={len(jobs)} unresolved={unresolved} "
+        f"unparsed={unparsed} crops={total_crops}"
+    )
+
+    # PRE-REGISTERED. Measured 2026-09-02: 433 fetchable episodes, 970
+    # croppable clusters, 2,712 crops at k=3, doubled by the two window
+    # lengths. A world that has moved should cause a refusal, not an
+    # unknown-size run against someone else's bandwidth.
+    if not dry_run and not limit:
+        if len(jobs) != 433 or total_crops != 2712 * len(CROP_LENGTHS_S):
+            raise SystemExit(
+                f"REFUSING: expected 433 episodes and "
+                f"{2712 * len(CROP_LENGTHS_S)} crops, planned {len(jobs)} "
+                f"and {total_crops}. Re-measure before spending the bandwidth."
+            )
+
+    if dry_run:
+        print("DRY RUN — nothing downloaded.")
+        print("PLAN COMPLETE")
+        return
+
+    if limit:
+        jobs = jobs[:limit]
+        print(f"LIMITED to {len(jobs)} episodes")
+
+    records: list[dict] = []
+    for batch in embed_episode.map(jobs):
+        records.extend(batch)
+
+    embedded = sum(1 for r in records if r.get("vector") is not None)
+    print(f"crops={len(records)} embedded={embedded}")
+    Path("speakers/archive_vectors.json").write_text(
+        json.dumps(records), encoding="utf-8"
+    )
+    print("ARCHIVE PASS COMPLETE")
