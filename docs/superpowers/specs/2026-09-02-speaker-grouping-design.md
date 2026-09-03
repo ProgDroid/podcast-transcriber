@@ -463,6 +463,13 @@ UNKNOWN 1 stops being a risk carried into a GPU run.
 If community-1's embedder cannot be used standalone, wespeaker is verified
 end-to-end and the design proceeds unchanged.
 
+**Bake-off pre-registration, 2026-09-02.** The embedder with the higher
+leave-one-out accuracy over the 208 `basis: voice` clips wins. If the two
+are within 2 percentage points, community-1 wins on the tie-break, because
+it is the space the archive's clusters were cut in. This rule is fixed
+before either number is seen. **The resulting figure is a dev-set
+measurement and is not a precision claim.**
+
 ## Part 4 — Validation
 
 Two instruments, in this order, because one is free and one costs the user's
