@@ -126,3 +126,25 @@ def test_co_membership_is_empty_when_each_person_appears_once_per_episode():
         {"episode": "ep1.txt", "cluster": "SPEAKER_01", "person": "Rob Larity"},
     ]
     assert co_membership_conflicts(assignments) == []
+
+
+def test_score_is_invariant_to_query_magnitude():
+    # Every other fixture here is unit-length, so without this test deleting
+    # the `/ norm` in score() changes nothing that is asserted anywhere.
+    centroids = {"Jacob Shapiro": A, "Rob Larity": B}
+    unit = score(NEAR_A, centroids)
+    scaled = score([v * 7.0 for v in NEAR_A], centroids)
+    assert [name for name, _ in unit] == [name for name, _ in scaled]
+    for (_, a), (_, b) in zip(unit, scaled, strict=True):
+        assert math.isclose(a, b, rel_tol=1e-9)
+
+
+def test_a_large_query_cannot_buy_its_way_past_the_threshold():
+    # [3, 4, 0] has cosine 0.6 with A but a RAW dot product of 3.0. Without
+    # the normalisation the raw dot clears any sane threshold and the cluster
+    # is named confidently and wrongly -- the precision violation this module
+    # exists to prevent.
+    assert (
+        assign([3.0, 4.0, 0.0], {"Jacob Shapiro": A}, threshold=0.8, margin=0.0)
+        is None
+    )
