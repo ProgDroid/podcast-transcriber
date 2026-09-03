@@ -31,6 +31,14 @@ planning. Feeding `apply_updates` an `expected` computed from the very same
 that was the original defect (Task 8 review, finding on the count guard).
 Requiring `--expect` from outside is what makes a collection that moved
 between dry-run and apply cause a refusal instead of an unknown-size write.
+
+`expect` DEFAULTS TO -1, NOT 0 -- a second review finding. A plan can
+legitimately contain zero updates (every cluster in the batch declined), and
+an operator following the printed `--apply --expect 0` instruction must be
+able to apply that plan. Treating 0 as "not supplied" would refuse a genuine,
+correctly pre-registered zero-count apply -- exactly the false-negative the
+guard exists to avoid on the other side. -1 can never be a real count, so it
+is unambiguous as "the operator didn't pass --expect".
 """
 
 from __future__ import annotations
@@ -98,8 +106,12 @@ def _require_expect(expect: int) -> int:
     exactly that tautology, silently. The operator must supply
     `--expect <count>`, sourced from an earlier dry-run's printed count, or
     this refuses before anything is written.
+
+    `expect < 0` means "not supplied" (the default is -1, see the module
+    docstring) -- 0 is a legitimate, representable plan size and must NOT be
+    treated as missing.
     """
-    if not expect:
+    if expect < 0:
         raise RuntimeError(
             "REFUSING: --apply requires --expect <count>. Run the dry-run "
             "first (no --apply -- it prints the planned count and writes "
@@ -156,7 +168,7 @@ app = modal.App("speaker-backfill")
     secrets=[modal.Secret.from_name("podcast-secrets")],
     timeout=1800,
 )
-def run_backfill(assignments: list[dict], apply: bool, expect: int = 0) -> dict:
+def run_backfill(assignments: list[dict], apply: bool, expect: int = -1) -> dict:
     from transcribe import get_chroma_collection
 
     collection = get_chroma_collection(
@@ -181,6 +193,6 @@ def run_backfill(assignments: list[dict], apply: bool, expect: int = 0) -> dict:
 
 
 @app.local_entrypoint()
-def main(apply: bool = False, expect: int = 0) -> None:
+def main(apply: bool = False, expect: int = -1) -> None:
     payload = json.loads(Path("speakers/assignments.json").read_text(encoding="utf-8"))
     print(run_backfill.remote(payload["assignments"], apply, expect))

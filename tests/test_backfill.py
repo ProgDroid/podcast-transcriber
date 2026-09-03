@@ -9,7 +9,12 @@ requirement rather than a style preference.
 from __future__ import annotations
 
 import pytest
-from backfill_speaker_id import _require_expect, apply_updates, plan_updates
+from backfill_speaker_id import (
+    _require_expect,
+    apply_updates,
+    plan_updates,
+    run_backfill,
+)
 
 SHOW = "The Jacob Shapiro Podcast"
 EP1 = f"{SHOW} - Episode 1 - 2022-05-02.txt"
@@ -46,6 +51,23 @@ def seeded(collection):
         ],
     )
     return collection
+
+
+@pytest.fixture
+def wired(seeded, monkeypatch):
+    """`run_backfill.local(...)` wired to the fake collection, not Cloud.
+
+    `run_backfill` looks up its collection via `transcribe.get_chroma_collection`
+    (imported inside the function body) and reads the Chroma credentials from
+    `os.environ` before that call. Substituting both is what makes the Modal
+    function's body -- not just `apply_updates` in isolation -- reachable from
+    a unit test.
+    """
+    monkeypatch.setattr("transcribe.get_chroma_collection", lambda *a, **kw: seeded)
+    monkeypatch.setenv("CHROMA_API_KEY", "x")
+    monkeypatch.setenv("CHROMA_TENANT", "x")
+    monkeypatch.setenv("CHROMA_DATABASE", "x")
+    return seeded
 
 
 def _record(episode, number, date, cluster, person):
@@ -150,28 +172,38 @@ def test_batches_stay_under_the_cloud_cap(seeded):
 
 
 def test_apply_refuses_without_expect():
-    # `run_backfill`'s apply path calls `_require_expect(expect)` before ever
-    # calling `apply_updates`. Without --expect (default 0), it must refuse --
-    # falling back to the freshly planned count here would recreate the
-    # original tautology (expected computed from the same call it guards).
+    # -1 is the "not supplied" sentinel (the default for both `run_backfill`
+    # and the local entrypoint). Falling back to the freshly planned count
+    # here would recreate the original tautology (expected computed from the
+    # same call it guards).
     with pytest.raises(RuntimeError, match="requires --expect"):
-        _require_expect(0)
+        _require_expect(-1)
 
 
 def test_apply_accepts_a_supplied_expect():
     assert _require_expect(2) == 2
 
 
-def test_the_count_guard_is_reachable_when_expect_is_independently_sourced(seeded):
-    """Reproduces the original defect and proves the fix closes it.
+def test_apply_accepts_a_genuine_zero_count():
+    # A plan can legitimately contain zero updates (every cluster in the
+    # batch declined). 0 must be representable, not treated as "missing" --
+    # the second review finding: `expect: int = 0` used to conflate the two.
+    assert _require_expect(0) == 0
 
-    The old call site computed `expected=len(updates)` from the SAME
-    `plan_updates` call it was compared against, so the guard could never
-    fire: the two numbers were the same variable read twice. This test
-    builds `expect` the way a dry-run actually would -- from an EARLIER,
-    separate plan -- then changes the collection (the world moves between
-    dry-run and apply), re-plans, and applies with the stale `expect`. The
-    guard must fire, and nothing must be written.
+
+def test_apply_updates_refuses_when_expect_predates_a_moved_collection(seeded):
+    """Models the dry-run/apply flow end to end, but only through `apply_updates`.
+
+    NOTE ON REACH: this test calls `apply_updates` directly with two
+    independently-computed ints. `apply_updates`'s own guard was always
+    correct in isolation, both before and after the wiring fix -- the
+    original defect lived purely in `run_backfill`'s call site, which built
+    `expected` from the very `plan_updates` call it was compared against.
+    This test cannot distinguish the fixed call site from the broken one; it
+    is a duplicate of `test_refuses_when_the_count_moved` with a more
+    elaborate setup, not a proof the wiring is correct. That proof is
+    `test_run_backfill_apply_refuses_when_expect_predates_a_moved_collection`
+    below, which calls `run_backfill.local(...)`.
     """
     expect = len(plan_updates(seeded, ASSIGNMENTS))  # what the dry-run prints
 
@@ -197,3 +229,68 @@ def test_the_count_guard_is_reachable_when_expect_is_independently_sourced(seede
 
     got = seeded.get(ids=["ep1::0", "ep2::0", "ep2::1"], include=["metadatas"])
     assert all("speaker_id" not in m for m in got["metadatas"])
+
+
+# -- tests that actually exercise run_backfill's wiring, not just apply_updates --
+
+
+def test_run_backfill_dry_run_writes_nothing_even_without_expect(wired):
+    result = run_backfill.local(ASSIGNMENTS, False)
+    assert result == {"planned": 2, "written": 0}
+    got = wired.get(ids=["ep1::0", "ep2::0"], include=["metadatas"])
+    assert all("speaker_id" not in m for m in got["metadatas"])
+
+
+def test_run_backfill_apply_without_expect_refuses_and_writes_nothing(wired):
+    before = wired.get(ids=["ep1::0", "ep2::0"], include=["metadatas"])["metadatas"]
+    with pytest.raises(RuntimeError, match="requires --expect"):
+        run_backfill.local(ASSIGNMENTS, True)
+    after = wired.get(ids=["ep1::0", "ep2::0"], include=["metadatas"])["metadatas"]
+    assert before == after
+
+
+def test_run_backfill_apply_refuses_when_expect_predates_a_moved_collection(wired):
+    """This is the test that discriminates the fixed call site from the broken one.
+
+    Under the old code, `run_backfill` called
+    `apply_updates(..., expected=len(updates))` using the SAME `plan_updates`
+    result it was checking -- the two numbers could never disagree, so this
+    scenario (a stale `expect` from an earlier plan, applied after the
+    collection moved) could not be constructed as a call to `run_backfill`
+    at all. It fires here because `expect` now genuinely originates outside
+    the apply-time planning call.
+    """
+    stale_expect = len(
+        plan_updates(wired, ASSIGNMENTS)
+    )  # what an earlier dry-run printed
+
+    # The world moves between dry-run and apply.
+    wired.upsert(
+        ids=["ep2::1"],
+        documents=["[SPEAKER_00] extra"],
+        metadatas=[
+            {
+                "show": SHOW,
+                "episode_number": "2",
+                "date": "2022-05-06",
+                "speaker": "SPEAKER_00",
+            }
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="expected"):
+        run_backfill.local(ASSIGNMENTS, True, stale_expect)
+
+    got = wired.get(ids=["ep1::0", "ep2::0", "ep2::1"], include=["metadatas"])
+    assert all("speaker_id" not in m for m in got["metadatas"])
+
+
+def test_run_backfill_apply_with_a_matching_expect_writes_speaker_id(wired):
+    expect = len(plan_updates(wired, ASSIGNMENTS))
+
+    result = run_backfill.local(ASSIGNMENTS, True, expect)
+
+    assert result == {"planned": 2, "written": 2}
+    got = wired.get(ids=["ep1::0", "ep2::0"], include=["metadatas"])
+    speaker_ids = {m["speaker_id"] for m in got["metadatas"]}
+    assert speaker_ids == {"Jacob Shapiro", "Rob Larity"}
