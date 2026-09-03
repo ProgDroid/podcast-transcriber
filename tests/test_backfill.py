@@ -9,7 +9,7 @@ requirement rather than a style preference.
 from __future__ import annotations
 
 import pytest
-from backfill_speaker_id import apply_updates, plan_updates
+from backfill_speaker_id import _require_expect, apply_updates, plan_updates
 
 SHOW = "The Jacob Shapiro Podcast"
 EP1 = f"{SHOW} - Episode 1 - 2022-05-02.txt"
@@ -115,9 +115,14 @@ def test_documents_are_not_rewritten(seeded):
 
 def test_refuses_when_the_count_moved(seeded):
     # A collection that changed since the plan was made must cause a refusal,
-    # not an unknown-size write.
+    # not an unknown-size write. It must also write NOTHING -- not merely
+    # raise -- so this checks the collection's metadata is untouched after.
+    before = seeded.get(ids=["ep1::0", "ep2::0"], include=["metadatas"])["metadatas"]
     with pytest.raises(RuntimeError, match="expected 99"):
         apply_updates(seeded, plan_updates(seeded, ASSIGNMENTS), expected=99)
+    after = seeded.get(ids=["ep1::0", "ep2::0"], include=["metadatas"])["metadatas"]
+    assert before == after
+    assert all("speaker_id" not in m for m in after)
 
 
 def test_batches_stay_under_the_cloud_cap(seeded):
@@ -142,3 +147,53 @@ def test_batches_stay_under_the_cloud_cap(seeded):
     # under test: get() silently truncates at 300 and upsert() raises above it.
     assert len(many) == 700
     assert apply_updates(seeded, many, expected=700) == 700
+
+
+def test_apply_refuses_without_expect():
+    # `run_backfill`'s apply path calls `_require_expect(expect)` before ever
+    # calling `apply_updates`. Without --expect (default 0), it must refuse --
+    # falling back to the freshly planned count here would recreate the
+    # original tautology (expected computed from the same call it guards).
+    with pytest.raises(RuntimeError, match="requires --expect"):
+        _require_expect(0)
+
+
+def test_apply_accepts_a_supplied_expect():
+    assert _require_expect(2) == 2
+
+
+def test_the_count_guard_is_reachable_when_expect_is_independently_sourced(seeded):
+    """Reproduces the original defect and proves the fix closes it.
+
+    The old call site computed `expected=len(updates)` from the SAME
+    `plan_updates` call it was compared against, so the guard could never
+    fire: the two numbers were the same variable read twice. This test
+    builds `expect` the way a dry-run actually would -- from an EARLIER,
+    separate plan -- then changes the collection (the world moves between
+    dry-run and apply), re-plans, and applies with the stale `expect`. The
+    guard must fire, and nothing must be written.
+    """
+    expect = len(plan_updates(seeded, ASSIGNMENTS))  # what the dry-run prints
+
+    # The world moves: a new chunk appears that the plan would also match.
+    seeded.upsert(
+        ids=["ep2::1"],
+        documents=["[SPEAKER_00] extra"],
+        metadatas=[
+            {
+                "show": SHOW,
+                "episode_number": "2",
+                "date": "2022-05-06",
+                "speaker": "SPEAKER_00",
+            }
+        ],
+    )
+
+    fresh = plan_updates(seeded, ASSIGNMENTS)
+    assert len(fresh) != expect  # sanity: the world really did move
+
+    with pytest.raises(RuntimeError, match="expected"):
+        apply_updates(seeded, fresh, expected=expect)
+
+    got = seeded.get(ids=["ep1::0", "ep2::0", "ep2::1"], include=["metadatas"])
+    assert all("speaker_id" not in m for m in got["metadatas"])

@@ -21,6 +21,16 @@ throwaway `scratch_speaker_id_probe` collection: `update()` preserves the
 existing document and the existing embedding, and merges the metadata, same as
 `upsert()` does when documents/embeddings ARE supplied. See
 `scratch_metadata_probe.py` and the Task 8 report for the raw probe output.
+
+THE COUNT GUARD IS A TWO-STEP OPERATOR FLOW, not a self-check. A dry run
+(`--apply` omitted) plans and prints the count but writes nothing. Applying
+(`--apply`) requires the operator to pass `--expect <count>` -- sourced from
+that earlier dry-run's printed number, not from the apply call's own
+planning. Feeding `apply_updates` an `expected` computed from the very same
+`plan_updates` call it is compared against can never disagree with itself;
+that was the original defect (Task 8 review, finding on the count guard).
+Requiring `--expect` from outside is what makes a collection that moved
+between dry-run and apply cause a refusal instead of an unknown-size write.
 """
 
 from __future__ import annotations
@@ -79,11 +89,32 @@ def plan_updates(collection, assignments: list[dict]) -> list[tuple[str, dict]]:
     return updates
 
 
+def _require_expect(expect: int) -> int:
+    """Refuse to apply without a count the operator carried in from outside.
+
+    `apply_updates`'s guard only means something if `expected` did not come
+    from the same planning call it is compared against -- see the module
+    docstring. Falling back to the freshly planned count here would recreate
+    exactly that tautology, silently. The operator must supply
+    `--expect <count>`, sourced from an earlier dry-run's printed count, or
+    this refuses before anything is written.
+    """
+    if not expect:
+        raise RuntimeError(
+            "REFUSING: --apply requires --expect <count>. Run the dry-run "
+            "first (no --apply -- it prints the planned count and writes "
+            "nothing), then re-run with --apply --expect <that count>."
+        )
+    return expect
+
+
 def apply_updates(collection, updates: list[tuple[str, dict]], *, expected: int) -> int:
     """Write the planned metadata, refusing if the count moved.
 
     The count is asserted rather than trusted: a collection that changed since
     the plan was built should cause a refusal, not an unknown-size write.
+    `expected` must originate outside this call for that assertion to mean
+    anything -- see `_require_expect` and the module docstring.
 
     Uses `collection.update()`, not `.upsert()` -- see the module docstring.
     A metadata-only `upsert()` is rejected client-side by chromadb 1.5.9
@@ -125,7 +156,7 @@ app = modal.App("speaker-backfill")
     secrets=[modal.Secret.from_name("podcast-secrets")],
     timeout=1800,
 )
-def run_backfill(assignments: list[dict], apply: bool) -> dict:
+def run_backfill(assignments: list[dict], apply: bool, expect: int = 0) -> dict:
     from transcribe import get_chroma_collection
 
     collection = get_chroma_collection(
@@ -139,16 +170,17 @@ def run_backfill(assignments: list[dict], apply: bool) -> dict:
     print(f"planned {len(updates)} chunk updates")
     if not apply:
         print("DRY RUN — nothing written.")
+        print(f"Re-run with: --apply --expect {len(updates)}")
         print("BACKFILL PLAN COMPLETE")
         return {"planned": len(updates), "written": 0}
 
-    written = apply_updates(collection, updates, expected=len(updates))
+    written = apply_updates(collection, updates, expected=_require_expect(expect))
     print(f"wrote {written}")
     print("BACKFILL COMPLETE")
     return {"planned": len(updates), "written": written}
 
 
 @app.local_entrypoint()
-def main(apply: bool = False) -> None:
+def main(apply: bool = False, expect: int = 0) -> None:
     payload = json.loads(Path("speakers/assignments.json").read_text(encoding="utf-8"))
-    print(run_backfill.remote(payload["assignments"], apply))
+    print(run_backfill.remote(payload["assignments"], apply, expect))
