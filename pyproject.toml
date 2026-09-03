@@ -15,6 +15,11 @@ dev = [
     # real Collection surface. Without these the test file fails collection.
     "numpy>=2.0",
     "chromadb==1.5.9",
+    # Task 8's tests import backfill_speaker_id.py, which does `import modal`
+    # at module scope (the app and image are built at import time, not
+    # inside a function). Without this the test file fails collection, same
+    # reasoning as numpy/chromadb above.
+    "modal>=1.5",
 ]
 
 [tool.ruff]

@@ -7,6 +7,13 @@ collection on chromadb 1.5.9, not read from documentation:
   get() with no limit     -> SILENTLY returns 300
   upsert of >300 records  -> raises
   upsert on existing id   -> replaces the document, MERGES the metadata
+  upsert(ids=, metadatas=) with no documents/images -> REJECTED client-side,
+    before any network call: "Exactly one of documents, images must be
+    provided in upsert." (measured for Task 8's backfill against
+    scratch_speaker_id_probe -- see scratch_metadata_probe.py)
+  update(ids=, metadatas=) with no documents -> SUCCEEDS, preserves the
+    existing document and embedding untouched, MERGES the metadata -- this is
+    the call the backfill actually uses
   delete(ids=) of >300 records -> raises, atomically (count unchanged)
   delete(where=) matching nothing -> no-op
   delete(where=) matching >300 records -> succeeds, removes all of them --
@@ -80,11 +87,16 @@ class FakeCollection:
                 f"action 'Upsert': current usage of {len(ids)} exceeds limit of "
                 f"{MAX_REQUEST}."
             )
+        if documents is None:
+            # Measured on Cloud (chromadb 1.5.9): upsert() requires exactly
+            # one of documents/images, even when the ids already exist and
+            # only metadata is changing. Callers that want a metadata-only
+            # write must use update() instead -- see the docstring above.
+            raise ValueError(
+                "Exactly one of documents, images must be provided in upsert."
+            )
         for k, _id in enumerate(ids):
-            if documents is not None:
-                self._docs[_id] = documents[k]
-            else:
-                self._docs.setdefault(_id, "")
+            self._docs[_id] = documents[k]
             if metadatas is not None:
                 # MERGE, not replace -- verified on Cloud.
                 merged = dict(self._meta.get(_id, {}))
@@ -92,6 +104,25 @@ class FakeCollection:
                 self._meta[_id] = merged
             else:
                 self._meta.setdefault(_id, {})
+
+    def update(self, ids, embeddings=None, documents=None, metadatas=None):
+        # Measured on Cloud (chromadb 1.5.9) against scratch_speaker_id_probe:
+        # unlike upsert(), a metadata-only update() is accepted, and it
+        # leaves the existing document and embedding untouched while merging
+        # the metadata -- the behaviour Task 8's backfill actually relies on.
+        if len(ids) > MAX_REQUEST:
+            raise ChromaQuotaError(
+                f"Quota exceeded: 'Number of records' exceeded quota limit for "
+                f"action 'Update': current usage of {len(ids)} exceeds limit of "
+                f"{MAX_REQUEST}."
+            )
+        for k, _id in enumerate(ids):
+            if documents is not None:
+                self._docs[_id] = documents[k]
+            if metadatas is not None:
+                merged = dict(self._meta.get(_id, {}))
+                merged.update(metadatas[k])
+                self._meta[_id] = merged
 
     def get(self, ids=None, where=None, limit=None, offset=0, include=None):
         if limit is not None and limit > MAX_REQUEST:
