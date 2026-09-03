@@ -283,8 +283,10 @@ def main(
     # PRE-REGISTERED. Measured 2026-09-02: 433 fetchable episodes, 970
     # croppable clusters, 2,712 crops at k=3, doubled by the two window
     # lengths. A world that has moved should cause a refusal, not an
-    # unknown-size run against someone else's bandwidth.
-    if not dry_run and not limit:
+    # unknown-size run against someone else's bandwidth. Checked against the
+    # FULL plan -- before `--limit` truncates it below -- so a smoke test
+    # against a corpus that has moved is not treated as a valid smoke test.
+    if not dry_run:
         if len(jobs) != 433 or total_crops != 2712 * len(CROP_LENGTHS_S):
             raise SystemExit(
                 f"REFUSING: expected 433 episodes and "
@@ -301,9 +303,39 @@ def main(
         jobs = jobs[:limit]
         print(f"LIMITED to {len(jobs)} episodes")
 
+    # Streamed to disk as each episode returns, rather than accumulated in
+    # memory and written once at the end. The full run is 433 episodes over
+    # 20-30 minutes; if the local client dies at any point before a final
+    # write, the remote containers finish but nothing local survives to
+    # record them, and recovery means re-downloading 56.1 GB from
+    # third-party podcast hosts. `--detach` keeps the remote job alive, not
+    # this local aggregation loop.
+    jsonl_path = Path("speakers/archive_vectors.jsonl")
+    if jsonl_path.exists():
+        # Silently appending would splice a half-finished previous run's
+        # records into this one, invisibly -- worse than no file at all.
+        raise SystemExit(
+            f"REFUSING: {jsonl_path} already exists. Move or delete it "
+            f"before starting a new archive run."
+        )
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+
     records: list[dict] = []
-    for batch in embed_episode.map(jobs):
-        records.extend(batch)
+    episodes_done = 0
+    crops_embedded = 0
+    with jsonl_path.open("a", encoding="utf-8") as handle:
+        for batch in embed_episode.map(jobs):
+            records.extend(batch)
+            for record in batch:
+                handle.write(json.dumps(record) + "\n")
+            handle.flush()
+            episodes_done += 1
+            crops_embedded += sum(1 for r in batch if r.get("vector") is not None)
+            if episodes_done % 25 == 0:
+                print(
+                    f"progress: episodes={episodes_done} "
+                    f"crops_embedded={crops_embedded}"
+                )
 
     embedded = sum(1 for r in records if r.get("vector") is not None)
     print(f"crops={len(records)} embedded={embedded}")
