@@ -1,6 +1,7 @@
 import modal
 import os
 
+from corpus.names import NAMES
 from corpus.rendering import format_results
 
 
@@ -85,6 +86,7 @@ class PodcastSearch:
         show: str = None,
         after_date: str = None,
         before_date: str = None,
+        speaker: str = None,
     ) -> list[dict]:
         embedding = self.embedding_model.encode(
             query,
@@ -98,6 +100,8 @@ class PodcastSearch:
             filters.append({"date_ts": {"$gte": int(after_date.replace("-", ""))}})
         if before_date:
             filters.append({"date_ts": {"$lte": int(before_date.replace("-", ""))}})
+        if speaker:
+            filters.append({"speaker_id": {"$eq": speaker}})
 
         where = None
         if len(filters) == 1:
@@ -129,6 +133,7 @@ class PodcastSearch:
                     "episode_title": meta.get("episode_title"),
                     "date": meta.get("date"),
                     "speaker": meta.get("speaker"),
+                    "speaker_id": meta.get("speaker_id"),
                     "start_time": meta.get("start_time"),
                     # Was documented as the cutover tell -- "populated proves
                     # v2". It never worked as one: nothing renders it, so no
@@ -198,6 +203,7 @@ def mcp_server():
         show: str = None,
         after_date: str = None,
         before_date: str = None,
+        speaker: str = None,
     ) -> str:
         """
         Search podcast transcripts semantically. Returns relevant chunks with
@@ -207,12 +213,17 @@ def mcp_server():
         always visible — factor in publication date when reasoning about whether
         views may have changed.
 
+        Speaker identity spans shows: filtering by a person returns them
+        wherever they appear, including as a guest on another feed, which is
+        what makes "has this person's view changed" answerable.
+
         Args:
             query: What to search for, e.g. "China Taiwan" or "Fed interest rates"
             n_results: Number of results to return (default 10)
             show: Filter to a specific show name (optional)
             after_date: Only include episodes after this date, YYYY-MM-DD (optional)
             before_date: Only include episodes before this date, YYYY-MM-DD (optional)
+            speaker: Filter to one person, e.g. "Jacob Shapiro" (optional)
         """
         try:
             results = searcher.search.remote(
@@ -221,6 +232,7 @@ def mcp_server():
                 show=show,
                 after_date=after_date,
                 before_date=before_date,
+                speaker=speaker,
             )
         except Exception as e:
             raise Exception(f"Search failed: {e}")
@@ -228,7 +240,7 @@ def mcp_server():
         if not results:
             return "No results found."
 
-        return format_results(results)
+        return format_results(results, names=NAMES)
 
     @mcp.tool()
     def latest_on_topic(topic: str, n_results: int = 5) -> str:
@@ -249,6 +261,6 @@ def mcp_server():
         if not results:
             return "No results found."
 
-        return format_results(results, include_relevance=False)
+        return format_results(results, include_relevance=False, names=NAMES)
 
     return mcp.streamable_http_app()
