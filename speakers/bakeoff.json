@@ -1,0 +1,28 @@
+{
+  "speaker-diarization-community-1": {
+    "scored": 207,
+    "correct": 207,
+    "skipped": 1,
+    "accuracy": 1.0,
+    "confusions": {},
+    "same_person_score_p05": 0.6647332818318854,
+    "same_person_score_median": 0.8418382770577841,
+    "other_person_score_p95": 0.3673226642803937,
+    "other_person_score_median": 0.1881730999535298,
+    "suggested_threshold": 0.5160279730561396,
+    "suggested_margin": 0.07435265438787293
+  },
+  "wespeaker-voxceleb-resnet34-LM": {
+    "scored": 207,
+    "correct": 207,
+    "skipped": 1,
+    "accuracy": 1.0,
+    "confusions": {},
+    "same_person_score_p05": 0.6647332001230315,
+    "same_person_score_median": 0.8418383046501193,
+    "other_person_score_p95": 0.3673224345340366,
+    "other_person_score_median": 0.1881730490081846,
+    "suggested_threshold": 0.5160278173285341,
+    "suggested_margin": 0.07435269139724872
+  }
+}

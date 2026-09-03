@@ -470,6 +470,39 @@ it is the space the archive's clusters were cut in. This rule is fixed
 before either number is seen. **The resulting figure is a dev-set
 measurement and is not a precision claim.**
 
+**Result, 2026-09-02 (`bakeoff_embedder.py`, `speakers/bakeoff.json`).**
+Leave-one-out over the 208 voice-verified clips (207 scored, 1 skipped as
+the sole clip for its person): both embedders score **1.000 accuracy
+(207/207)**. Exactly tied, so the pre-registered tie-break applies and
+**community-1 wins**.
+
+**A second finding, not anticipated by the pre-registration: the two
+embedders' raw vectors are numerically near-identical**, not merely
+correlated. Cosine similarity between community-1's and wespeaker's vector
+for the same clip is 0.9999999999808–0.9999999999994 across all 381 clips
+(float32-precision-level agreement, ~3e-7 absolute per-component
+difference) — the same order of magnitude as the accuracy tie being exact
+to six decimal places in every reported statistic (threshold, margin, and
+both score percentiles). Two independently-trained architectures scoring
+identically on 207 held-out clips is possible; producing bit-level-adjacent
+*vectors* is not, and is the stronger evidence. The likely explanation is
+that community-1's `embedding` subfolder wraps the same
+`wespeaker-voxceleb-resnet34-LM` weights used as the standalone fallback,
+making this less a bake-off between two embedding spaces than a
+confirmation that they are the same space. **This was not independently
+verified against the model's config** (no local cache of the HF repo to
+inspect) and is flagged for confirmation rather than asserted as fact. It
+does not change the decision — the tie-break still selects community-1 —
+but it means the §3.3 "brings the PLDA scoring the pipeline itself uses"
+argument is the only real remaining distinction between the two choices;
+the raw embedding space is not one.
+
+**Suggested threshold and margin for Task 6, both embedders agreeing to
+six decimal places: threshold=0.516, margin=0.074.**
+
+If community-1's embedder cannot be used standalone, wespeaker is verified
+end-to-end and the design proceeds unchanged.
+
 ## Part 4 — Validation
 
 Two instruments, in this order, because one is free and one costs the user's
@@ -628,11 +661,15 @@ name the test that fails if it is false:
 
 ## Part 6 — UNKNOWNs
 
-1. **Can community-1's embedder be used standalone?** §3.3's preference depends
-   on it. Probed as present inside the pipeline, not as callable on arbitrary
-   crops. **Settled before the pass by a local bake-off on the 208 labelled
-   clips already on disk** (§1.3, §3.3) — no GPU, no download. Fallback
-   verified end-to-end.
+1. **RESOLVED 2026-09-02.** Community-1's embedder loads and runs standalone
+   — `speaker_embed.py::embed_clips` produced 381 vectors from it with zero
+   failures. The bake-off (§3.3) tied both embedders at 1.000 accuracy
+   (207/207 leave-one-out), so the pre-registered tie-break selects
+   **community-1**. The bake-off additionally found the two embedders'
+   vectors are numerically near-identical (cosine 0.99999999998+ on every
+   clip), suggesting community-1's embedder and the wespeaker fallback may
+   share weights — flagged for confirmation, not yet verified against the
+   model config, and does not change the decision.
 2. **The 44 real clusters with no turn >=12s.** They get no centroid and no identity.
    Whether lowering the crop floor recovers useful ones is unmeasured; the floor
    trades embedding quality against coverage and the trade is not yet sized.
