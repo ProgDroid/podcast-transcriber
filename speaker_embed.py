@@ -179,6 +179,13 @@ def embed_episode(job: dict) -> list[dict]:
     Returns one record per crop, each with its vector. The audio is never
     persisted: 56.1 GB of storage to avoid a re-download that this design is
     built never to need.
+
+    A download failure is caught here, not left to propagate: one podcast
+    host TLS hiccup used to kill the entire `.map()` fan-out and every
+    episode behind it in the queue. It is recorded the same way a per-crop
+    embedding failure already is -- one record per crop, `vector: None`, an
+    `error` string -- so a short episode downstream always means a real
+    failure, never a silently dropped one.
     """
     import tempfile
 
@@ -189,10 +196,17 @@ def embed_episode(job: dict) -> list[dict]:
 
     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as handle:
         audio_path = handle.name
-        with requests.get(job["audio_url"], stream=True, timeout=300) as response:
-            response.raise_for_status()
-            for block in response.iter_content(chunk_size=1 << 20):
-                handle.write(block)
+        try:
+            with requests.get(job["audio_url"], stream=True, timeout=300) as response:
+                response.raise_for_status()
+                for block in response.iter_content(chunk_size=1 << 20):
+                    handle.write(block)
+        except Exception as e:  # noqa: BLE001 - recorded, not swallowed
+            error = f"{type(e).__name__}: {e}"
+            print(f"{job['episode']}: DOWNLOAD FAILED {error}")
+            handle.close()
+            Path(audio_path).unlink(missing_ok=True)
+            return [{**crop, "vector": None, "error": error} for crop in job["crops"]]
 
     try:
         for crop in job["crops"]:
@@ -220,6 +234,7 @@ def main(
     embedder: str = COMMUNITY,
     dry_run: bool = False,
     limit: int = 0,
+    resume: bool = False,
 ) -> None:
     if mode == "clips":
         result = embed_clips.remote(embedder)
@@ -286,6 +301,8 @@ def main(
     # unknown-size run against someone else's bandwidth. Checked against the
     # FULL plan -- before `--limit` truncates it below -- so a smoke test
     # against a corpus that has moved is not treated as a valid smoke test.
+    # Runs unconditionally on `--resume` too: resuming a moved corpus must
+    # refuse exactly as a fresh run would.
     if not dry_run:
         if len(jobs) != 433 or total_crops != 2712 * len(CROP_LENGTHS_S):
             raise SystemExit(
@@ -311,12 +328,48 @@ def main(
     # third-party podcast hosts. `--detach` keeps the remote job alive, not
     # this local aggregation loop.
     jsonl_path = Path("speakers/archive_vectors.jsonl")
-    if jsonl_path.exists():
+    existing_records: list[dict] = []
+    if resume:
+        # `--resume` REQUIRES the file: there being nothing to resume is an
+        # operator mistake (wrong flag, wrong directory), and starting a
+        # silent fresh run instead would hide it.
+        if not jsonl_path.exists():
+            raise SystemExit(
+                f"REFUSING: --resume requires {jsonl_path} to already "
+                f"exist. There is nothing to resume; drop --resume to "
+                f"start a fresh run."
+            )
+        with jsonl_path.open(encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if line:
+                    existing_records.append(json.loads(line))
+        counts: dict[str, int] = {}
+        for record in existing_records:
+            counts[record["episode"]] = counts.get(record["episode"], 0) + 1
+        # Complete means the record count for that episode already equals
+        # what the CURRENT plan says it owes -- not merely "it appears in
+        # the file". A previous run's TLS death can leave an episode with
+        # some but not all of its crops written, and that partial episode
+        # must be re-embedded in full, not assumed finished.
+        complete = {
+            job["episode"]
+            for job in jobs
+            if counts.get(job["episode"], 0) == len(job["crops"])
+        }
+        remaining = [job for job in jobs if job["episode"] not in complete]
+        print(
+            f"RESUME: {len(jobs) - len(remaining)} episodes already "
+            f"complete (skipped), {len(remaining)} remaining"
+        )
+        jobs = remaining
+    elif jsonl_path.exists():
         # Silently appending would splice a half-finished previous run's
         # records into this one, invisibly -- worse than no file at all.
         raise SystemExit(
             f"REFUSING: {jsonl_path} already exists. Move or delete it "
-            f"before starting a new archive run."
+            f"before starting a new archive run, or pass --resume to "
+            f"continue an interrupted one."
         )
     jsonl_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -337,9 +390,19 @@ def main(
                     f"crops_embedded={crops_embedded}"
                 )
 
-    embedded = sum(1 for r in records if r.get("vector") is not None)
-    print(f"crops={len(records)} embedded={embedded}")
+    # A re-done episode (partial from a prior run, now complete) leaves both
+    # its old partial records and its new full records in the .jsonl -- it
+    # is appended to, never rewritten. Dedup on the crop's identity, keeping
+    # the LAST occurrence, so the new records win.
+    deduped: dict[tuple, dict] = {}
+    for record in existing_records + records:
+        key = (record["episode"], record["cluster"], record["draw"], record["length_s"])
+        deduped[key] = record
+    final_records = list(deduped.values())
+
+    embedded = sum(1 for r in final_records if r.get("vector") is not None)
+    print(f"crops={len(final_records)} embedded={embedded}")
     Path("speakers/archive_vectors.json").write_text(
-        json.dumps(records), encoding="utf-8"
+        json.dumps(final_records), encoding="utf-8"
     )
     print("ARCHIVE PASS COMPLETE")
