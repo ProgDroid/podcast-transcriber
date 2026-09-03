@@ -186,6 +186,14 @@ def embed_episode(job: dict) -> list[dict]:
     embedding failure already is -- one record per crop, `vector: None`, an
     `error` string -- so a short episode downstream always means a real
     failure, never a silently dropped one.
+
+    Each failure record also carries `error_kind`: `"download"` when the
+    whole episode's audio never arrived (the episode is retryable and cheap
+    to redo -- nothing was fetched), `"crop"` when the audio arrived but one
+    crop failed to embed (re-fetching ~130 MB to retry one bad crop is not
+    worth it, so these are left as they are). `--resume`'s completeness
+    check keys off this to tell "genuinely done" from "wrote records but
+    never actually got the audio".
     """
     import tempfile
 
@@ -206,7 +214,10 @@ def embed_episode(job: dict) -> list[dict]:
             print(f"{job['episode']}: DOWNLOAD FAILED {error}")
             handle.close()
             Path(audio_path).unlink(missing_ok=True)
-            return [{**crop, "vector": None, "error": error} for crop in job["crops"]]
+            return [
+                {**crop, "vector": None, "error": error, "error_kind": "download"}
+                for crop in job["crops"]
+            ]
 
     try:
         for crop in job["crops"]:
@@ -216,7 +227,12 @@ def embed_episode(job: dict) -> list[dict]:
                 )
             except Exception as e:  # noqa: BLE001 - recorded, not swallowed
                 out.append(
-                    {**crop, "vector": None, "error": f"{type(e).__name__}: {e}"}
+                    {
+                        **crop,
+                        "vector": None,
+                        "error": f"{type(e).__name__}: {e}",
+                        "error_kind": "crop",
+                    }
                 )
                 continue
             out.append({**crop, "vector": vector})
@@ -226,6 +242,37 @@ def embed_episode(job: dict) -> list[dict]:
     ok = sum(1 for r in out if r.get("vector") is not None)
     print(f"{job['episode']}: {ok}/{len(out)} crops embedded")
     return out
+
+
+def completed_episodes(existing_records: list[dict], jobs: list[dict]) -> set[str]:
+    """Episodes `--resume` should skip: fully embedded, no download hole.
+
+    A record count matching the plan is NOT enough. A fully-failed download
+    also writes exactly `len(job["crops"])` records (`embed_episode`'s
+    download-failure path emits one `vector: None` record per crop it owes),
+    so a count-only check would call that episode complete and no future
+    `--resume` would ever retry it -- a transient host error becomes a
+    permanent hole in the archive. An episode counts as complete only when
+    its count matches AND none of its existing records is a download
+    failure; any download-failure record puts the whole episode back into
+    `remaining`, so it is re-fetched and re-embedded in full. A per-crop
+    failure (`error_kind == "crop"`) does NOT disqualify an otherwise
+    complete episode -- the audio was fetched, so re-downloading it to retry
+    one bad crop is not worth it.
+    """
+    counts: dict[str, int] = {}
+    has_download_failure: dict[str, bool] = {}
+    for record in existing_records:
+        episode = record["episode"]
+        counts[episode] = counts.get(episode, 0) + 1
+        if record.get("error_kind") == "download":
+            has_download_failure[episode] = True
+    return {
+        job["episode"]
+        for job in jobs
+        if counts.get(job["episode"], 0) == len(job["crops"])
+        and not has_download_failure.get(job["episode"], False)
+    }
 
 
 @app.local_entrypoint()
@@ -344,19 +391,14 @@ def main(
                 line = line.strip()
                 if line:
                     existing_records.append(json.loads(line))
-        counts: dict[str, int] = {}
-        for record in existing_records:
-            counts[record["episode"]] = counts.get(record["episode"], 0) + 1
         # Complete means the record count for that episode already equals
-        # what the CURRENT plan says it owes -- not merely "it appears in
-        # the file". A previous run's TLS death can leave an episode with
-        # some but not all of its crops written, and that partial episode
-        # must be re-embedded in full, not assumed finished.
-        complete = {
-            job["episode"]
-            for job in jobs
-            if counts.get(job["episode"], 0) == len(job["crops"])
-        }
+        # what the CURRENT plan says it owes AND none of those records is a
+        # download failure -- see `completed_episodes`. A previous run's TLS
+        # death can leave an episode with some but not all of its crops
+        # written, or with a full set of crops that are all `vector: None`
+        # because the audio itself never arrived; either way it must be
+        # re-embedded in full, not assumed finished.
+        complete = completed_episodes(existing_records, jobs)
         remaining = [job for job in jobs if job["episode"] not in complete]
         print(
             f"RESUME: {len(jobs) - len(remaining)} episodes already "
