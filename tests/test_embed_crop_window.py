@@ -98,7 +98,7 @@ def embedder(monkeypatch):
     `sys.modules` after import time is enough and no real audio stack is
     needed to exercise the arithmetic.
     """
-    import speaker_embed
+    from corpus.voice import Embedder
 
     def _make(**kwargs):
         fake = _FakeTorchaudio(**kwargs)
@@ -106,7 +106,7 @@ def embedder(monkeypatch):
         inference = lambda payload: types.SimpleNamespace(  # noqa: E731
             reshape=lambda _shape: [0.5, 0.5]
         )
-        return speaker_embed._Embedder(inference), fake
+        return Embedder(inference), fake
 
     return _make
 

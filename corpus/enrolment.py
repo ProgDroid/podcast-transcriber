@@ -22,6 +22,15 @@ from corpus.embedding import weighted_centroid
 # label scores a matcher correct for the wrong reason.
 ENROLMENT_BASIS = "voice"
 
+# Measured by Task 4's leave-one-out bake-off over the 208 voice-verified
+# labels (`speakers/bakeoff.json`), not chosen. They live here rather than in
+# `assign_speakers.py` because the nightly ingest scores against the same
+# enrolled centroids and must use the same cut-offs; two copies that can
+# disagree would make an archive assignment and a live assignment mean
+# different things while looking identical.
+THRESHOLD = 0.516
+MARGIN = 0.074
+
 
 def build_centroids(
     labels: dict[str, dict],

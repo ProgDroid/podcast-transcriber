@@ -19,11 +19,15 @@ from collections import Counter
 from pathlib import Path
 
 from corpus.embedding import weighted_centroid
-from corpus.enrolment import assign, build_centroids, co_membership_conflicts
+from corpus.enrolment import (
+    MARGIN,
+    THRESHOLD,
+    assign,
+    build_centroids,
+    co_membership_conflicts,
+)
 from corpus.identity import parse_transcript_filename
 
-THRESHOLD = 0.516
-MARGIN = 0.074
 
 
 def centroids_by_cluster(records: list[dict]) -> dict[tuple[str, str], list[float]]:

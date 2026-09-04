@@ -6,6 +6,18 @@ from corpus.chunking import build_chunks, build_chunks_from_text
 from corpus.feed import entry_guid, episode_number_of
 from corpus.store import episode_where, is_complete, paged_get_ids
 
+# Enrolment inputs: committed to the repo, mounted into the container. The
+# five centroids are DERIVED from these at run time and never stored --
+# `corpus/enrolment.py` refuses a stored copy because two hand-maintained
+# copies drift asymmetrically and the stale one works right up until it
+# matters.
+ENROLMENT_LABELS_LOCAL = "speakers/labels.json"
+ENROLMENT_VECTORS_LOCAL = (
+    "speakers/clip_vectors_speaker-diarization-community-1.json"
+)
+ENROLMENT_LABELS = "/enrolment/labels.json"
+ENROLMENT_VECTORS = "/enrolment/clip_vectors.json"
+
 image = (
     modal.Image.from_registry(
         "nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04", add_python="3.12"
@@ -24,6 +36,15 @@ image = (
         "sentence-transformers==5.4.1",
         "chromadb==1.5.9",
     )
+    # The enrolment inputs, so identity is decided at ingest instead of by a
+    # later backfill. `copy=False` (the default) MOUNTS these at container
+    # startup rather than baking an image layer, so adding them does not
+    # change the image's content address and does not trigger the rebuild the
+    # verbatim spec exists to avoid. Together ~2.2 MB; the 49 MB of `clips/`
+    # audio is NOT needed, because the clip vectors are already computed.
+    .add_local_file(ENROLMENT_LABELS_LOCAL, ENROLMENT_LABELS, copy=False)
+    .add_local_file(ENROLMENT_VECTORS_LOCAL, ENROLMENT_VECTORS, copy=False)
+    # add_local_python_source stays LAST.
     .add_local_python_source("corpus")
 )
 
@@ -288,6 +309,9 @@ def process_episodes(
     from sentence_transformers import SentenceTransformer
     from whisperx.diarize import DiarizationPipeline
 
+    from corpus.enrolment import MARGIN, THRESHOLD
+    from corpus.identify import identify_clusters, stamp_chunks
+
     hf_token = os.environ["HF_TOKEN"]
     device = "cuda"
     compute_type = "float16"
@@ -361,6 +385,42 @@ def process_episodes(
         compute_type=compute_type,
         download_root=MODEL_PATH,
     )
+
+    # Identity is settled while the audio is on disk, which is what removes
+    # the need for a backfill: the job already holds the diarised segments
+    # and the file, so `speaker_id` is written WITH the chunk rather than
+    # repaired months later. Built once per container, not per episode.
+    enrolment: dict[str, list[float]] = {}
+    embedder = None
+    if to_transcribe:
+        import json as _json
+
+        from corpus.enrolment import build_centroids
+        from corpus.voice import COMMUNITY, load_embedder
+
+        try:
+            with open(ENROLMENT_LABELS) as handle:
+                _labels = _json.load(handle)
+            with open(ENROLMENT_VECTORS) as handle:
+                _clip_vectors = _json.load(handle)
+            enrolment = build_centroids(_labels, _clip_vectors)
+            embedder = load_embedder(COMMUNITY, hf_token, model_home=MODEL_PATH)
+            print(f"Enrolled voices: {sorted(enrolment)}")
+        except Exception as e:
+            # One failure here would otherwise repeat silently for every
+            # episode in the batch, so it is named ONCE and loudly, and the
+            # transcription still runs.
+            enrolment = {}
+            print(f"ENROLMENT UNAVAILABLE: {type(e).__name__}: {e}")
+            failures.append(
+                f"{show_name}: speaker enrolment unavailable, this batch is "
+                f"stored WITHOUT speaker_id: {type(e).__name__}: {e}"
+            )
+        if not enrolment:
+            failures.append(
+                f"{show_name}: zero enrolment centroids; episodes are stored "
+                f"WITHOUT speaker_id and will not appear in speaker filters."
+            )
 
     for episode in to_transcribe:
         episode_number = episode["episode_number"]
@@ -443,6 +503,48 @@ def process_episodes(
                 date_str,
                 episode_guid=episode.get("guid"),
             )
+
+            # Stamped BEFORE the write, so one upsert carries both the text
+            # and the identity. A no-match writes nothing: an absent
+            # `speaker_id` is the unidentified state, and a placeholder would
+            # be a value meaning "no value" that the MCP filter would match.
+            #
+            # Its own try/except on purpose. The enclosing handler skips the
+            # episode, and identity is an enhancement -- a model fault must
+            # not stop the corpus growing. It is reported loudly because the
+            # quiet version of this failure is invisible: Chroma's `$eq` does
+            # not match a record missing the key, so an episode without
+            # `speaker_id` silently drops out of every speaker-filtered
+            # query rather than erroring.
+            if enrolment and embedder is not None:
+                try:
+                    identified = identify_clusters(
+                        result["segments"],
+                        audio_path,
+                        embedder,
+                        enrolment,
+                        threshold=THRESHOLD,
+                        margin=MARGIN,
+                        episode_name=f"{show_name} - Episode {episode_number}",
+                    )
+                    stamped = stamp_chunks(chunks, identified)
+                    print(
+                        f"Identity: {len(identified)} cluster(s) named "
+                        f"{sorted(set(identified.values()))}; "
+                        f"{stamped}/{len(chunks)} chunks stamped."
+                    )
+                except Exception as e:
+                    print(
+                        f"IDENTITY FAILED ep{episode_number}: "
+                        f"{type(e).__name__}: {e}"
+                    )
+                    failures.append(
+                        f"{show_name} ep{episode_number} ({date_str}): speaker "
+                        f"identity failed, episode stored WITHOUT speaker_id "
+                        f"and will not appear in speaker filters: "
+                        f"{type(e).__name__}: {e}"
+                    )
+
             embed_and_store(
                 chunks,
                 embedding_model,
