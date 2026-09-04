@@ -77,11 +77,45 @@ class _Embedder:
     def embed(self, path: str, start_s: float, length_s: float) -> list[float]:
         import torchaudio
 
-        offset = int(start_s * self.sample_rate)
-        frames = int(length_s * self.sample_rate)
+        # `frame_offset` and `num_frames` are counted in the FILE's native
+        # rate, never in the rate we want out. Computing them against a
+        # hardcoded 16000 seeks to start_s * 16000/native -- a third of the
+        # intended timestamp on 48kHz audio -- and returns a third of the
+        # intended duration, silently, with a perfectly plausible vector at
+        # the end of it. That shipped, and it made the whole archive pass
+        # embed the wrong moments (found 2026-09-04; the ratio scan peaked at
+        # exactly 16000/48000). There is no single rate to assume: the
+        # archive is measured mixed, 48kHz for 83% of episodes and 44.1kHz
+        # for the rest, so the file has to be asked.
+        info = torchaudio.info(path)
+        native = int(info.sample_rate)
+        offset = int(start_s * native)
+        frames = int(length_s * native)
         waveform, rate = torchaudio.load(path, frame_offset=offset, num_frames=frames)
+        if int(rate) != native:
+            # The offset above was computed from `info`. If `load` disagrees
+            # about the rate then it was computed against the wrong scale and
+            # this crop is not the window that was asked for.
+            raise RuntimeError(
+                f"{path}: info reports {native}Hz but load returned {rate}Hz; "
+                f"the crop at {start_s}s is not the requested window."
+            )
         if rate != self.sample_rate:
             waveform = torchaudio.functional.resample(waveform, rate, self.sample_rate)
+
+        # The check that turns this class of bug from silent into loud. A
+        # crop may legitimately come back short only when its window runs off
+        # the end of the file; any other shortfall means the seek landed
+        # somewhere other than where it was sent.
+        got_s = waveform.shape[-1] / self.sample_rate
+        available_s = max(0.0, info.num_frames / native - start_s)
+        want_s = min(length_s, available_s)
+        if got_s < want_s * 0.9:
+            raise RuntimeError(
+                f"{path}: asked for {length_s}s at {start_s}s and got {got_s:.2f}s "
+                f"({want_s:.2f}s was available). The seek did not land where it "
+                f"was sent; the vector would describe the wrong audio."
+            )
         if waveform.shape[0] > 1:
             waveform = waveform.mean(dim=0, keepdim=True)
         vector = self._inference(
