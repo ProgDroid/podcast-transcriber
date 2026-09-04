@@ -41,3 +41,7 @@ Thumbs.db
 # Clip audio cut for the speaker eval -- regenerable from speakers/clip_plan.json
 # plus the feeds. The PLAN and the LABELS are versioned; the audio is not.
 clips/
+pytest.log
+ratio_split.log
+audiofind.txt
+*.log
