@@ -214,12 +214,72 @@ distinct episodes**. Below that the recurring-unnamed-voice population is
 too thin to justify archive-wide grouping, and Ship 1's five identities
 stand as the deliverable. Fixed before the histogram is seen.
 
-#### Ship 2 — grouping the unnamed
+#### Ship 2 — REJECTED, 2026-09-04. Do not re-propose.
+
+**The checkpoint was run and Ship 2 failed it. Ship 2 is not built and should
+not be built.** The measurement is done; re-opening it needs new evidence of
+the specific kind named at the bottom of this block, not a new idea about how
+to cluster.
+
+| | required | measured |
+|---|---|---|
+| groups spanning ≥5 distinct episodes | **≥15** | **4** |
+
+Group-size histogram over the 266 unmatched centroids, 83 local groups:
+
+```
+127 episodes: 1 group     <- an attractor, almost certainly non-speech
+ 13 episodes: 1 group
+  5 episodes: 2 groups
+  4 episodes: 3 groups
+  3 episodes: 4 groups
+  2 episodes: 10 groups
+  1 episode:  62 groups   <- 75% of groups are one-off
+```
+
+**The recurring-unnamed-voice population does not exist.** 62 of 83 groups
+appear in exactly one episode, and a one-off guest has no "has the view moved"
+question — which was the entire case for grouping. The archive is a small
+known cast plus a long tail of single-appearance guests, and Ship 1's five
+identities already cover 77.1% of the corpus by chunk.
+
+**This measurement was taken twice, and the first one does not count.** The
+2026-09-04 morning run produced "1 qualifying group" from vectors corrupted by
+the sample-rate bug (see `speaker_embed.py` history, commit `68231ba`); that
+result was VOID and was retracted rather than banked. The 4 above is from the
+re-run on corrected vectors. **A negative computed from corrupt input is not a
+negative** — recording this because the void figure and the real one point the
+same way, which is exactly the situation where a wrong result gets kept for
+being convenient.
+
+**The 127-episode group is not a counterexample.** A single group spanning a
+quarter of the archive is not one recurring person; it survived the
+sample-rate fix unchanged (it was 112 before), which is the signature of
+content that is not speech at all — a music bed, an intro sting, or room
+tone. It is unexplained, not promising.
+
+**Re-open on exactly one trigger:** a *measured* histogram, on correct
+vectors, clearing ≥15 groups at ≥5 episodes. Feed composition would have to
+change materially for that — a new show with a rotating cast, say. Do NOT
+re-open on: a better clustering algorithm, a new embedding model, the archive
+merely growing, or the observation that 266 clusters remain unidentified. That
+residual is measured, visible, and covered by §6.2; it is a known cost, not a
+new discovery.
+
+**What survives from Ship 2's design.** `corpus/names.py` keeps its
+`grp_NNN`-shaped indirection and `display_speaker` keeps its four states, so
+the render path does not change shape if this is ever revisited. That cost
+nothing and is already built.
+
+<details>
+<summary>The original Ship 2 scope, kept for the record</summary>
 
 Archive-wide clustering, naming-on-demand, and the recognition gate (§4.2).
 Built only if the histogram justifies it, and then built with the score
 distribution in hand — which also closes §6.7, where threshold and margin are
 deliberately left unset.
+
+</details>
 
 **This structure came from a fresh-context review** which observed that draft 1
 committed to the grouping machinery before taking the one cheap measurement
