@@ -244,6 +244,27 @@ def embed_episode(job: dict) -> list[dict]:
     return out
 
 
+DEDUPE_KEY_FIELDS = ("episode", "cluster", "draw", "length_s")
+
+
+def dedupe_records(records: list[dict]) -> list[dict]:
+    """One record per crop identity, keeping the LAST occurrence.
+
+    The `.jsonl` is appended to and never rewritten, so a re-embedded episode
+    leaves its earlier attempt's records in the file alongside the new ones.
+    This is the single rule for collapsing them, used BOTH by
+    `completed_episodes` -- which must judge the same view the output is built
+    from -- and by the final `.json` write. Two hand-maintained copies drifted
+    apart once already: the skip set counted raw records, so a successfully
+    retried episode's count never matched its plan and it was re-downloaded on
+    every later `--resume`.
+    """
+    deduped: dict[tuple, dict] = {}
+    for record in records:
+        deduped[tuple(record[field] for field in DEDUPE_KEY_FIELDS)] = record
+    return list(deduped.values())
+
+
 def completed_episodes(existing_records: list[dict], jobs: list[dict]) -> set[str]:
     """Episodes `--resume` should skip: fully embedded, no download hole.
 
@@ -259,10 +280,17 @@ def completed_episodes(existing_records: list[dict], jobs: list[dict]) -> set[st
     failure (`error_kind == "crop"`) does NOT disqualify an otherwise
     complete episode -- the audio was fetched, so re-downloading it to retry
     one bad crop is not worth it.
+
+    Judged on DE-DUPLICATED records, the same view the final `.json` is built
+    from. Raw records would make a successful retry unrecoverable: the failed
+    attempt's records stay in the append-only `.jsonl`, so the episode's raw
+    count is 2N against a plan of N and its stale download-failure flag never
+    clears -- it would be excluded from the skip set forever and re-fetched on
+    every later `--resume`, growing the file each time.
     """
     counts: dict[str, int] = {}
     has_download_failure: dict[str, bool] = {}
-    for record in existing_records:
+    for record in dedupe_records(existing_records):
         episode = record["episode"]
         counts[episode] = counts.get(episode, 0) + 1
         if record.get("error_kind") == "download":
@@ -434,13 +462,11 @@ def main(
 
     # A re-done episode (partial from a prior run, now complete) leaves both
     # its old partial records and its new full records in the .jsonl -- it
-    # is appended to, never rewritten. Dedup on the crop's identity, keeping
-    # the LAST occurrence, so the new records win.
-    deduped: dict[tuple, dict] = {}
-    for record in existing_records + records:
-        key = (record["episode"], record["cluster"], record["draw"], record["length_s"])
-        deduped[key] = record
-    final_records = list(deduped.values())
+    # is appended to, never rewritten. `dedupe_records` keeps the LAST
+    # occurrence per crop identity, so the new records win. It is the same
+    # helper `completed_episodes` judges with, so the skip set and this file
+    # can never disagree about what an episode already holds.
+    final_records = dedupe_records(existing_records + records)
 
     embedded = sum(1 for r in final_records if r.get("vector") is not None)
     print(f"crops={len(final_records)} embedded={embedded}")
