@@ -1,0 +1,50 @@
+local clip files: 381
+
+MEASURED sample rates across clip files:
+   48000 Hz :  316 files  (82.9%)
+   44100 Hz :   65 files  (17.1%)
+  unreadable headers: 0 []
+
+Distinct EPISODES covered: 192
+   48000 Hz : 155 episodes
+   44100 Hz :  37 episodes
+  episodes with MIXED rates across their own clips: 0
+
+Implied seek ratio 16000/native, per rate present:
+   44100 Hz -> crop lands at 0.3628 of nominal time
+   48000 Hz -> crop lands at 0.3333 of nominal time
+
+Shows represented in the local clips: {'The Jacob Shapiro Podcast': 185, 'The Observing Japan Podcast': 7}
+usable episodes with a MEASURED rate: 29
+  by rate: {44100: 6, 48000: 23}
+
+=== episodes measured at 44100 Hz (n=6)  expected peak r=0.3628 ===
+   r=1.0000  hit= 19 miss= 16  acc=0.543
+   r=0.5000  hit= 22 miss= 12  acc=0.647
+   r=0.4000  hit= 26 miss=  8  acc=0.765
+   r=0.3810  hit= 27 miss=  7  acc=0.794
+   r=0.3700  hit= 31 miss=  3  acc=0.912
+   r=0.3628  hit= 31 miss=  3  acc=0.912
+   r=0.3556  hit= 32 miss=  2  acc=0.941
+   r=0.3478  hit= 27 miss=  6  acc=0.818
+   r=0.3404  hit= 25 miss=  8  acc=0.758
+   r=0.3333  hit= 25 miss=  8  acc=0.758
+   r=0.3200  hit= 25 miss=  8  acc=0.758
+   r=0.3000  hit= 26 miss=  6  acc=0.812
+   PEAK r=0.3556 acc=0.941   (16000/44100 = 0.3628)
+
+=== episodes measured at 48000 Hz (n=23)  expected peak r=0.3333 ===
+   r=1.0000  hit= 74 miss= 80  acc=0.481
+   r=0.5000  hit=104 miss= 46  acc=0.693
+   r=0.4000  hit= 96 miss= 52  acc=0.649
+   r=0.3810  hit=107 miss= 41  acc=0.723
+   r=0.3700  hit=112 miss= 35  acc=0.762
+   r=0.3628  hit=112 miss= 35  acc=0.762
+   r=0.3556  hit=117 miss= 30  acc=0.796
+   r=0.3478  hit=125 miss= 21  acc=0.856
+   r=0.3404  hit=136 miss= 10  acc=0.932
+   r=0.3333  hit=138 miss=  7  acc=0.952
+   r=0.3200  hit=113 miss= 32  acc=0.779
+   r=0.3000  hit=105 miss= 40  acc=0.724
+   PEAK r=0.3333 acc=0.952   (16000/48000 = 0.3333)
+REAL_EXIT=0
