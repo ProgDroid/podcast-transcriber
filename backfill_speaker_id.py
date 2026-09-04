@@ -157,7 +157,14 @@ def apply_updates(collection, updates: list[tuple[str, dict]], *, expected: int)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install("chromadb==1.5.9")
-    .add_local_python_source("corpus")
+    # `transcribe` too, not just `corpus`: run_backfill imports
+    # get_chroma_collection from it, and without it the remote call dies with
+    # ModuleNotFoundError AFTER the app has spun up. The unit tests drive a
+    # FakeCollection directly and never cross the Modal boundary, so nothing
+    # local can catch this -- only a real dry run does. Its module-scope
+    # imports are modal, os, re and corpus.*, all already present; chromadb
+    # is imported inside the function.
+    .add_local_python_source("corpus", "transcribe")
 )
 
 app = modal.App("speaker-backfill")

@@ -51,9 +51,18 @@ model can reason about whether a view is current or stale.
 - A [Modal](https://modal.com) account, with `pip install modal && modal setup`.
 - A [Chroma Cloud](https://trychroma.com) database.
 - A [Hugging Face](https://huggingface.co) token, for the pyannote diarisation
-  models. **You must accept the model terms on the Hugging Face page for
-  `pyannote/speaker-diarization` and `pyannote/segmentation` first**, or
-  diarisation fails at runtime with an authorisation error rather than at setup.
+  model. **You must accept the model terms for
+  [`pyannote/speaker-diarization-community-1`](https://huggingface.co/pyannote/speaker-diarization-community-1)
+  first**, or diarisation fails at runtime with an authorisation error rather
+  than at setup. The repo is `gated: auto`, so approval is a click, not a wait.
+
+  That is the model whisperx 3.8.5 actually loads, and it carries its own
+  speaker embedder inline (`subfolder: embedding`) — which is why the speaker
+  work never needed a second embedding model. Earlier revisions of this file
+  named `pyannote/speaker-diarization` and `pyannote/segmentation`. Both are
+  still gated, but neither is loaded by this pipeline, so accepting them
+  accomplishes nothing; both were verified against the Hugging Face model API
+  on 2026-09-04.
 
 ## Setup
 
