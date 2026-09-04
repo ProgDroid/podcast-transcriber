@@ -208,6 +208,12 @@ moved" question, so grouping them buys nothing; a fat tail of recurring
 unnamed voices is the whole case for Ship 2. **Pre-register the threshold
 before the histogram is seen.**
 
+**Checkpoint pre-registration, 2026-09-02.** Ship 2 is built if the
+unmatched centroids yield **at least 15 groups appearing in 5 or more
+distinct episodes**. Below that the recurring-unnamed-voice population is
+too thin to justify archive-wide grouping, and Ship 1's five identities
+stand as the deliverable. Fixed before the histogram is seen.
+
 #### Ship 2 — grouping the unnamed
 
 Archive-wide clustering, naming-on-demand, and the recognition gate (§4.2).
@@ -440,7 +446,9 @@ clusters is accepted as the price.
 
 ### 3.3 Which embedder
 
-Two are reachable and they are not equivalent:
+Two are reachable. The bake-off below settles which one to use, though its
+second finding shows the two are near-identical in the space that matters
+most, the raw vectors:
 
 - **community-1's internal embedder — preferred.** It is the space the
   archive's clusters were actually cut in, and it brings the PLDA scoring the
