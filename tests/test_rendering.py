@@ -170,3 +170,54 @@ def test_rendering_is_unchanged_when_no_speaker_id_exists_anywhere():
     # Every record in Chroma is in this state until the backfill runs, so this
     # is the compatibility test: the change must be inert before it is useful.
     assert format_result(BASE) == format_result(BASE, names={})
+
+
+# --- speaker_filter_error ---------------------------------------------------
+#
+# Chroma's $eq matches neither a record missing the key nor a near-miss, so
+# an unrecognised speaker name matches ZERO rows and renders as "No results
+# found." -- byte-identical to "this person exists and never discussed this
+# topic". mcp_server.py already refuses that exact trade for the collection
+# name (get_collection, not get_or_create_collection); this carries the same
+# rule to the speaker argument.
+
+
+def test_a_known_speaker_is_filterable():
+    from corpus.names import NAMES, speaker_filter_error
+
+    for person in NAMES:
+        assert speaker_filter_error(person) is None
+
+
+def test_no_speaker_filter_is_fine():
+    """None means "do not filter", not "filter on nothing"."""
+    from corpus.names import speaker_filter_error
+
+    assert speaker_filter_error(None) is None
+
+
+def test_a_near_miss_is_rejected_rather_than_silently_matching_nothing():
+    from corpus.names import speaker_filter_error
+
+    for near in ("Jacob", "jacob shapiro", "Shapiro", "JACOB SHAPIRO", "Marko"):
+        assert speaker_filter_error(near) is not None, near
+
+
+def test_the_rejection_names_the_alternatives():
+    """Recognition, not recall: rejecting without the list asks for a guess."""
+    from corpus.names import NAMES, speaker_filter_error
+
+    message = speaker_filter_error("Jacob")
+
+    assert message is not None
+    for person in NAMES:
+        assert person in message, f"{person} missing from the rejection message"
+
+
+def test_the_rejection_explains_why_silence_would_be_wrong():
+    """The caller must learn this is a typo, not an absence of evidence."""
+    from corpus.names import speaker_filter_error
+
+    message = speaker_filter_error("Jacob")
+
+    assert "returns nothing rather than erroring" in message

@@ -19,3 +19,31 @@ NAMES: dict[str, str] = {
     "Tobias Harris": "Tobias Harris",
     "Matt Gertken": "Matt Gertken",
 }
+
+
+def speaker_filter_error(speaker: str | None) -> str | None:
+    """The message to show for an unfilterable `speaker`, or None if it is fine.
+
+    ONE definition, because both call sites in `mcp_server.py` need this rule
+    and they need it in different shapes -- the Modal method raises, the tool
+    surface returns a string to the caller. Two copies of a membership test
+    is how one of them ends up stale.
+
+    Why this exists at all: Chroma's `$eq` does not match a record missing the
+    key, and does not match a near-miss either. So `"Jacob"` or
+    `"jacob shapiro"` matches ZERO rows, and a zero-row search renders as
+    "No results found." -- byte-identical to "this person exists and never
+    discussed this topic". A typo becomes a confident negative about
+    somebody's views.
+
+    The message NAMES the five rather than merely rejecting, because a caller
+    forced to recall an exact proper noun is being asked the wrong question;
+    one picking from five candidates is not.
+    """
+    if speaker is None or speaker in NAMES:
+        return None
+    return (
+        f"Unknown speaker {speaker!r}. This filter matches an exact stored "
+        f"name, so a near-miss returns nothing rather than erroring. Known "
+        f"speakers: " + ", ".join(sorted(NAMES)) + "."
+    )

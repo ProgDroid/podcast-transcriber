@@ -1,7 +1,7 @@
 import modal
 import os
 
-from corpus.names import NAMES
+from corpus.names import NAMES, speaker_filter_error
 from corpus.rendering import format_results
 
 
@@ -101,6 +101,17 @@ class PodcastSearch:
         if before_date:
             filters.append({"date_ts": {"$lte": int(before_date.replace("-", ""))}})
         if speaker:
+            # Chroma's $eq does not match a record missing the key, and it
+            # does not match a near-miss either. So "Jacob" or "jacob
+            # shapiro" returns ZERO rows, the tool renders "No results
+            # found.", and that is byte-identical to "this person exists and
+            # never discussed this topic" -- a confident negative about
+            # someone's views, invented from a typo. Line 76 of this file
+            # already refuses that exact trade for the collection name; this
+            # is the same trade for the speaker name.
+            problem = speaker_filter_error(speaker)
+            if problem:
+                raise ValueError(problem)
             filters.append({"speaker_id": {"$eq": speaker}})
 
         where = None
@@ -223,8 +234,17 @@ def mcp_server():
             show: Filter to a specific show name (optional)
             after_date: Only include episodes after this date, YYYY-MM-DD (optional)
             before_date: Only include episodes before this date, YYYY-MM-DD (optional)
-            speaker: Filter to one person, e.g. "Jacob Shapiro" (optional)
+            speaker: Filter to one person, EXACTLY one of: Jacob Shapiro,
+                Marko Papic, Matt Gertken, Rob Larity, Tobias Harris
+                (optional). Any other value is rejected rather than silently
+                matching nothing. Speakers not in this list have no stored
+                identity, so they cannot be filtered on -- search without
+                this argument instead.
         """
+        problem = speaker_filter_error(speaker)
+        if problem:
+            return problem
+
         try:
             results = searcher.search.remote(
                 query=query,

@@ -533,6 +533,38 @@ def process_episodes(
                         f"{sorted(set(identified.values()))}; "
                         f"{stamped}/{len(chunks)} chunks stamped."
                     )
+                    if identified and not stamped:
+                        # Clusters were named and NOT ONE chunk took a
+                        # value. Both come from the same segments, so a
+                        # named cluster always owns chunks -- this can only
+                        # mean the `speaker` metadata key drifted between
+                        # `chunking.py` and `stamp_chunks`. Left unreported
+                        # it prints a cheerful "3 cluster(s) named" every
+                        # night, exits zero, and stores the whole corpus
+                        # with no speaker_id.
+                        #
+                        # NOT a raise: identity failure must never lose an
+                        # episode, and a join defect hits every episode
+                        # equally, so raising would stop the corpus growing
+                        # rather than merely stop it being filterable.
+                        #
+                        # The predicate is deliberately `stamped == 0` and
+                        # not `stamped < expected`. Any "expected" here
+                        # would be recomputed from `identified` and the same
+                        # chunk key -- the same arithmetic stamp_chunks just
+                        # did, which is a check that cannot fail.
+                        print(
+                            f"STAMP JOIN BROKEN ep{episode_number}: "
+                            f"{len(identified)} clusters identified, 0 chunks "
+                            f"stamped."
+                        )
+                        failures.append(
+                            f"{show_name} ep{episode_number} ({date_str}): "
+                            f"{len(identified)} clusters were identified but "
+                            f"NO chunk received speaker_id -- the metadata key "
+                            f"joining chunks to clusters has drifted. Episode "
+                            f"stored without speaker_id."
+                        )
                 except Exception as e:
                     print(
                         f"IDENTITY FAILED ep{episode_number}: "
