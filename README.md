@@ -46,6 +46,7 @@ model can reason about whether a view is current or stale.
 | [`docs/chroma-cloud-behaviour.md`](docs/chroma-cloud-behaviour.md) | Chroma Cloud limits and semantics, all measured rather than documented — the 300-record cap and its silent form, `$eq`/`$ne` asymmetry, paging stability, metadata merge. |
 | [`docs/operations.md`](docs/operations.md) | Runbook: verifying the corpus, repairing a show, cutting over a collection, deleting records safely, pinning images. |
 | [`docs/superpowers/specs/2026-09-02-speaker-grouping-design.md`](docs/superpowers/specs/2026-09-02-speaker-grouping-design.md) | How voices become a filterable identity: what was measured before it was designed, why identity is a NEW `speaker_id` key rather than an edit to `speaker`, and why archive-wide grouping of unnamed voices was measured and rejected. |
+| [`docs/speaker-identity-decisions.md`](docs/speaker-identity-decisions.md) | What was decided during the build and what it cost: the rulings that shaped the code, the stop condition that fired and how it was cleared, claims that turned out wrong, one known unfixed exposure, and the process lessons. Extracted from the SDD ledger before that workspace was deleted. |
 | [`docs/speaker-identification.md`](docs/speaker-identification.md) | **Superseded design note.** Its statement of the problem still reads well; three passages of its plan are wrong and struck inline. Read the spec above instead. |
 
 ## Prerequisites
