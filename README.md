@@ -36,7 +36,7 @@ model can reason about whether a view is current or stale.
 | `upload_book.py` | One-off: chunk, embed and upload a PDF into the same collection. |
 | `speaker_stats.py` | Local, no Modal. Recomputes the corpus's turn and speech-concentration figures from a transcript directory, so they can be reproduced rather than remembered. |
 | `migration/` | Copy a Chroma Cloud collection between databases or regions, with validation. Chroma cannot move a database's region in place, so this exists to do it as a copy-validate-cutover. |
-| `corpus/` | The pure logic: episode identity, planning, completeness, writes, exclusions, reconciliation. No Modal imports, so all of it is unit-tested. |
+| `corpus/` | The pure logic: episode identity, planning, completeness, writes, exclusions, reconciliation, and speaker identity (`voice`, `embedding`, `enrolment`, `identify`, `names`). No Modal imports, so all of it is unit-tested. |
 
 ## Documentation
 
@@ -45,6 +45,8 @@ model can reason about whether a view is current or stale.
 | [`docs/corpus-integrity.md`](docs/corpus-integrity.md) | How the corpus silently lost episodes, and the six invariants that now prevent it. **Read this before changing anything in `corpus/`.** |
 | [`docs/chroma-cloud-behaviour.md`](docs/chroma-cloud-behaviour.md) | Chroma Cloud limits and semantics, all measured rather than documented — the 300-record cap and its silent form, `$eq`/`$ne` asymmetry, paging stability, metadata merge. |
 | [`docs/operations.md`](docs/operations.md) | Runbook: verifying the corpus, repairing a show, cutting over a collection, deleting records safely, pinning images. |
+| [`docs/superpowers/specs/2026-09-02-speaker-grouping-design.md`](docs/superpowers/specs/2026-09-02-speaker-grouping-design.md) | How voices become a filterable identity: what was measured before it was designed, why identity is a NEW `speaker_id` key rather than an edit to `speaker`, and why archive-wide grouping of unnamed voices was measured and rejected. |
+| [`docs/speaker-identification.md`](docs/speaker-identification.md) | **Superseded design note.** Its statement of the problem still reads well; three passages of its plan are wrong and struck inline. Read the spec above instead. |
 
 ## Prerequisites
 
@@ -204,10 +206,23 @@ Edit the feed list there to follow your own shows.
 
 ## Tools the MCP server exposes
 
-- **`search_podcasts(query, n_results, show, after_date, before_date)`** —
-  semantic search over every transcript chunk. Returns the text with speaker
+- **`search_podcasts(query, n_results, show, after_date, before_date, speaker)`**
+  — semantic search over every transcript chunk. Returns the text with speaker
   attribution, show, episode number and title, timestamp, and a relevance score.
   Results are sorted most-recent first so recency is always visible.
+
+  `speaker` filters to one identified person **across shows**, which is what
+  makes "has this person's view changed" answerable when they appear as a
+  guest on another feed. It accepts exactly one of: `Jacob Shapiro`,
+  `Marko Papic`, `Matt Gertken`, `Rob Larity`, `Tobias Harris`. Anything else
+  is rejected with that list rather than silently matching nothing — a
+  near-miss would otherwise return "No results found.", which reads
+  identically to "they never discussed it".
+
+  **Coverage is partial and that is by design.** 22,483 of 29,160 chunks
+  carry an identity; the rest are voices that matched nobody, and they are
+  absent from a filtered search rather than mislabelled. Under-identifying is
+  recoverable, attributing one person's words to another is not.
 - **`latest_on_topic(topic, n_results)`** — the most recent things said about a
   topic, for when you want the current view rather than the best match.
 

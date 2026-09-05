@@ -32,6 +32,40 @@ from corpus.enrolment import assign
 from corpus.speakers import CLIP_MIN_TURN_S, GAP_CAP_S, merge_turns
 
 
+def usable_segments(segments: list[dict]) -> tuple[list[dict], int]:
+    """Segments `merge_turns` can safely consume, and how many were dropped.
+
+    THIS EXISTS BECAUSE OF WHERE ITS CALLER SITS. Every other user of
+    `merge_turns` feeds it segments parsed from a saved transcript, where
+    `start` is guaranteed by the line format. `identify_clusters` is the only
+    one handed RAW `result["segments"]` straight out of
+    `whisperx.assign_word_speakers`, and `corpus/speakers.py` indexes
+    `segments[i + 1]["start"]` unguarded -- so one segment without a numeric
+    `start` raises KeyError and kills identity for the entire episode.
+
+    Note the asymmetry that made this easy to miss: the same module already
+    defends `speaker` with `.get(..., "UNKNOWN")` two lines later. The
+    optional-field question was asked about one key and not its neighbour.
+
+    Dropping rather than aborting: losing a stray segment shifts one turn
+    duration slightly, while aborting loses identity for the whole episode --
+    and the caller policy is that identity failure must cost as little as
+    possible. The count comes back so the caller can say so out loud instead
+    of absorbing it.
+
+    `bool` is excluded deliberately. `True == 1` in Python, so a bool would
+    pass an `isinstance(x, int)` check and be read as a timestamp of 1
+    second.
+    """
+    kept = [
+        seg
+        for seg in segments
+        if isinstance(seg.get("start"), (int, float))
+        and not isinstance(seg.get("start"), bool)
+    ]
+    return kept, len(segments) - len(kept)
+
+
 def identify_clusters(
     segments: list[dict],
     audio_path: str,
@@ -52,6 +86,12 @@ def identify_clusters(
     put a value into `speaker_id` that means "no value", which the MCP filter
     would then match on.
     """
+    segments, dropped = usable_segments(segments)
+    if dropped:
+        print(
+            f"WARNING: {dropped} segment(s) had no usable `start` and were "
+            f"dropped before identification."
+        )
     turns = merge_turns(segments, gap_cap_s=gap_cap_s)
     if not turns:
         return {}

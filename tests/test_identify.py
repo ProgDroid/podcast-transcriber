@@ -249,3 +249,66 @@ def test_stamp_reads_the_key_chunking_actually_writes():
         "this joins on has drifted from the one chunking.py writes"
     )
     assert any(c["metadata"].get("speaker_id") == "Alice" for c in chunks)
+
+
+# --- raw whisperx segment shape ---------------------------------------------
+#
+# identify_clusters is the ONLY consumer of raw result["segments"] from
+# whisperx.assign_word_speakers. Every other merge_turns caller feeds
+# segments parsed from a saved transcript, where `start` is guaranteed by the
+# line format. corpus/speakers.py indexes segments[i+1]["start"] unguarded --
+# while defending `speaker` with .get() two lines later -- so one malformed
+# segment would raise KeyError and lose identity for the whole episode.
+
+
+def test_a_segment_without_start_does_not_kill_the_episode():
+    from corpus.identify import identify_clusters
+
+    segments = _segments([("SPEAKER_00", 5), ("SPEAKER_01", 2)])
+    segments.insert(2, {"speaker": "SPEAKER_00", "text": "no start key"})
+    embedder = _embedder(lambda _start: ALICE)
+
+    out = identify_clusters(
+        segments, "episode.mp3", embedder, {"Alice": ALICE}, **TUNING
+    )
+
+    assert out.get("SPEAKER_00") == "Alice"
+
+
+def test_a_non_numeric_start_is_dropped_too():
+    """whisperx is not the only possible producer; a string start is garbage."""
+    from corpus.identify import usable_segments
+
+    kept, dropped = usable_segments(
+        [
+            {"speaker": "SPEAKER_00", "start": 0.0},
+            {"speaker": "SPEAKER_00", "start": "12.5"},
+            {"speaker": "SPEAKER_00", "start": None},
+            {"speaker": "SPEAKER_00", "start": 30.0},
+        ]
+    )
+
+    assert [s["start"] for s in kept] == [0.0, 30.0]
+    assert dropped == 2
+
+
+def test_a_bool_start_is_not_a_number():
+    """True == 1 in Python; a bool here is a shape error, not a timestamp."""
+    from corpus.identify import usable_segments
+
+    kept, dropped = usable_segments([{"speaker": "SPEAKER_00", "start": True}])
+
+    assert kept == []
+    assert dropped == 1
+
+
+def test_well_formed_segments_are_untouched():
+    """The guard must not quietly thin a healthy episode."""
+    from corpus.identify import usable_segments
+
+    segments = _segments([("SPEAKER_00", 5), ("SPEAKER_01", 2)])
+
+    kept, dropped = usable_segments(segments)
+
+    assert kept == segments
+    assert dropped == 0

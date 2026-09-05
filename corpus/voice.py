@@ -46,6 +46,24 @@ class Embedder:
         # exactly 16000/48000). There is no single rate to assume: the
         # archive is measured mixed, 48kHz for 83% of episodes and 44.1kHz
         # for the rest, so the file has to be asked.
+        # A CORRECTION, recorded here because commit 68231ba stated the
+        # opposite as its evidence and commit messages cannot be edited.
+        # That message said the enrolment clips "never reach this
+        # arithmetic". THEY DO -- `speaker_embed.embed_every_clip` calls this
+        # very method as `embed(path, 0.0, 3600.0)`.
+        #
+        # The conclusion it supported still holds, for a different reason:
+        # the offset is `0.0 * native == 0` at any rate, so the seek is
+        # scale-invariant there; and 3600s exceeds every clip, so the
+        # short-crop guard below is suppressed by its own end-of-file
+        # exemption. The labelled clip vectors really are unaffected and the
+        # 0.516/0.074 thresholds really did not need re-measuring.
+        #
+        # Worth keeping because that claim is the one that licensed NOT
+        # re-running the bake-off, and it named a code path as its evidence
+        # while getting the code path wrong. A right answer for a wrong
+        # reason is not a right answer; it is an accident that will not
+        # repeat.
         info = torchaudio.info(path)
         native = int(info.sample_rate)
         offset = int(start_s * native)
