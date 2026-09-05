@@ -133,6 +133,23 @@ def stamp_chunks(chunks: list[dict], identified: dict[str, str]) -> int:
     A cluster with no match is skipped rather than given a placeholder. An
     absent `speaker_id` IS the unidentified state -- writing a sentinel would
     put a value meaning "no value" into the field the MCP filter matches on.
+
+    KNOWN EXPOSURE, confirmed by
+    `tests/test_write_path.py::test_a_stale_speaker_id_survives_a_re_transcribe`.
+    This function can ADD a `speaker_id` and can never REMOVE one. Chroma
+    merges metadata and `corpus/writing.py` writes POSITIONAL chunk ids, so
+    re-transcribing an episode that already carries identities -- transcript
+    lost from the volume, or a forced re-run -- renumbers the diarisation
+    clusters while chunk i keeps the PREVIOUS run's `speaker_id`. A chunk
+    labelled `SPEAKER_02` can then carry a name assigned when cluster 2 was
+    somebody else, and `display_speaker` prefers `speaker_id`, so a reader
+    sees a confident wrong name.
+
+    NOT fixed here, because the only cure is deleting the episode's records
+    before writing, and `upsert_then_prune` deliberately upserts first so a
+    crash mid-write leaves MORE data rather than less. Reversing that is a
+    write-path decision, not an identity one. Routine ingest never hits it:
+    an episode is transcribed once.
     """
     stamped = 0
     for chunk in chunks:

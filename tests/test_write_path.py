@@ -352,3 +352,55 @@ def test_prune_by_guid_never_crosses_a_show_boundary(collection):
         == 30
     )
     assert len(paged_get_ids(collection, episode_where(SHOW, EP, DATE))) == 25
+
+
+# --- stale speaker_id across a re-transcribe --------------------------------
+#
+# Reported PLAUSIBLE by the whole-branch review; this test settles it.
+#
+# upsert_then_prune writes POSITIONAL ids (chunk_id(prefix, i)) and Chroma
+# MERGES metadata. stamp_chunks writes speaker_id only for matched clusters
+# and cannot remove one. So if an episode that already carries speaker_id is
+# transcribed AGAIN -- transcript lost from the volume, or a forced re-run --
+# diarisation renumbers SPEAKER_XX and re-chunking shifts boundaries, but
+# chunk i keeps the PREVIOUS run's speaker_id. A chunk whose speaker is now
+# SPEAKER_02 can carry a name assigned when cluster 2 was somebody else, and
+# display_speaker prefers speaker_id, so a reader sees a confident wrong name.
+
+
+def test_a_stale_speaker_id_survives_a_re_transcribe(collection):
+    """CONFIRMS the exposure. This is documentation of real behaviour."""
+    from corpus.writing import upsert_then_prune
+
+    args = dict(
+        show="A Show", episode_number="1", date_str="2026-01-01", episode_guid=None
+    )
+
+    first = [
+        {
+            "text": "[SPEAKER_01] first run",
+            "metadata": {"speaker": "SPEAKER_01", "speaker_id": "Marko Papic"},
+        }
+    ]
+    upsert_then_prune(collection, first, [[0.1]], **args)
+
+    # Second run: diarisation renumbered, and this cluster matched NOBODY, so
+    # stamp_chunks writes no speaker_id at all for it.
+    second = [
+        {"text": "[SPEAKER_02] second run", "metadata": {"speaker": "SPEAKER_02"}}
+    ]
+    upsert_then_prune(collection, second, [[0.2]], **args)
+
+    # No where-filter: the fixture metadata carries no `show` key, so
+    # filtering on one returns an empty result that would read as a passing
+    # test rather than a broken query.
+    stored = collection.get(include=["metadatas"])
+    assert len(stored["metadatas"]) == 1, stored
+    meta = stored["metadatas"][0]
+
+    assert meta["speaker"] == "SPEAKER_02", "the cluster label did update"
+    assert meta.get("speaker_id") == "Marko Papic", (
+        "EXPOSURE CONFIRMED: the previous run's speaker_id survived onto a "
+        "renumbered cluster. Chroma merges metadata and a key cannot be "
+        "removed by writing; only deleting the record clears it."
+    )
