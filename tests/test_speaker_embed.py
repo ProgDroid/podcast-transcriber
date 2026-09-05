@@ -228,3 +228,75 @@ def test_both_call_sites_go_through_the_one_dedup_helper():
     # No open-coded second copy of the keying rule at either site.
     assert 'record["cluster"]' not in judge
     assert 'record["cluster"]' not in writer
+
+
+# --- embed_every_clip -------------------------------------------------------
+#
+# Filed as a minor while this output only fed a one-off bake-off: it raised
+# only when NOTHING embedded, so 380 of 381 returned quietly. It stopped
+# being minor on 2026-09-04, when speakers/clip_vectors_<embedder>.json
+# became a MOUNTED INPUT to the nightly ingest -- the five enrolment
+# centroids are rebuilt from it on every run, so a partial regeneration would
+# narrow the evidence behind each voice and shift live assignments with
+# nothing raising.
+
+
+class _StubEmbedder:
+    """Fails for any clip whose stem is in `bad`; no audio is touched."""
+
+    def __init__(self, bad: set[str] | None = None) -> None:
+        self.bad = bad or set()
+        self.seen: list[str] = []
+
+    def embed(self, path: str, start_s: float, length_s: float) -> list[float]:
+        from pathlib import Path as _P
+
+        stem = _P(path).stem
+        self.seen.append(stem)
+        if stem in self.bad:
+            raise OSError("decode failed")
+        return [0.1, 0.2]
+
+
+def _paths(*stems: str):
+    from pathlib import Path as _P
+
+    return [_P(f"/clips/{s}.mp3") for s in stems]
+
+
+def test_every_clip_embedding_returns_them_all():
+    from speaker_embed import embed_every_clip
+
+    out = embed_every_clip(_paths("a", "b", "c"), _StubEmbedder())
+
+    assert sorted(out) == ["a", "b", "c"]
+
+
+def test_one_failed_clip_raises_rather_than_returning_a_partial_basis():
+    """The whole point: 2 of 3 must not come back looking like a result."""
+    import pytest
+
+    from speaker_embed import embed_every_clip
+
+    with pytest.raises(RuntimeError, match="1 of 3 clips failed"):
+        embed_every_clip(_paths("a", "b", "c"), _StubEmbedder(bad={"b"}))
+
+
+def test_the_failing_clip_is_named():
+    """A count alone does not tell an operator which file to look at."""
+    import pytest
+
+    from speaker_embed import embed_every_clip
+
+    with pytest.raises(RuntimeError, match="b: OSError"):
+        embed_every_clip(_paths("a", "b", "c"), _StubEmbedder(bad={"b"}))
+
+
+def test_an_empty_clips_mount_raises():
+    """clips=0 is a broken image, not an empty evaluation set."""
+    import pytest
+
+    from speaker_embed import embed_every_clip
+
+    with pytest.raises(RuntimeError, match="broken image"):
+        embed_every_clip([], _StubEmbedder())

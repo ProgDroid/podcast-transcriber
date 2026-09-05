@@ -81,29 +81,58 @@ def embed_clips(embedder_name: str) -> dict[str, list[float]]:
     embedder choice gets decided on real labelled voices before the archive
     pass runs.
     """
-    embedder = load_embedder(embedder_name, os.environ["HF_TOKEN"], model_home=MODEL_PATH)
-    out: dict[str, list[float]] = {}
-    failures: list[str] = []
-
+    embedder = load_embedder(
+        embedder_name, os.environ["HF_TOKEN"], model_home=MODEL_PATH
+    )
     paths = sorted(Path("/clips").glob("*.mp3"))
     print(f"clips={len(paths)} embedder={embedder_name}")
+    out = embed_every_clip(paths, embedder)
+    print(f"embedded={len(out)}")
+    print("EMBED CLIPS COMPLETE")
+    return out
+
+
+def embed_every_clip(paths, embedder) -> dict[str, list[float]]:
+    """Every clip, or an exception. A partial result is a FAULT, not a result.
+
+    This used to raise only when NOTHING embedded, so 380 of 381 returned
+    quietly. That was filed as a minor while the output only fed a one-off
+    bake-off. It stopped being minor on 2026-09-04, when
+    `speakers/clip_vectors_<embedder>.json` became a mounted input to the
+    NIGHTLY INGEST: the five enrolment centroids are derived from it on every
+    run, so a partial regeneration would silently narrow the evidence behind
+    each voice, shift every centroid, and change live assignments with
+    nothing raising anywhere.
+
+    These are local files, already cut, already on disk. There is no
+    legitimate reason for one to fail, so there is no partial mode to allow.
+    """
+    if not paths:
+        raise RuntimeError(
+            "no clips found -- an empty /clips mount is a broken image, not "
+            "an empty evaluation set"
+        )
+
+    out: dict[str, list[float]] = {}
+    failures: list[str] = []
     for path in paths:
         try:
             # window="whole" over the entire clip: these were cut to length
             # already, so there is nothing further to crop.
             out[path.stem] = embedder.embed(str(path), 0.0, 3600.0)
-        except Exception as e:  # noqa: BLE001 - collected, not swallowed
+        except Exception as e:  # noqa: BLE001 - collected, then raised below
             failures.append(f"{path.stem}: {type(e).__name__}: {e}")
 
-    print(f"embedded={len(out)} failed={len(failures)}")
-    for line in failures[:10]:
-        print(f"  FAILED {line}")
-    if not out:
+    if failures:
+        head = list(failures[:10])
+        if len(failures) > 10:
+            head.append(f"... and {len(failures) - 10} more")
         raise RuntimeError(
-            "no clip produced a vector -- this is a broken embedder, not an "
-            "empty input directory"
+            f"{len(failures)} of {len(paths)} clips failed to embed. "
+            f"Refusing to return a partial enrolment basis -- the nightly "
+            f"ingest derives its centroids from this file. "
+            + "; ".join(head)
         )
-    print("EMBED CLIPS COMPLETE")
     return out
 
 
@@ -339,8 +368,14 @@ def main(
         return
 
     if limit:
+        # DELIBERATELY before the --resume filter below, so `--limit N` names
+        # the same N episodes of the FULL plan on every run. That makes a
+        # smoke test reproducible; it also means `--limit N --resume` does NOT
+        # mean "do N more" -- if those N are already complete it does nothing.
+        # Kept, because a reproducible smoke test is worth more here than a
+        # convenient one, and the full run passes no --limit at all.
         jobs = jobs[:limit]
-        print(f"LIMITED to {len(jobs)} episodes")
+        print(f"LIMITED to {len(jobs)} episodes (of the full plan, pre-resume)")
 
     # Streamed to disk as each episode returns, rather than accumulated in
     # memory and written once at the end. The full run is 433 episodes over
