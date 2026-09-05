@@ -1,6 +1,22 @@
 # Design note: naming speakers, and keeping identity stable across episodes
 
-**Status: not built. Design note only, written 2026-08-31.**
+**Status: SUPERSEDED and PARTLY WRONG. Written 2026-08-31 as a design note;
+built differently and shipped 2026-09-04.**
+
+**Read
+[`superpowers/specs/2026-09-02-speaker-grouping-design.md`](superpowers/specs/2026-09-02-speaker-grouping-design.md)
+instead.** This file is kept because its statement of the *problem* (below)
+is still the clearest one, and because the reasoning that led away from it is
+worth seeing. Its **plan** is not: three specific passages, marked inline,
+would lead a contributor to build the exact defect the shipped design exists
+to prevent. Each is struck where it appears rather than only here, because a
+reader arriving from a search lands mid-document and never sees this banner.
+
+What actually shipped: five voices enrolled from 208 voice-verified clips,
+matched against every cluster in the archive, written to Chroma as a NEW
+`speaker_id` key by a metadata-only `collection.update()` -- 22,483 of 29,160
+chunks, no GPU, no re-embed. Since 2026-09-04 the nightly ingest assigns
+identity itself, so no further backfill is needed.
 
 ## The problem
 
@@ -40,17 +56,38 @@ Three things make this much easier than the general speaker-ID problem:
 
 Speaker **identification** on top of the existing diarisation:
 
-1. **Embed voices, not just words.** Run a speaker-embedding model
-   (`pyannote/embedding`, or `speechbrain/spkrec-ecapa-voxceleb`) over each
+1. **Embed voices, not just words.** ~~Run a speaker-embedding model
+   (`pyannote/embedding`, or `speechbrain/spkrec-ecapa-voxceleb`)~~ over each
    diarised segment to get a fixed-size voice vector.
+
+   > **WRONG — both models were measured unusable on 2026-09-02.**
+   > `pyannote/embedding` returns a 403 `GatedRepoError` under the token this
+   > project holds, and `speechbrain/spkrec-ecapa-voxceleb` is absent from the
+   > image entirely. What is used instead is the embedder that ships INSIDE
+   > `pyannote/speaker-diarization-community-1`, in its `embedding`
+   > subfolder -- the same checkpoint that produced the diarisation clusters,
+   > so no second model is loaded. See `corpus/voice.py`.
 2. **Enrol once, by hand.** For each known host, pick a few clean segments and
    label them. Store the centroid vector per person. This is a one-off of maybe
    an hour, and it is the only manual step.
 3. **Match per episode.** For each diarised cluster in a new episode, compute its
    centroid and cosine-match it against the enrolled centroids. Above threshold,
    assign the name. Below threshold, leave it as `guest_1`, `guest_2`.
-4. **Write the name into the existing `speaker` metadata field.** Everything
-   downstream picks it up for free.
+4. ~~**Write the name into the existing `speaker` metadata field.** Everything
+   downstream picks it up for free.~~
+
+   > **DO NOT DO THIS. It is the specific defect the shipped design exists to
+   > prevent, and it fails in a way your tests will not catch.**
+   > `corpus/chunking.py` bakes the cluster label into the document text as a
+   > `[SPEAKER_01] ` prefix, and `corpus/rendering.py` strips that prefix
+   > using the value of the `speaker` metadata field. Overwrite `speaker`
+   > with a person's name and the strip no longer matches, so `[SPEAKER_01]`
+   > leaks back into the very text the name was meant to replace -- in the
+   > rendered output only. Unit tests over the metadata pass; the product is
+   > visibly corrupt.
+   >
+   > Identity is written to a NEW `speaker_id` key instead, leaving `speaker`
+   > untouched. See spec section 2.2 and `backfill_speaker_id.py`.
 
 Optionally, recurring unknowns can be auto-enrolled: if the same unmatched voice
 appears across several episodes, it is probably a regular and worth a name.
@@ -67,10 +104,20 @@ appears across several episodes, it is probably a regular and worth a name.
 So `SPEAKER_00` is inside the string that gets embedded by BGE and stored as the
 document. Two consequences:
 
-- **Renaming retroactively is a re-embed, not a metadata update.** Backfilling
-  names across the existing corpus (~27k records at the time of writing) means
-  re-running the embedding step, which is GPU time. It is not a cheap
-  `collection.update()` on metadata.
+- ~~**Renaming retroactively is a re-embed, not a metadata update.**
+  Backfilling names across the existing corpus (~27k records at the time of
+  writing) means re-running the embedding step, which is GPU time. It is not a
+  cheap `collection.update()` on metadata.~~
+
+  > **FALSIFIED by the 2026-09-04 backfill, which was exactly the cheap
+  > metadata-only `collection.update()` this paragraph says is impossible:**
+  > 22,483 of 29,160 chunks, no GPU, no re-embed, documents and embeddings
+  > preserved (verified by reading them back). The claim only held under the
+  > plan above, where the name overwrites `speaker` and therefore changes the
+  > document text. Writing a separate `speaker_id` key does not touch the
+  > document, so nothing needs re-embedding. Measured on chromadb 1.5.9:
+  > `update()` preserves document and embedding and MERGES metadata, while a
+  > metadata-only `upsert()` is rejected client-side.
 - **Going forward, a real name in that string is an improvement, not just
   cosmetic.** `[Jacob Shapiro] ...` gives the embedding a meaningful token that a
   query like "what does Jacob Shapiro think" can partially match on, where

@@ -411,16 +411,29 @@ def process_episodes(
             # episode in the batch, so it is named ONCE and loudly, and the
             # transcription still runs.
             enrolment = {}
+            embedder = None
             print(f"ENROLMENT UNAVAILABLE: {type(e).__name__}: {e}")
             failures.append(
                 f"{show_name}: speaker enrolment unavailable, this batch is "
                 f"stored WITHOUT speaker_id: {type(e).__name__}: {e}"
             )
-        if not enrolment:
-            failures.append(
-                f"{show_name}: zero enrolment centroids; episodes are stored "
-                f"WITHOUT speaker_id and will not appear in speaker filters."
-            )
+        else:
+            # `else`, NOT a bare `if`. Both arms describe the same outcome --
+            # no centroids -- but they are different faults, and appending
+            # from both reported one failure twice. `transcribe()` raises on
+            # any non-empty failure list, so every extra entry dilutes that
+            # list as a triage signal.
+            #
+            # Reaching here means the files loaded and parsed and STILL
+            # produced nothing: no voice-verified label overlapped the clip
+            # vectors. That is a keying fault, not a missing mount.
+            if not enrolment:
+                failures.append(
+                    f"{show_name}: enrolment inputs loaded but yielded zero "
+                    f"centroids -- no voice-verified label overlapped the "
+                    f"clip vectors. Episodes are stored WITHOUT speaker_id "
+                    f"and will not appear in speaker filters."
+                )
 
     for episode in to_transcribe:
         episode_number = episode["episode_number"]
@@ -533,6 +546,23 @@ def process_episodes(
                         f"{sorted(set(identified.values()))}; "
                         f"{stamped}/{len(chunks)} chunks stamped."
                     )
+                    missing = set(identified) - {
+                        c["metadata"].get("speaker") for c in chunks
+                    }
+                    if missing:
+                        # PARTIAL drift -- some labels joined, some did not.
+                        # A WARNING and deliberately NOT a failure, because
+                        # it has a real false positive: `build_chunks` emits
+                        # a chunk only when a segment carries words, while
+                        # `select_crop_turns` gates on a turn duration
+                        # derived from segment GAPS. A music bed or a long
+                        # silence can therefore be long enough to crop and
+                        # identify while producing no words and so no chunk.
+                        print(
+                            f"WARNING ep{episode_number}: identified clusters "
+                            f"with no matching chunk: {sorted(missing)}"
+                        )
+
                     if identified and not stamped:
                         # Clusters were named and NOT ONE chunk took a
                         # value. Both come from the same segments, so a
