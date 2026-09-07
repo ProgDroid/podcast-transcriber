@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27309bd2-5b49-424f-acba-3c36276e31a7
-  modified: 2026-09-07T11:26:25.346Z
+  modified: 2026-09-07T19:02:45.741Z
 ---
 
 Four follow-ups agreed 2026-09-05. **Two of them are now built.** Design of
@@ -15,7 +15,8 @@ the phase gate".
 
 **1 + 2 were designed together and land in two phases.**
 
-**PHASE 1 — BUILT 2026-09-07, NOT DEPLOYED.** Closes item 2 (the two paths
+**PHASE 1 — BUILT AND DEPLOYED 2026-09-07 (`podcast-transcriber` v7, 18:21
+UTC), landing-order step 1 of 4 done.** Closes item 2 (the two paths
 that stored records with no identity and never recovered; review found a
 third, `identify_clusters` raising). `identity_version` records that
 identification RAN, never what it matched — the distinction that matters,
@@ -28,11 +29,53 @@ three refusals, `cap_work`, the absolute backlog plus a **re-measured**
 verified count, `stamp_identity_version.py`, and the phase-1 guard in
 `transcribe.py`. 384 tests pass.
 
-  **DO NOT DEPLOY WITHOUT THE LANDING ORDER.** `IDENTITY_REPAIR_CAP` ships at
-  `0` on purpose. Deploy → one night of classification only → run
-  `stamp_identity_version.py` (dry run, then `--apply --expect N`) → check the
-  counts → only then raise the cap to 25. Deploying the signal before the
-  stamp queues all 433 episodes on night one. **Verified 2026-09-07 against
+  **THE LANDING ORDER IS HALF-RUN — DO NOT SKIP AHEAD.**
+  `IDENTITY_REPAIR_CAP` shipped at `0` as intended, so the deployed run
+  classifies and reports and acts on nothing.
+
+  **PRE-REGISTERED 2026-09-07, BEFORE THE RUN — the numbers to check the
+  2026-09-08 09:00 UTC output against.** `scheduled_job` calls
+  `transcribe.remote` once per show, so expect THREE backlog lines, not one
+  aggregate:
+
+  | Show | `IDENTIFY_ONLY` | `TRANSCRIBE` |
+  |---|---|---|
+  | The Jacob Shapiro Podcast | **349** | 1 (ep 354) |
+  | Geopolitical Cousins | **76** | 1 (ep 77) |
+  | The Observing Japan Podcast | **7** | 0 |
+  | total | **432** | 2 |
+
+  **432, NOT 433**, for two reasons that a re-derivation must reproduce:
+  (a) **JSP episode 7 has rolled off the feed** — measured from the live
+  feed, whose oldest entry is now ep 8 (2022-06-03). A stamped-but-
+  unreachable episode can never be classified. (b) The two episodes
+  published **2026-09-07 12:30 UTC** arrived AFTER that day's run, so they
+  are `TRANSCRIBE`, and v7's ingest path stamps `identity_version`
+  directly — they never enter the backlog. Tells: `433` = ep 7 is being
+  counted; `435` = both corrections wrong; a SMALL number = the planner is
+  not reading the key (the runbook's main warning); non-zero `EMBED_ONLY`
+  pulls `IDENTIFY_ONLY` down by that amount and still reconciles.
+  UNVERIFIED assumption, self-checking in the same output: that all 432 are
+  complete and rules-current.
+
+  Then → `stamp_identity_version.py` (dry run, then `--apply --expect N`),
+  **still `--expect 433`**: selection is by triple against the STORE, not
+  the feed, so the roll does not touch it and ep 7 is still stamped.
+  Then → **the night after the stamp should be `0`, not "the post-boundary
+  episodes"** as the runbook says: that wording predates this deploy, and
+  because v7 went live BEFORE those two episodes were ingested they get
+  stamped at ingest, while nothing was published between the archive
+  boundaries and 2026-09-07. `432` there means the stamp did not land.
+  → only then raise the cap to 25. Raising the cap before the stamp queues
+  all 433 episodes on night one.
+
+  To re-derive the feed side (the runbook's "enumerated from the feeds
+  BEFORE the run"): the `uv` env has NO `feedparser`; use system `py` with
+  `PYTHONPATH=G:/audio-transcription/via-modal`, importing the planner's own
+  `parse_all_episodes` and the stamp script's own `episode_triples` so
+  neither number is a lookalike. The control that caught the ep-7 roll:
+  assert feed-episodes-at-or-before-boundary EQUALS the archive count per
+  show (350/76/7), not merely that the totals look right. **Verified 2026-09-07 against
   the real `speakers/assignments.json`: 970 cluster records, 433 distinct
   episodes, 3 shows (350/76/7), 704 named / 266 not, 0 episodes with zero
   named clusters.**
