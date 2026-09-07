@@ -4,13 +4,13 @@ description: Podcast transcripts live SOLELY on US Chroma (geo-podcasts-us); EU 
 metadata: 
   node_type: memory
   type: project
+  originSessionId: d5442bb9-4860-4afe-86c0-a2c2303e6860
 ---
 
 On 2026-07-09 the `podcast_transcripts` collection (27,455 records) was migrated from the
 EU Chroma Cloud DB `geo-podcasts` (`europe-west1.gcp.trychroma.com`) to the US DB
-`geo-podcasts-us` (default region `aws-us-east-1`). **Same tenant for both** (the tenant UUID is
-in the `CHROMA_TENANT` env var, deliberately not recorded here); only the database name + api key
-+ region differed.
+`geo-podcasts-us` (default region `aws-us-east-1`). Same tenant `54080e7f-a3a8-4364-9d7a-b5f1d904ef36`
+for both; only the database name + api key + region differed.
 
 **Cutover is complete and the EU DB `geo-podcasts` was DELETED on 2026-07-09** after the user
 confirmed all data was on US only. There is **no rollback path** anymore — US `geo-podcasts-us` is

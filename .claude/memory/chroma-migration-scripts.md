@@ -4,6 +4,7 @@ description: "Reusable env-driven Chroma DB-to-DB copy+validate scripts in migra
 metadata: 
   node_type: memory
   type: reference
+  originSessionId: d5442bb9-4860-4afe-86c0-a2c2303e6860
 ---
 
 Reusable Chroma Cloud DB→DB migration tooling lives in `G:\audio-transcription\via-modal\migration\`:
