@@ -112,6 +112,15 @@ the EMBED_ONLY re-embed has no audio and cannot identify, and an enrolment
 failure stores a batch unstamped. Planning decides SKIP/EMBED_ONLY on record
 counts, never on `speaker_id` presence.
 
+> **RESOLVED** by phase 1 of
+> [the identity lifecycle design](superpowers/specs/2026-09-05-identity-lifecycle-design.md).
+> `identity_version` records that identification RAN, `IDENTIFY_ONLY`
+> queues the episodes it did not, and `repair_identity` re-earns them from
+> audio with a metadata-only write. There was a third producer the two
+> above missed: `identify_clusters` raising on one episode does the same
+> for that episode. All three self-heal for the same reason -- they skip
+> the call that writes the version.
+
 ---
 
 ## 4. Known exposure, not fixed
@@ -126,6 +135,20 @@ clusters while chunk *i* keeps the previous run's value — a chunk labelled
 episode's records before writing, and `upsert_then_prune` upserts first *on
 purpose* so a crash mid-write leaves more data rather than less. Reversing
 that is a write-path decision with its own failure modes.
+
+> **STILL OPEN, and now designed.** Phase 2 of
+> [the identity lifecycle design](superpowers/specs/2026-09-05-identity-lifecycle-design.md)
+> fixes it with `replace_identity` -- a delete before the upsert on the two
+> paths that move chunk boundaries. Two things this entry got wrong, both
+> found by review: the exposure is **not confined to re-transcription** --
+> the mechanism is positional ids plus metadata merge, so it fires on a
+> `RULES_VERSION` bump and on the repair of a torn episode too -- and the
+> delete is only affordable **because** phase 1's repair path now exists to
+> re-earn a cleared name.
+>
+> Until phase 2 lands, `transcribe.py` withholds `identity_version` from
+> any episode whose stored records already carry a name, so a stale stamp
+> can be wrong but can never be **certified**. See `docs/operations.md`.
 
 ---
 

@@ -1,5 +1,23 @@
 # Design note: naming speakers, and keeping identity stable across episodes
 
+> **This note is the ORIGINAL PROPOSAL, kept for its reasoning.** It was
+> picked up and built. For what actually exists, read
+> [`docs/speaker-identity-decisions.md`](speaker-identity-decisions.md)
+> (what was decided, and which claims turned out wrong) and
+> [the identity lifecycle design](superpowers/specs/2026-09-05-identity-lifecycle-design.md)
+> (how a name is cleared and a missing one healed). Two things the
+> proposal below did not anticipate, both of which cost real work:
+>
+> - **Identity has a lifecycle, not just a moment.** Naming at ingest is
+>   the easy half. Records outlive the run that named them, Chroma merges
+>   metadata onto positional ids, and a name can therefore go stale or go
+>   missing with nothing detecting either. `identity_version` exists
+>   because of that, and it is the piece the proposal has no equivalent of.
+> - **"Unknown as the fallback" is not one state.** A cluster nobody
+>   enrolled matches (27% of them, legitimately) and a cluster nothing ever
+>   tried to match look identical in `speaker_id`, and only one of them
+>   needs repairing. Conflating them is a queue that never terminates.
+
 **Status: SUPERSEDED and PARTLY WRONG. Written 2026-08-31 as a design note;
 built differently and shipped 2026-09-04.**
 

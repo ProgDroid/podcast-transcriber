@@ -31,6 +31,12 @@ Shapiro episodes have aged off the front of their feed.
 
 ## Repairing a show
 
+> Repairing *chunks*. For repairing *identity* -- an episode stored
+> without a `speaker_id` because it was re-embedded with no audio, or
+> because enrolment failed that night -- see **Identity repair** below.
+> They are different actions with different containers, and a re-embed
+> does not fix identity.
+
 ```bash
 uv run modal run transcribe.py::transcribe \
   --feed-url "<feed url>" --show-name "<show name>"
@@ -129,6 +135,111 @@ load-bearing:
    still in the reachable feed, so their absence from `MISSING` can only mean
    the feed-derived triple matches the exclusion triple exactly — using the
    same derivation the planner uses.
+
+## Identity repair, and the phase gate
+
+Design: [`docs/superpowers/specs/2026-09-05-identity-lifecycle-design.md`](superpowers/specs/2026-09-05-identity-lifecycle-design.md).
+**Phase 1 is built. Phase 2 is not.** The two constraints at the bottom of
+this section apply for as long as that is true.
+
+### The key, and why it is not `speaker_id`
+
+`identity_version` (`"1@1"` — `IDENTITY_RULES_VERSION@RULES_VERSION`) records
+that identification **ran** over an episode's chunks under these rules. It
+never carries an outcome.
+
+The distinction is the whole point. `speaker_id` present means matched, absent
+means unmatched, and **266 of the 970 archive clusters (27%) are legitimately
+unmatched** — nobody enrolled speaks in them. A planner keyed on `speaker_id`
+absence would re-download the audio of every one of those episodes every
+night, forever. `identity_version` is what lets an episode where nobody
+matched reach `SKIP` and stay there.
+
+It is written on **every** chunk of an episode, including the chunks of
+clusters that matched nobody, because `episode_state` reads metadata from one
+arbitrary record. Non-uniformity is the one state that read cannot survive.
+
+### The new action
+
+`IDENTIFY_ONLY` — complete, rules-current, and `identity_version` missing or
+stale. Ordered **last**, after the completeness and rules checks: identity is
+derived from chunks, so chunks settle first.
+
+`repair_identity` acts on it. It re-reads the **saved transcript**, identifies
+from audio, and writes **metadata only** — it never re-diarises (labels would
+not match the stored `speaker` values) and never re-transcribes (that moves
+chunk boundaries). A mid-run kill is harmless.
+
+### Reading the nightly output
+
+```
+identity backlog 312 (repairing 25 this run, 287 left)
+repaired 25, verified current 25
+```
+
+- **`identity backlog N`** is ABSOLUTE, and it is the number to compare across
+  nights. A backlog reported only as a delta is indistinguishable, on night 6
+  of a drain, from a queue that has been stuck since night 2.
+- **`verified current`** is RE-MEASURED, not `25 - 0`. After the repair the run
+  re-plans only the episodes it just repaired and asks whether they are now
+  identity-current. Arithmetic would be blind to precisely the failure a
+  metadata-only `update()` invites: reporting success and writing nothing.
+  `verified` below `repaired` raises.
+- **`IDENTITY REPAIR REFUSED`** — the repair declined to half-fix an episode.
+  Most often a stored `speaker_id` the fresh run does not confirm. Refusals
+  write nothing at all, so the episode stays queued and says so again
+  tomorrow.
+- **`IDENTITY CONFLICT`** — one label maps to two people in stored records.
+  **Do not read this as corruption.** A same-day unnumbered triple collision
+  makes two distinct episodes share `episode_id_prefix` and interleave, at
+  which point one label legitimately carries two people. Check the triple
+  before concluding the stamps are bad.
+- **`IDENTITY NOT CERTIFIED`** — the phase-1 guard fired (see below).
+
+### The landing order — do these in order
+
+1. **Deploy with `IDENTITY_REPAIR_CAP = 0`** (its committed value). The
+   planner classifies and reports and acts on nothing. One night of real
+   classification against production with no bandwidth spent.
+   - Expected on that night: `IDENTIFY_ONLY` near 439 minus exclusions —
+     essentially every episode, because nothing carries the key yet. **A small
+     number here means the planner is not reading it.**
+2. **Run the stamp pass:**
+   ```bash
+   uv run modal run stamp_identity_version.py                      # dry run
+   uv run modal run stamp_identity_version.py --apply --expect N   # N from the dry run
+   ```
+   Expected: **433** episodes across **3** shows (350 / 76 / 7). It verifies by
+   reading back and refuses to report success on a partial stamp.
+3. **Confirm the next night's plan.** Expected `IDENTIFY_ONLY` is the episodes
+   published since each show's archive boundary — 2026-08-31, 2026-08-22,
+   2026-06-19 — **enumerated from the feeds before the run**. Not zero, and
+   not the six aged-off Jacob Shapiro episodes, which contribute 0 because
+   `parse_all_episodes` never emits them.
+   - **A first-night `IDENTIFY_ONLY` of 433 means the stamp did not land.**
+4. **Only then raise `IDENTITY_REPAIR_CAP` to 25**, as a one-line commit. It is
+   a constant and not an env var on purpose: a bandwidth bound changeable in
+   the Modal dashboard with no code diff is the shape `resolve_collection_name`
+   exists to refuse.
+
+Caps are **per show, per run** — `scheduled_job` calls `transcribe.remote`
+once per show behind its own `try`, so there is no cross-show accumulator.
+
+### ⚠️ Two constraints that apply until phase 2 lands
+
+1. **Do not bump `RULES_VERSION`.** `EMBED_ONLY` would carry the identity map
+   forward correctly, but without phase 2's delete the old positional
+   `speaker_id`s survive on records the map does not cover.
+2. **Do not force a re-transcribe of an already-identified episode.** The
+   phase-1 guard makes this safe rather than silent — `transcribe.py` reads the
+   episode's prior records first, and withholds `identity_version` when any
+   name survives, printing `IDENTITY NOT CERTIFIED` and failing the run — but
+   the episode then needs an audio repair it would not otherwise have needed.
+
+Without that guard, such a write would stamp `identity_version` onto records
+still carrying positionally-stale names, **certifying** them: the episode
+would be wrong *and* retired from `IDENTIFY_ONLY` permanently, and phase 2
+ships no rescan.
 
 ## Pinning images
 
