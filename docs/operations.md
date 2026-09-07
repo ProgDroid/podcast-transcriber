@@ -18,8 +18,17 @@ MISSING (0)  EXTRA (0)  NON_CONTIGUOUS (0)  SHARED_PREFIXES (0)
 EXCLUDED_WITH_RECORDS (0)  INCOMPLETE (0)  FEED_UNREACHABLE (6)  CLEAN: True
 ```
 
-`FEED_UNREACHABLE (6)` is expected and is **not** a fault: six early Jacob
+`FEED_UNREACHABLE` is expected and is **not** a fault: the earliest Jacob
 Shapiro episodes have aged off the front of their feed.
+
+> **This number GROWS — it is a moving baseline, not a constant.** The feed
+> keeps a fixed window, so each time its front rolls, one more episode on the
+> volume stops being feed-reachable. It read `6` (episodes 1-6) when this was
+> written; **measured 2026-09-07 directly from the feed, episode 7 has also
+> rolled off — the oldest entry the feed now emits is episode 8 (2022-06-03),
+> so expect `7`.** Treat a value one higher than last time as normal, and only
+> the *shape* described below as a fault. `volume=439 feed=433` above moves
+> the same way: `feed` is a window, `volume` only grows.
 
 > **A transient feed failure invalidates that show's verdict.** If
 > `FEED_UNREACHABLE` lists *every* episode of a show, its feed did not load —

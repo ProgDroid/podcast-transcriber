@@ -38,6 +38,19 @@ feed, so `parse_all_episodes` never emits them and they can never be
 classified IDENTIFY_ONLY. Their contribution to the first-night count is 0,
 and they are deliberately not stamped: nothing ever asks about them.
 
+THE GAP GROWS, AND IT HAS. The feed keeps a fixed window, so the set of
+volume episodes it no longer emits gets bigger on its own. **Measured
+2026-09-07 against the live feed: episode 7 has also rolled off — the oldest
+entry emitted is now episode 8 (2022-06-03).**
+
+This does NOT change the stamp set or `--expect`. Selection is by triple
+against the STORE, not the feed, so episode 7 is still stamped and N is still
+433. What it changes is the FIRST-NIGHT prediction: an episode that is
+stamped but unreachable from the feed can never be counted, so the expected
+first-night IDENTIFY_ONLY is 433 minus however many have rolled off — **432
+as of 2026-09-07, not 433.** Re-derive it from the feed before the run rather
+than reusing this number; that is what it is for.
+
     modal run stamp_identity_version.py                      # dry run
     modal run stamp_identity_version.py --apply --expect N   # writes
 """
