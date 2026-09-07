@@ -1,4 +1,5 @@
 from corpus.completeness import episode_state, plan_episode
+from corpus.identity import IDENTITY_VERSION
 from corpus.planning import Action
 from corpus.store import batched
 
@@ -11,7 +12,9 @@ TRANSCRIPT = """# Geopolitical Cousins - Episode 73
 """
 
 
-def _seed(collection, n, *, n_chunks, rules_version="1"):
+def _seed(
+    collection, n, *, n_chunks, rules_version="1", identity_version=IDENTITY_VERSION
+):
     for batch in batched(list(range(n))):
         collection.upsert(
             ids=[f"Geopolitical_Cousins-ep73-2026-07-29-{i}" for i in batch],
@@ -23,6 +26,11 @@ def _seed(collection, n, *, n_chunks, rules_version="1"):
                     "date": DATE,
                     "n_chunks": n_chunks,
                     "rules_version": rules_version,
+                    **(
+                        {"identity_version": identity_version}
+                        if identity_version is not None
+                        else {}
+                    ),
                 }
                 for _ in batch
             ],
@@ -30,13 +38,14 @@ def _seed(collection, n, *, n_chunks, rules_version="1"):
 
 
 def test_state_of_an_absent_episode(collection):
-    ids, n_chunks, rules = episode_state(collection, SHOW, EP, DATE)
-    assert (ids, n_chunks, rules) == ([], None, None)
+    ids, n_chunks, rules, identity = episode_state(collection, SHOW, EP, DATE)
+    assert (ids, n_chunks, rules, identity) == ([], None, None, None)
 
 
 def test_state_reads_expected_count_and_version(collection):
     _seed(collection, 2, n_chunks=2)
-    ids, n_chunks, rules = episode_state(collection, SHOW, EP, DATE)
+    ids, n_chunks, rules, identity = episode_state(collection, SHOW, EP, DATE)
+    assert identity == IDENTITY_VERSION
     assert len(ids) == 2
     assert n_chunks == 2
     assert rules == "1"
@@ -174,4 +183,72 @@ def test_a_431_chunk_episode_is_judged_complete_not_looping(collection):
             expected_n_chunks=431,
         )
         is Action.SKIP
+    )
+
+
+def test_records_with_no_identity_version_are_queued_for_repair(collection):
+    # The live population: an EMBED_ONLY re-embed has no audio and cannot
+    # identify, and an enrolment failure stores the whole batch unstamped.
+    # Neither recovered before this branch existed, because decide_action
+    # looked only at completeness and the rules version.
+    _seed(collection, 2, n_chunks=2, identity_version=None)
+    assert (
+        plan_episode(
+            collection,
+            show=SHOW,
+            episode_number=EP,
+            date_str=DATE,
+            transcript_text=TRANSCRIPT,
+        )
+        is Action.IDENTIFY_ONLY
+    )
+
+
+def test_a_stale_identity_version_is_queued_for_repair(collection):
+    _seed(collection, 2, n_chunks=2, identity_version="0@1")
+    assert (
+        plan_episode(
+            collection,
+            show=SHOW,
+            episode_number=EP,
+            date_str=DATE,
+            transcript_text=TRANSCRIPT,
+        )
+        is Action.IDENTIFY_ONLY
+    )
+
+
+def test_an_identified_episode_that_matched_nobody_terminates(collection):
+    # THE TERMINATION TEST. `identity_version` records that identification
+    # RAN, never that it MATCHED, so an episode whose clusters are all
+    # legitimately unenrolled -- 27% of archive clusters are -- must reach
+    # SKIP and stay there. Planning it twice is the check: a signal keyed on
+    # `speaker_id` absence would re-queue it forever.
+    _seed(collection, 2, n_chunks=2)
+    for _ in range(2):
+        assert (
+            plan_episode(
+                collection,
+                show=SHOW,
+                episode_number=EP,
+                date_str=DATE,
+                transcript_text=TRANSCRIPT,
+            )
+            is Action.SKIP
+        )
+
+
+def test_a_torn_episode_is_re_embedded_before_its_identity_is_repaired(collection):
+    # Identity is derived from chunks. Repairing identity here would stamp a
+    # chunk set that is about to be rewritten.
+    _seed(collection, 1, n_chunks=2, identity_version=None)
+    assert (
+        plan_episode(
+            collection,
+            show=SHOW,
+            episode_number=EP,
+            date_str=DATE,
+            transcript_text=TRANSCRIPT,
+        )
+        is Action.EMBED_ONLY
     )

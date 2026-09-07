@@ -310,7 +310,13 @@ def process_episodes(
     from whisperx.diarize import DiarizationPipeline
 
     from corpus.enrolment import MARGIN, THRESHOLD
-    from corpus.identify import identify_clusters, stamp_chunks
+    from corpus.identify import (
+        has_stored_identity,
+        identify_clusters,
+        stamp_chunks,
+    )
+    from corpus.identity import IDENTITY_VERSION
+    from corpus.store import episode_where, paged_get
 
     hf_token = os.environ["HF_TOKEN"]
     device = "cuda"
@@ -540,7 +546,41 @@ def process_episodes(
                         margin=MARGIN,
                         episode_name=f"{show_name} - Episode {episode_number}",
                     )
-                    stamped = stamp_chunks(chunks, identified)
+                    # PHASE-1 GUARD. This path has no delete before its
+                    # write until phase 2 lands, and Chroma merges
+                    # metadata onto POSITIONAL ids -- so an episode that
+                    # already carries names keeps them on chunk i while
+                    # this run's diarisation has renumbered the clusters.
+                    # Writing identity_version over that would CERTIFY
+                    # the stale names and retire the episode from
+                    # IDENTIFY_ONLY permanently, and phase 2 ships no
+                    # rescan. Withhold, report, and let the repair path
+                    # refuse it again rather than half-fix it.
+                    prior = paged_get(
+                        collection,
+                        episode_where(show_name, episode_number, date_str),
+                        include=["metadatas"],
+                    )["metadatas"]
+                    guarded = has_stored_identity(prior)
+                    stamped = stamp_chunks(
+                        chunks,
+                        identified,
+                        identity_version=None if guarded else IDENTITY_VERSION,
+                    )
+                    if guarded:
+                        print(
+                            f"IDENTITY NOT CERTIFIED ep{episode_number}: "
+                            f"{len(prior)} stored record(s) already carry a "
+                            f"speaker_id, and this write cannot clear them. "
+                            f"Names written; identity_version withheld so "
+                            f"the episode stays queued for repair."
+                        )
+                        failures.append(
+                            f"{show_name} ep{episode_number} ({date_str}): "
+                            f"re-transcribed over existing speaker_id(s); "
+                            f"identity_version withheld, episode left "
+                            f"queued for IDENTIFY_ONLY."
+                        )
                     print(
                         f"Identity: {len(identified)} cluster(s) named "
                         f"{sorted(set(identified.values()))}; "

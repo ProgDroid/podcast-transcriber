@@ -10,8 +10,17 @@ from corpus.store import episode_where, is_complete, paged_get_ids
 
 def episode_state(
     collection, show: str, episode_number: str, date_str: str
-) -> tuple[list[str], int | None, str | None]:
-    """Stored ids, the expected chunk count, and the rules version.
+) -> tuple[list[str], int | None, str | None, str | None]:
+    """Stored ids, the expected chunk count, and the two version stamps.
+
+    `identity_version` comes from the SAME head-record read that already
+    yields `n_chunks` and `rules_version`, so it costs no extra round
+    trip. That read takes one arbitrary record -- `ids[:1]` after an
+    offset-paged get with no ordering guarantee, so "the first id" is not
+    "chunk 0" -- and is only sound because every record of an episode
+    agrees. `carry_identity` stamping the version onto EVERY chunk,
+    including chunks of clusters that matched nobody, is what makes that
+    hold by construction rather than by hope.
 
     The id list is PAGED. An unlimited get() silently returns 300, so an
     unpaged count against a 431-chunk episode reports short, judges a healthy
@@ -20,7 +29,7 @@ def episode_state(
     where = episode_where(show, episode_number, date_str)
     ids = paged_get_ids(collection, where)
     if not ids:
-        return [], None, None
+        return [], None, None, None
     head = collection.get(ids=ids[:1], include=["metadatas"])
     meta = (head.get("metadatas") or [{}])[0]
     n_chunks = meta.get("n_chunks")
@@ -28,6 +37,7 @@ def episode_state(
         ids,
         n_chunks if isinstance(n_chunks, int) else None,
         meta.get("rules_version"),
+        meta.get("identity_version"),
     )
 
 
@@ -58,6 +68,7 @@ def plan_episode(
             transcript_exists=False,
             complete_in_chroma=False,
             stored_rules_version=None,
+            stored_identity_version=None,
             excluded=excluded,
             parses_to_chunks=True,
         )
@@ -66,13 +77,14 @@ def plan_episode(
         expected_n_chunks = count_chunks_from_text(
             transcript_text, show, episode_number, "", date_str
         )
-    stored_ids, _stored_n, stored_rules = episode_state(
+    stored_ids, _stored_n, stored_rules, stored_identity = episode_state(
         collection, show, episode_number, date_str
     )
     return decide_action(
         transcript_exists=True,
         complete_in_chroma=is_complete(stored_ids, expected_n_chunks),
         stored_rules_version=stored_rules,
+        stored_identity_version=stored_identity,
         excluded=excluded,
         parses_to_chunks=expected_n_chunks > 0,
     )

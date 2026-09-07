@@ -33,7 +33,13 @@ from corpus.planning import Action
 class ShowPlan:
     """The work a show needs, split by what kind of container can do it.
 
-    `to_transcribe` and `to_embed` carry the feed's own episode dicts
+    The three lists are three different containers, not three labels on
+    one: an identity repair needs the audio and the enrolment and needs
+    neither whisper nor the sentence transformer, so folding it into
+    `to_embed` would re-chunk a complete episode and still leave it
+    unidentified.
+
+    All three carry the feed's own episode dicts
     unchanged, because they cross a process boundary to the GPU worker and
     anything richer would have to survive serialisation for no gain. Ordering
     is the feed's ordering, preserved.
@@ -41,11 +47,12 @@ class ShowPlan:
 
     to_transcribe: list[dict] = field(default_factory=list)
     to_embed: list[dict] = field(default_factory=list)
+    to_identify: list[dict] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
 
     @property
     def has_work(self) -> bool:
-        return bool(self.to_transcribe or self.to_embed)
+        return bool(self.to_transcribe or self.to_embed or self.to_identify)
 
 
 def plan_show(
@@ -102,8 +109,10 @@ def plan_show(
             plan.to_transcribe.append(episode)
         elif action is Action.EMBED_ONLY:
             plan.to_embed.append(episode)
+        elif action is Action.IDENTIFY_ONLY:
+            plan.to_identify.append(episode)
         elif action is Action.SKIP:
-            pass  # complete and current -- nothing to do
+            pass  # complete, current, and identified -- nothing to do
         elif action is Action.EXCLUDE:
             pass  # deliberately kept out -- see corpus/exclusions.py
         elif action is Action.UNPARSEABLE:

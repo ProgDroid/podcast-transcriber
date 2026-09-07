@@ -1,7 +1,8 @@
 import pytest
 
 from corpus.exclusions import EXCLUDED_EPISODES, is_excluded
-from corpus.planning import Action, decide_action
+from corpus.identity import IDENTITY_VERSION
+from corpus.planning import Action, cap_work, decide_action
 
 
 def _decide(**overrides):
@@ -9,6 +10,7 @@ def _decide(**overrides):
         "transcript_exists": True,
         "complete_in_chroma": True,
         "stored_rules_version": "1",
+        "stored_identity_version": IDENTITY_VERSION,
         "excluded": False,
         "parses_to_chunks": True,
     }
@@ -138,3 +140,107 @@ def test_the_guid_arm_never_excludes_the_original_it_was_cross_posted_from():
     assert is_excluded(
         "The Jacob Shapiro Podcast", "Unknown", "2026-07-29", episode_guid=shared_guid
     )
+
+
+# --- IDENTIFY_ONLY ----------------------------------------------------------
+
+
+def test_stale_identity_version_queues_an_identity_repair():
+    # The signal records that identification RAN, not that it MATCHED. 27% of
+    # archive clusters legitimately match nobody, so a planner keyed on
+    # `speaker_id` absence would re-download their audio every night forever.
+    assert _decide(stored_identity_version="0@1") is Action.IDENTIFY_ONLY
+
+
+def test_absent_identity_version_queues_an_identity_repair():
+    # The state left by an EMBED_ONLY re-embed, an enrolment failure, and an
+    # identify_clusters exception -- the three producers that never recover
+    # today because decide_action never branches on identity.
+    assert _decide(stored_identity_version=None) is Action.IDENTIFY_ONLY
+
+
+def test_identity_is_not_repaired_while_the_episode_is_torn():
+    # Identity is derived from chunks, so chunks settle first. Repairing
+    # identity over a torn episode stamps a chunk set that is about to be
+    # rewritten.
+    assert (
+        _decide(complete_in_chroma=False, stored_identity_version=None)
+        is Action.EMBED_ONLY
+    )
+
+
+def test_identity_is_not_repaired_while_the_rules_version_is_stale():
+    assert (
+        _decide(stored_rules_version="0", stored_identity_version=None)
+        is Action.EMBED_ONLY
+    )
+
+
+def test_skip_requires_identity_current_as_well_as_complete_and_current():
+    assert _decide() is Action.SKIP
+
+
+def test_exclusion_beats_identify_only():
+    assert _decide(excluded=True, stored_identity_version=None) is Action.EXCLUDE
+
+
+def test_a_missing_transcript_is_transcribed_not_identity_repaired():
+    assert (
+        _decide(transcript_exists=False, stored_identity_version=None)
+        is Action.TRANSCRIBE
+    )
+
+
+def test_an_unparseable_transcript_is_not_identity_repaired():
+    assert (
+        _decide(parses_to_chunks=False, stored_identity_version=None)
+        is Action.UNPARSEABLE
+    )
+
+
+# --- cap_work ---------------------------------------------------------------
+
+
+def _eps(n):
+    return [{"episode_number": str(i)} for i in range(n)]
+
+
+def test_cap_work_under_the_cap_acts_on_everything_and_leaves_none():
+    todo, left = cap_work(_eps(3), 25)
+    assert [e["episode_number"] for e in todo] == ["0", "1", "2"]
+    assert left == 0
+
+
+def test_cap_work_at_the_cap_acts_on_everything_and_leaves_none():
+    todo, left = cap_work(_eps(25), 25)
+    assert len(todo) == 25
+    assert left == 0
+
+
+def test_cap_work_over_the_cap_acts_on_the_cap_and_reports_the_remainder():
+    todo, left = cap_work(_eps(30), 25)
+    assert len(todo) == 25
+    assert left == 5
+
+
+def test_cap_work_preserves_the_feeds_ordering():
+    # The caps drain a backlog nightly. Re-ordering here would let an episode
+    # at the tail starve while the head is repaired repeatedly.
+    todo, _ = cap_work(_eps(30), 3)
+    assert [e["episode_number"] for e in todo] == ["0", "1", "2"]
+
+
+def test_cap_work_at_zero_acts_on_nothing_and_reports_the_whole_backlog():
+    # Part 5's landing order: ship the code with the caps at 0 so the planner
+    # classifies and reports against production for one night with no
+    # bandwidth spent. A cap of 0 that acted on everything would spend it.
+    todo, left = cap_work(_eps(30), 0)
+    assert todo == []
+    assert left == 30
+
+
+def test_cap_work_does_not_alias_the_caller_list():
+    episodes = _eps(30)
+    todo, _ = cap_work(episodes, 25)
+    todo.append({"episode_number": "injected"})
+    assert len(episodes) == 30

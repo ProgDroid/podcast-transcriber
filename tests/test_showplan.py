@@ -4,6 +4,7 @@ Its failure-isolation behaviour was asserted only by a comment. These are the
 tests that comment was standing in for.
 """
 
+from corpus.identity import IDENTITY_VERSION
 from corpus.showplan import plan_show
 from corpus.store import batched
 
@@ -27,7 +28,16 @@ def _episode(number, date, **extra):
     return ep
 
 
-def _seed(collection, number, date, n, *, n_chunks, rules_version="1"):
+def _seed(
+    collection,
+    number,
+    date,
+    n,
+    *,
+    n_chunks,
+    rules_version="1",
+    identity_version=IDENTITY_VERSION,
+):
     prefix = f"Geopolitical_Cousins-ep{number}-{date}"
     for batch in batched(list(range(n))):
         collection.upsert(
@@ -40,6 +50,11 @@ def _seed(collection, number, date, n, *, n_chunks, rules_version="1"):
                     "date": date,
                     "n_chunks": n_chunks,
                     "rules_version": rules_version,
+                    **(
+                        {"identity_version": identity_version}
+                        if identity_version is not None
+                        else {}
+                    ),
                 }
                 for _ in batch
             ],
@@ -181,3 +196,57 @@ def test_feed_order_is_preserved(collection):
     plan = _plan(collection, episodes, {})
 
     assert [e["episode_number"] for e in plan.to_transcribe] == ["5", "3", "9", "1"]
+
+
+def test_an_episode_needing_identity_lands_in_its_own_bucket(collection):
+    # IDENTIFY_ONLY goes to a different worker than EMBED_ONLY: it needs the
+    # audio and the enrolment, and needs neither whisper nor the sentence
+    # transformer. Routing it into to_embed would re-chunk a complete episode
+    # and still leave it unidentified.
+    _seed(collection, "73", "2026-07-29", 2, n_chunks=2, identity_version=None)
+    plan = _plan(collection, [_episode("73", "2026-07-29")], {"73": TRANSCRIPT})
+
+    assert [e["episode_number"] for e in plan.to_identify] == ["73"]
+    assert plan.to_embed == [] and plan.to_transcribe == []
+    assert plan.failures == []
+
+
+def test_an_identity_only_plan_counts_as_work(collection):
+    # Without this the caller sees has_work False, starts no container, and
+    # the backlog is reported every night and never drained.
+    _seed(collection, "73", "2026-07-29", 2, n_chunks=2, identity_version=None)
+    plan = _plan(collection, [_episode("73", "2026-07-29")], {"73": TRANSCRIPT})
+
+    assert plan.has_work
+
+
+def test_identity_repairs_keep_the_feeds_ordering(collection):
+    for n, day in ((5, "05"), (3, "03"), (9, "09")):
+        _seed(
+            collection, str(n), f"2026-08-{day}", 2, n_chunks=2, identity_version=None
+        )
+    episodes = [_episode(str(n), f"2026-08-{n:02d}") for n in (5, 3, 9)]
+    plan = _plan(collection, episodes, {str(n): TRANSCRIPT for n in (5, 3, 9)})
+
+    assert [e["episode_number"] for e in plan.to_identify] == ["5", "3", "9"]
+
+
+def test_the_three_buckets_are_filled_in_one_pass(collection):
+    # The bug this guards is an episode routed to the wrong container, so all
+    # three kinds have to be present at once for the routing to be tested.
+    _seed(collection, "73", "2026-07-29", 2, n_chunks=2)
+    _seed(collection, "74", "2026-07-31", 1, n_chunks=2)
+    _seed(collection, "76", "2026-08-04", 2, n_chunks=2, identity_version=None)
+    episodes = [
+        _episode("73", "2026-07-29"),
+        _episode("74", "2026-07-31"),
+        _episode("75", "2026-08-02"),
+        _episode("76", "2026-08-04"),
+    ]
+    transcripts = dict.fromkeys(("73", "74", "76"), TRANSCRIPT)
+    plan = _plan(collection, episodes, transcripts)
+
+    assert [e["episode_number"] for e in plan.to_embed] == ["74"]
+    assert [e["episode_number"] for e in plan.to_transcribe] == ["75"]
+    assert [e["episode_number"] for e in plan.to_identify] == ["76"]
+    assert plan.failures == []

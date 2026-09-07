@@ -24,6 +24,23 @@ import re
 # rules-change re-embed a silent no-op.
 RULES_VERSION = "1"
 
+# Did identification RUN over these chunks, under these rules? It NEVER
+# carries an outcome. `speaker_id` keeps its contract unchanged -- present
+# means matched, absent means unmatched -- and this key carries what that
+# absence could never express. 27% of archive clusters legitimately match
+# nobody, so a planner keyed on `speaker_id` absence would re-download their
+# audio every night forever; this is the key that terminates.
+IDENTITY_RULES_VERSION = "1"
+
+# Composite, and deliberately not a plain scalar. Any caller reaching the
+# write path outside the planner re-chunks without carrying identity: bump
+# RULES_VERSION, run it, and records acquire the new rules_version while
+# keeping their old identity stamp. A scalar compares equal, the episode
+# reaches SKIP, and its stamps are positionally stale. `migration/reid.py` is
+# such a caller today. The class outlives its instances and the guard costs
+# one string comparison.
+IDENTITY_VERSION = f"{IDENTITY_RULES_VERSION}@{RULES_VERSION}"
+
 _FILENAME_RE = re.compile(
     r"^(?P<show>.+) - Episode (?P<ep>\w+) - "
     r"(?P<date>\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))\.txt$"

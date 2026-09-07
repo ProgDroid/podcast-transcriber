@@ -74,3 +74,26 @@ def test_filename_parses_unknown_episode_number():
 def test_filename_rejects_non_transcript():
     assert parse_transcript_filename("notes.md") is None
     assert parse_transcript_filename("Show - Episode 1 - 2025-13-99.txt") is None
+
+
+# --- IDENTITY_VERSION -------------------------------------------------------
+
+
+def test_identity_version_is_composite_not_a_plain_scalar():
+    # A plain scalar is the defect this shape exists to prevent. Any caller
+    # reaching the write path outside the planner re-chunks without carrying
+    # identity: bump RULES_VERSION, run it, and records acquire the new
+    # rules_version while keeping their old identity stamp. A scalar identity
+    # version compares equal, the episode reaches SKIP, and its stamps are
+    # positionally stale with nothing signalling it.
+    from corpus.identity import IDENTITY_RULES_VERSION, IDENTITY_VERSION, RULES_VERSION
+
+    assert IDENTITY_VERSION != IDENTITY_RULES_VERSION
+    assert RULES_VERSION in IDENTITY_VERSION
+    assert IDENTITY_RULES_VERSION in IDENTITY_VERSION
+
+
+def test_identity_version_composes_both_components():
+    from corpus.identity import IDENTITY_RULES_VERSION, IDENTITY_VERSION, RULES_VERSION
+
+    assert IDENTITY_VERSION == f"{IDENTITY_RULES_VERSION}@{RULES_VERSION}"
