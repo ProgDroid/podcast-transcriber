@@ -73,12 +73,18 @@ write path.
   `frame_offset` is what made the check able to fail. Confirm no crop starts
   at 0, where correct and buggy arithmetic agree.
 
-**4. `HF_HOME` leaks to the pre-existing transcription path. UNTOUCHED.**
-`corpus/voice.py:load_embedder` calls `os.environ.setdefault("HF_HOME", ...)`
-before the episode loop, so `DiarizationPipeline` resolves its cache to
-`/models`. **Agreed fix: set it explicitly and early in `process_episodes`.**
-Note `load_embedder` is now also called from `repair_identity` via
-`_load_enrolment`, so the leak has a second caller.
+**4. `HF_HOME` leaked to the transcription path. RESOLVED 2026-09-07.**
+Both GPU entrypoints (`process_episodes` AND `repair_identity`, which became a
+second caller the same day) now set `os.environ["HF_HOME"] = MODEL_PATH`
+explicitly and early. **The real defect was non-determinism, not the value:**
+`load_embedder`'s `setdefault` runs before the pyannote import and before
+anything that can raise, so a missing enrolment mount raised BEFORE it and
+left `HF_HOME` unset, while a failed model download raised AFTER it had run --
+both printing the identical `ENROLMENT UNAVAILABLE` line. Diarisation's cache
+root depended on *where inside an unrelated subsystem* a failure happened.
+`setdefault` is deliberately KEPT: it is what stops the call overwriting the
+entrypoint's choice, and `speaker_embed.py` still relies on it. Pinned by
+`tests/test_load_embedder_env.py`.
 
 **Why:** every one of these was found by a review that RAN code rather than
 read it, and the approaches were argued out once already. Re-deriving them

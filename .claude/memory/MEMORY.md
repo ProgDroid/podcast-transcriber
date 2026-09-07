@@ -8,4 +8,4 @@
 - [Speaker ID: Tier 1 failed](speaker-id-tier1-failed.md) — text-only tier measured 2026-09-02 and dead; labels are now a dev set; voice embedding is the only path; resume from spec Part 8
 - [Ship 2 rejected](ship-2-speaker-grouping-rejected.md) — archive-wide voice grouping measured and REJECTED 2026-09-04 (4 groups vs a required 15); do not re-propose without a new histogram
 - [Ingest assigns speaker_id](new-episodes-lack-speaker-id.md) — gap CLOSED 2026-09-04 (1f9bb83, deployed); backfill before that date, ingest after; a $eq filter over a partly-absent key narrows silently
-- [Speaker identity: next session](speaker-identity-next-session.md) — phase 1 BUILT 2026-09-07 and UNDEPLOYED (landing order matters: cap at 0, stamp pass, then raise); phase 2 designed not built; live-run VERIFIED 2026-09-07 (seek control); HF_HOME untouched
+- [Speaker identity: next session](speaker-identity-next-session.md) — phase 1 BUILT 2026-09-07 and UNDEPLOYED (landing order matters: cap at 0, stamp pass, then raise); phase 2 designed not built; live-run VERIFIED and HF_HOME FIXED 2026-09-07; only phase 2 + the deploy remain
