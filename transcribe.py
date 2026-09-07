@@ -4,7 +4,7 @@ import re
 
 from corpus.chunking import build_chunks, build_chunks_from_text
 from corpus.feed import entry_guid, episode_number_of
-from corpus.store import episode_where, is_complete, paged_get_ids
+from corpus.store import episode_where, is_complete, paged_get, paged_get_ids
 
 # Enrolment inputs: committed to the repo, mounted into the container. The
 # five centroids are DERIVED from these at run time and never stored --
@@ -203,6 +203,134 @@ def _transcript_path(show_name: str, episode: dict) -> str:
     )
 
 
+def _load_enrolment(hf_token: str, show_name: str):
+    """Build the enrolment centroids and the voice embedder, once.
+
+    Extracted from `process_episodes` so `repair_identity` uses the SAME
+    loader rather than a lookalike -- two copies of this drift, and the stale
+    one keeps working right up until it matters.
+
+    Returns `(enrolment, embedder, failures)`. Failures are returned rather
+    than raised because identity is an enhancement: a model fault must never
+    stop the corpus growing.
+    """
+    import json as _json
+
+    from corpus.enrolment import build_centroids
+    from corpus.voice import COMMUNITY, load_embedder
+
+    failures: list[str] = []
+    try:
+        with open(ENROLMENT_LABELS) as handle:
+            labels = _json.load(handle)
+        with open(ENROLMENT_VECTORS) as handle:
+            clip_vectors = _json.load(handle)
+        enrolment = build_centroids(labels, clip_vectors)
+        embedder = load_embedder(COMMUNITY, hf_token, model_home=MODEL_PATH)
+        print(f"Enrolled voices: {sorted(enrolment)}")
+    except Exception as e:
+        # Named ONCE and loudly, rather than repeating silently for every
+        # episode in the batch.
+        print(f"ENROLMENT UNAVAILABLE: {type(e).__name__}: {e}")
+        failures.append(
+            f"{show_name}: speaker enrolment unavailable, this batch is "
+            f"stored WITHOUT speaker_id: {type(e).__name__}: {e}"
+        )
+        return {}, None, failures
+    else:
+        # `else`, NOT a bare `if`. Both arms describe the same outcome -- no
+        # centroids -- but they are different faults, and appending from both
+        # reported one failure twice. `transcribe()` raises on any non-empty
+        # failure list, so every extra entry dilutes it as a triage signal.
+        #
+        # Reaching here means the files loaded and parsed and STILL produced
+        # nothing: no voice-verified label overlapped the clip vectors. That
+        # is a keying fault, not a missing mount.
+        if not enrolment:
+            failures.append(
+                f"{show_name}: enrolment inputs loaded but yielded zero "
+                f"centroids -- no voice-verified label overlapped the clip "
+                f"vectors. Episodes are stored WITHOUT speaker_id and will "
+                f"not appear in speaker filters."
+            )
+    return enrolment, embedder, failures
+
+
+def _download_audio(audio_url: str, dest: str) -> None:
+    """Stream an episode's mp3 to `dest`. Extracted so there is one copy."""
+    import requests
+
+    print("Downloading audio...")
+    response = requests.get(audio_url, stream=True)
+    total = int(response.headers.get("content-length", 0))
+    downloaded = 0
+    with open(dest, "wb") as handle:
+        for block in response.iter_content(chunk_size=65536):
+            handle.write(block)
+            downloaded += len(block)
+            if total:
+                print(f"  Download progress: {downloaded / total * 100:.1f}%")
+    print("Download complete.")
+
+
+def _carry_identity_forward(
+    collection, chunks: list, show: str, episode_number: str, date_str: str
+) -> list[str]:
+    """Re-apply this episode's stored cluster->person map to new chunks.
+
+    Called before any re-chunking write. WITHOUT IT a `RULES_VERSION` bump
+    would empty the corpus of names and queue 433 episodes of audio to
+    recompute names that are already known -- 56 GB to re-derive a mapping
+    the records in front of us already hold.
+
+    The join is on the diarisation label, never on position, because the
+    positional layout is precisely what a re-chunk moves.
+
+    Returns notes for the caller's failure list. A refused or unmapped carry
+    writes NO version, so the episode is classified IDENTIFY_ONLY on the next
+    plan and re-earns its identity from audio rather than being certified with
+    a hole in it.
+    """
+    from corpus.identify import carry_identity
+    from corpus.identity import IDENTITY_VERSION
+
+    prior = paged_get(
+        collection, episode_where(show, episode_number, date_str), include=["metadatas"]
+    )["metadatas"]
+    stamped, refused, unmapped = carry_identity(
+        prior, chunks, identity_version=IDENTITY_VERSION
+    )
+
+    notes: list[str] = []
+    if refused:
+        # NOT called corruption. A same-day unnumbered triple collision makes
+        # two distinct episodes share episode_id_prefix and interleave, at
+        # which point one label legitimately carries two people. Refusing is
+        # right either way; naming the cause is not ours to do here.
+        print(
+            f"IDENTITY CONFLICT ep{episode_number}: {sorted(refused)} carry "
+            f"conflicting names in stored records."
+        )
+        notes.append(
+            f"{show} ep{episode_number} ({date_str}): cluster(s) "
+            f"{sorted(refused)} carry conflicting names in stored records, so "
+            f"no identity was carried forward. Episode left queued for repair."
+        )
+    if unmapped:
+        print(
+            f"IDENTITY NOT CARRIED ep{episode_number}: {sorted(unmapped)} have "
+            f"no stored record to map from."
+        )
+        notes.append(
+            f"{show} ep{episode_number} ({date_str}): cluster(s) "
+            f"{sorted(unmapped)} are absent from the stored map, so no "
+            f"identity was carried forward. Episode left queued for repair."
+        )
+    if not notes:
+        print(f"  Carried identity onto {stamped}/{len(chunks)} chunks.")
+    return notes
+
+
 @app.function(
     timeout=7200,
     volumes={VOLUME_PATH: volume},
@@ -225,6 +353,8 @@ def transcribe(feed_url: str, show_name: str):
     nothing else writes overnight, and upsert_then_prune is idempotent, so a
     stale plan costs a redundant re-embed rather than a wrong corpus.
     """
+    from corpus.completeness import plan_episode
+    from corpus.planning import IDENTITY_REPAIR_CAP, Action, cap_work
     from corpus.showplan import plan_show
 
     # A warm CPU container carries the volume view it started with. Without
@@ -257,11 +387,32 @@ def transcribe(feed_url: str, show_name: str):
         episodes=episodes,
         read_transcript=read_transcript,
     )
-    print(f"{len(plan.to_transcribe)} to transcribe, {len(plan.to_embed)} to re-embed.")
+    # The cap bounds the RATE, per show and per run. There is no
+    # cross-show accumulator: scheduled_job calls transcribe.remote once
+    # per show behind its own try, so a budget threaded through a call
+    # that raises on failure would simply be lost.
+    to_identify, identity_left = cap_work(plan.to_identify, IDENTITY_REPAIR_CAP)
+
+    print(
+        f"{len(plan.to_transcribe)} to transcribe, "
+        f"{len(plan.to_embed)} to re-embed."
+    )
+    # THE ABSOLUTE BACKLOG, printed every night. A count reported only as
+    # a delta is indistinguishable, on night 6 of a drain, from a queue
+    # stuck since night 2 -- unless somebody diffs yesterday's log. This
+    # is the number a human compares across nights.
+    print(
+        f"identity backlog {len(plan.to_identify)} "
+        f"(repairing {len(to_identify)} this run, {identity_left} left)"
+    )
 
     failures = list(plan.failures)
 
-    if plan.has_work:
+    # Gated on the CAPPED lists, not on plan.has_work. With the cap at 0
+    # the plan has work and nothing may act on it, and has_work would
+    # start a GPU container to do nothing -- which is the whole cost the
+    # plan/act split exists to avoid.
+    if plan.to_transcribe or plan.to_embed:
         failures.extend(
             process_episodes.remote(
                 show_name,
@@ -269,14 +420,51 @@ def transcribe(feed_url: str, show_name: str):
                 plan.to_transcribe,
             )
         )
-    else:
+    elif not to_identify:
         print("Nothing to do -- no GPU container started.")
+
+    if to_identify:
+        # Chunk work settles before identity work: identity is derived
+        # from chunks, and repairing over a chunk set about to be
+        # rewritten would stamp positions rather than earn them.
+        failures.extend(repair_identity.remote(show_name, to_identify))
+
+        # RE-MEASURED, never subtracted. Arithmetic (337 - 25) would be
+        # blind to precisely the failure a metadata-only update() invites:
+        # a repair that reports success and writes nothing. Re-planning
+        # only the episodes just repaired catches it the same night, for
+        # a bounded number of round trips rather than a second full pass.
+        volume.reload()
+        verified = 0
+        for episode in to_identify:
+            try:
+                action = plan_episode(
+                    collection,
+                    show=show_name,
+                    episode_number=episode["episode_number"],
+                    date_str=episode["date"],
+                    transcript_text=read_transcript(episode),
+                    episode_guid=episode.get("guid"),
+                )
+            except Exception as e:
+                print(f"Could not verify ep{episode['episode_number']}: {e}")
+                continue
+            if action is not Action.IDENTIFY_ONLY:
+                verified += 1
+        print(f"repaired {len(to_identify)}, verified current {verified}")
+        if verified < len(to_identify):
+            failures.append(
+                f"{show_name}: {len(to_identify) - verified} identity "
+                f"repair(s) reported done but are still classified "
+                f"IDENTIFY_ONLY -- the update wrote nothing."
+            )
 
     print("\nAll done.")
 
     if failures:
         raise RuntimeError(
-            f"{len(failures)} of {len(plan.to_transcribe) + len(plan.to_embed)} "
+            f"{len(failures)} of "
+            f"{len(plan.to_transcribe) + len(plan.to_embed) + len(to_identify)} "
             f"episodes failed:\n" + "\n".join(failures)
         )
 
@@ -354,6 +542,14 @@ def process_episodes(
                 episode_guid=episode.get("guid"),
             )
             print(f"Re-embedding Episode {episode_number} from transcript...")
+            # Same transcript, same diarisation labels -- only the
+            # positional layout moves. Carry the names the records
+            # already hold rather than losing them to a re-chunk.
+            failures.extend(
+                _carry_identity_forward(
+                    collection, chunks, show_name, episode_number, date_str
+                )
+            )
             embed_and_store(
                 chunks,
                 embedding_model,
@@ -399,47 +595,8 @@ def process_episodes(
     enrolment: dict[str, list[float]] = {}
     embedder = None
     if to_transcribe:
-        import json as _json
-
-        from corpus.enrolment import build_centroids
-        from corpus.voice import COMMUNITY, load_embedder
-
-        try:
-            with open(ENROLMENT_LABELS) as handle:
-                _labels = _json.load(handle)
-            with open(ENROLMENT_VECTORS) as handle:
-                _clip_vectors = _json.load(handle)
-            enrolment = build_centroids(_labels, _clip_vectors)
-            embedder = load_embedder(COMMUNITY, hf_token, model_home=MODEL_PATH)
-            print(f"Enrolled voices: {sorted(enrolment)}")
-        except Exception as e:
-            # One failure here would otherwise repeat silently for every
-            # episode in the batch, so it is named ONCE and loudly, and the
-            # transcription still runs.
-            enrolment = {}
-            embedder = None
-            print(f"ENROLMENT UNAVAILABLE: {type(e).__name__}: {e}")
-            failures.append(
-                f"{show_name}: speaker enrolment unavailable, this batch is "
-                f"stored WITHOUT speaker_id: {type(e).__name__}: {e}"
-            )
-        else:
-            # `else`, NOT a bare `if`. Both arms describe the same outcome --
-            # no centroids -- but they are different faults, and appending
-            # from both reported one failure twice. `transcribe()` raises on
-            # any non-empty failure list, so every extra entry dilutes that
-            # list as a triage signal.
-            #
-            # Reaching here means the files loaded and parsed and STILL
-            # produced nothing: no voice-verified label overlapped the clip
-            # vectors. That is a keying fault, not a missing mount.
-            if not enrolment:
-                failures.append(
-                    f"{show_name}: enrolment inputs loaded but yielded zero "
-                    f"centroids -- no voice-verified label overlapped the "
-                    f"clip vectors. Episodes are stored WITHOUT speaker_id "
-                    f"and will not appear in speaker filters."
-                )
+        enrolment, embedder, load_failures = _load_enrolment(hf_token, show_name)
+        failures.extend(load_failures)
 
     for episode in to_transcribe:
         episode_number = episode["episode_number"]
@@ -454,18 +611,8 @@ def process_episodes(
         )
 
         try:
-            print("Downloading audio...")
             audio_path = f"/tmp/episode_{episode_number}.mp3"
-            response = requests.get(audio_url, stream=True)
-            total = int(response.headers.get("content-length", 0))
-            downloaded = 0
-            with open(audio_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=65536):
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if total:
-                        print(f"  Download progress: {downloaded / total * 100:.1f}%")
-            print("Download complete.")
+            _download_audio(audio_url, audio_path)
 
             print("Transcribing...")
             audio = whisperx.load_audio(audio_path)
@@ -668,6 +815,144 @@ def process_episodes(
     gc.collect()
 
     return failures
+@app.function(
+    gpu="T4",
+    timeout=7200,
+    volumes={
+        VOLUME_PATH: volume,
+        MODEL_PATH: model_cache,
+    },
+    secrets=[modal.Secret.from_name("podcast-secrets")],
+)
+def repair_identity(show_name: str, to_identify: list[dict]) -> list[str]:
+    """Re-earn identity for episodes stored without it. Metadata only.
+
+    Started only when `to_identify` is non-empty. It deliberately does NOT
+    reuse `process_episodes`, which loads the BGE SentenceTransformer at
+    container start before its `to_embed` loop: a pure identity repair needs
+    neither that nor whisper.
+
+    NEVER RE-DIARISES. The saved transcript's `SPEAKER_XX` labels are what the
+    stored `speaker` metadata contains. Diarisation is not deterministic, so
+    re-diarising would produce different labels and the join would be to a
+    different world -- every record would look unmapped and the repair would
+    either write nothing or write nonsense.
+
+    Every write is a metadata-only `update()` scoped to one episode, so a
+    mid-run kill is harmless: an episode that did not get its version stamped
+    is simply still queued.
+
+    Known limitation, named rather than guarded: `parse_all_episodes` only
+    emits entries carrying an enclosure URL, so an episode aged off its feed
+    never enters a plan and can never be queued for repair. That mirrors
+    reconciliation's `feed_unreachable` class -- a fact about the feed, not a
+    fault in the corpus -- and it bounds the poison-pill risk, since a
+    permanently failing repair needs an episode still IN the feed whose
+    download keeps failing.
+    """
+    from corpus.chunking import parse_transcript_segments
+    from corpus.enrolment import MARGIN, THRESHOLD
+    from corpus.identify import identify_clusters, plan_repair_updates
+    from corpus.identity import IDENTITY_VERSION
+    from corpus.store import batched
+
+    failures: list[str] = []
+
+    # A warm container carries the volume view it started with, and this
+    # function reads transcripts written by an earlier one.
+    volume.reload()
+
+    collection = get_chroma_collection(
+        os.environ["CHROMA_API_KEY"],
+        os.environ["CHROMA_TENANT"],
+        os.environ["CHROMA_DATABASE"],
+    )
+
+    enrolment, embedder, load_failures = _load_enrolment(
+        os.environ["HF_TOKEN"], show_name
+    )
+    failures.extend(load_failures)
+    if not enrolment or embedder is None:
+        # Already reported once, loudly. Every episode stays queued.
+        return failures
+
+    print(f"{len(to_identify)} episode(s) to repair identity for.")
+
+    for episode in to_identify:
+        episode_number = episode["episode_number"]
+        date_str = episode["date"]
+        audio_path = f"/tmp/repair_{episode_number}.mp3"
+        try:
+            path = _transcript_path(show_name, episode)
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                text = handle.read()
+            segments = parse_transcript_segments(text)
+            if not segments:
+                raise RuntimeError(
+                    "saved transcript parsed to zero segments; nothing to identify from"
+                )
+
+            _download_audio(episode["audio_url"], audio_path)
+
+            identified = identify_clusters(
+                segments,
+                audio_path,
+                embedder,
+                enrolment,
+                threshold=THRESHOLD,
+                margin=MARGIN,
+                episode_name=f"{show_name} - Episode {episode_number}",
+            )
+
+            stored = paged_get(
+                collection,
+                episode_where(show_name, episode_number, date_str),
+                include=["metadatas"],
+            )
+            plan = plan_repair_updates(
+                stored["ids"],
+                stored["metadatas"],
+                identified,
+                identity_version=IDENTITY_VERSION,
+            )
+
+            if plan.refusal is not None:
+                print(f"IDENTITY REPAIR REFUSED ep{episode_number}: {plan.refusal}")
+                failures.append(
+                    f"{show_name} ep{episode_number} ({date_str}) [identity]: "
+                    f"{plan.refusal}"
+                )
+                continue
+
+            for batch in batched(list(range(len(plan.ids)))):
+                collection.update(
+                    ids=[plan.ids[i] for i in batch],
+                    metadatas=[plan.metadatas[i] for i in batch],
+                )
+            print(
+                f"Repaired Episode {episode_number}: {len(identified)} "
+                f"cluster(s) named {sorted(set(identified.values()))}; "
+                f"{len(plan.ids)} record(s) updated."
+            )
+        except Exception as e:
+            # Reported under its own heading with the episode triple, not
+            # folded into undifferentiated failure text -- a repeatedly
+            # failing episode has to be recognisable at a glance rather than
+            # by reading identical prose every night.
+            print(
+                f"IDENTITY REPAIR FAILED ep{episode_number} ({date_str}): "
+                f"{type(e).__name__}: {e}"
+            )
+            failures.append(
+                f"{show_name} ep{episode_number} ({date_str}) [identity]: "
+                f"{type(e).__name__}: {e}"
+            )
+            continue
+        finally:
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+
+    return failures
 
 
 @app.function(
@@ -769,6 +1054,15 @@ def bulk_embed(show_name: str):
                 print(f"Skipping Episode {episode_number} — already complete.")
                 continue
 
+            # Brought under the same rule as EMBED_ONLY: this re-chunks
+            # the same transcript outside the planner, so without the
+            # carry it would strip every name and leave records the
+            # repair path's contradiction check then has to catch.
+            failures.extend(
+                _carry_identity_forward(
+                    collection, chunks, parsed_show, episode_number, date_str
+                )
+            )
             embed_and_store(
                 chunks,
                 embedding_model,

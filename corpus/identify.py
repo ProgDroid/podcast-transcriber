@@ -27,8 +27,11 @@ the second is the expected state for 27% of clusters. The caller decides.
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from corpus.embedding import cluster_crop_plan, weighted_centroid
 from corpus.enrolment import assign
+from corpus.remap import is_non_episode
 from corpus.speakers import CLIP_MIN_TURN_S, GAP_CAP_S, merge_turns
 
 
@@ -272,6 +275,14 @@ def carry_identity(
         the episode to SKIP with a speaker permanently unnamed and nothing
         signalling it.
 
+    NON-EPISODE RECORDS ARE IGNORED. `upload_book.py`'s 191 records can
+    share an episode's triple or guid by construction, and the write path
+    already refuses to prune them. A book record in the map would attach a
+    name to a label it never spoke, and -- worse, because it is silent --
+    would make an ordinary cluster look conflicted and send a healthy
+    episode back to audio every night. The filter is applied HERE rather
+    than left to the caller, for the same reason `_is_cluster` is.
+
     `UNKNOWN` is excluded from BOTH sides of the subset test. Counting it
     would fail all 53 UNKNOWN-bucket transcripts on every run and re-download
     their audio nightly forever. Those chunks still receive
@@ -286,6 +297,8 @@ def carry_identity(
     conflicting: set[str] = set()
 
     for meta in stored:
+        if is_non_episode(meta):
+            continue
         label = meta.get("speaker")
         if not _is_cluster(label):
             continue
@@ -344,4 +357,123 @@ def has_stored_identity(stored: list[dict]) -> bool:
     repair has cleared comes back as `""`, and reading that as a name would
     guard every episode that was ever cleared.
     """
-    return any(meta.get("speaker_id") for meta in stored)
+    return any(meta.get("speaker_id") for meta in stored if not is_non_episode(meta))
+
+
+class RepairPlan(NamedTuple):
+    """A metadata-only update, or a refusal to make one."""
+
+    ids: list[str]
+    metadatas: list[dict]
+    refusal: str | None
+
+
+def plan_repair_updates(
+    ids: list[str],
+    metadatas: list[dict],
+    identified: dict[str, str],
+    *,
+    identity_version: str,
+) -> RepairPlan:
+    """What a metadata-only identity repair should write, or why it must not.
+
+    The repair joins freshly identified clusters against records ALREADY IN
+    CHROMA, on `speaker`, and writes nothing but metadata. It never touches a
+    document, so it cannot move a chunk boundary and cannot create the stale
+    stamp it exists to resolve.
+
+    IT MUST BE ABLE TO REFUSE, and this is not belt-and-braces -- it closes a
+    hole the design's own Part 2 wrongly claimed was already shut. Part 2
+    argues that a stale name cannot survive into a repair "because the delete
+    clears the record first", but IDENTIFY_ONLY NEVER DELETES; only TRANSCRIBE
+    and RECHUNK do. A metadata-only `update()` can add a name and can never
+    remove one, so an episode arriving here with positionally-stale stamps
+    would have its matched clusters corrected, its declined clusters left
+    wrong, and the run would report success.
+
+    Three refusals, each writing NOTHING -- not even the version -- so the
+    episode stays queued, is retried next run, and is reported until it
+    succeeds or is acted on:
+
+    1.  NO RECORDS. Nothing to update is not the same as nothing to do:
+        reporting success would mark an episode repaired that has no record to
+        carry the mark, and the next plan would queue it again forever.
+
+    2.  BROKEN JOIN -- clusters identified and not one stored record carrying
+        a matching `speaker`. This is its own copy of `stamp_chunks`'
+        predicate rather than a shared call, because that one joins against
+        chunk dicts on their way to a write and this one joins against Chroma.
+
+    3.  CONTRADICTION -- a stored `speaker_id` that the fresh identification
+        does not confirm. Two shapes, and the second is the one a
+        "correct what you can" implementation silently gets wrong:
+        the fresh run names the cluster DIFFERENTLY, or the fresh run DECLINES
+        a cluster that already carries a name. In the declined case there is
+        no fresh name to overwrite with and an update cannot remove one, so
+        proceeding would leave a name the current rules would not assign and
+        then certify the episode.
+
+        Agreement is NOT a contradiction, and getting that wrong would stall
+        the whole first-night drain: live-ingest identity landed after the
+        archive pass, so episodes published in between legitimately carry a
+        correct `speaker_id` and no `identity_version`, and the fresh run
+        simply confirms them.
+
+    Non-episode records are excluded from the update and from the checks --
+    `upload_book.py`'s records can share a triple by construction, and
+    stamping one would claim a book chunk was identified as an episode.
+
+    An empty string is not a name: Chroma cannot store None, so a field a
+    previous repair cleared reads back as `""`.
+
+    Refusal text names clusters in sorted order, so two runs over unchanged
+    data produce the same nightly line.
+    """
+    pairs = [
+        (chunk_id, meta)
+        for chunk_id, meta in zip(ids, metadatas, strict=True)
+        if not is_non_episode(meta)
+    ]
+
+    if not pairs:
+        return RepairPlan([], [], "no stored episode records to update")
+
+    if identified and not any(meta.get("speaker") in identified for _, meta in pairs):
+        return RepairPlan(
+            [],
+            [],
+            f"{len(identified)} cluster(s) identified but no stored record "
+            f"carries a matching speaker -- the join key has drifted",
+        )
+
+    contradictions: set[str] = set()
+    for _, meta in pairs:
+        stored_person = meta.get("speaker_id")
+        if not stored_person:
+            continue
+        label = meta.get("speaker")
+        if not _is_cluster(label):
+            continue
+        if identified.get(label) != stored_person:
+            contradictions.add(label)
+
+    if contradictions:
+        named = ", ".join(sorted(contradictions))
+        return RepairPlan(
+            [],
+            [],
+            f"stored speaker_id contradicts this run's identification for "
+            f"{named}; a metadata update cannot remove a name, so the episode "
+            f"is left queued rather than half-repaired",
+        )
+
+    out_ids: list[str] = []
+    out_metas: list[dict] = []
+    for chunk_id, meta in pairs:
+        delta: dict = {"identity_version": identity_version}
+        label = meta.get("speaker")
+        if _is_cluster(label) and label in identified:
+            delta["speaker_id"] = identified[label]
+        out_ids.append(chunk_id)
+        out_metas.append(delta)
+    return RepairPlan(out_ids, out_metas, None)

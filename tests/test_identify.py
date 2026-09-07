@@ -721,3 +721,50 @@ def test_a_withheld_version_still_writes_this_runs_correct_names():
     assert chunks[0]["metadata"]["speaker_id"] == "Alice"
     for chunk in chunks:
         assert "identity_version" not in chunk["metadata"]
+
+
+# --- non-episode records ----------------------------------------------------
+#
+# upload_book.py's 191 records can share an episode's triple or guid by
+# construction, and the write path already refuses to prune them. A read that
+# builds the identity map has the same obligation: a book record in the map
+# would attach a name to a label it never spoke, and one in the guard would
+# withhold the version from an episode that had nothing wrong with it.
+
+
+def test_a_book_record_never_enters_the_map():
+    from corpus.identify import carry_identity
+
+    stored = [
+        _stored("SPEAKER_00", "Alice"),
+        _stored("SPEAKER_00", "Bob", source="book"),
+    ]
+    chunks = [_chunk("SPEAKER_00")]
+
+    stamped, refused, _ = carry_identity(stored, chunks, identity_version="1@1")
+
+    # Without the filter the book record makes SPEAKER_00 look conflicted and
+    # the whole episode falls back to audio for no reason.
+    assert refused == []
+    assert stamped == 1
+    assert chunks[0]["metadata"]["speaker_id"] == "Alice"
+
+
+def test_a_record_declaring_itself_a_podcast_is_still_an_episode():
+    # Keyed on the VALUE of `source`, not its presence. Episode records write
+    # no `source` at all, but one that explicitly says "podcast" is an
+    # episode and must still be read.
+    from corpus.identify import carry_identity
+
+    stored = [_stored("SPEAKER_00", "Alice", source="podcast")]
+    chunks = [_chunk("SPEAKER_00")]
+
+    stamped, _, unmapped = carry_identity(stored, chunks, identity_version="1@1")
+
+    assert (stamped, unmapped) == (1, [])
+
+
+def test_a_book_record_does_not_trip_the_phase_1_guard():
+    from corpus.identify import has_stored_identity
+
+    assert has_stored_identity([_stored("SPEAKER_00", "Alice", source="book")]) is False
