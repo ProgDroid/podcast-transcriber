@@ -108,12 +108,28 @@ def load_embedder(name: str, hf_token: str, *, model_home: str) -> Embedder:
     would produce vectors that are wrong rather than absent, and wrong vectors
     make confident wrong identities -- the failure with no external symptom.
 
-    HF_HOME is pointed at the mounted model volume HERE rather than via
+    HF_HOME is pointed at the mounted model volume rather than set via
     `image.env(...)`, because changing the image would change its content
     address and force the rebuild the verbatim image spec exists to avoid.
     Without it every container re-downloads the model: the probe on
     2026-09-02 found /models holds the whisper and bge weights and NO pyannote
     weights, so diarisation has been paying that cost per cold start already.
+
+    IT IS A `setdefault`, AND THAT IS LOAD-BEARING. HF_HOME is process-wide,
+    so this call does not only affect the voice embedder -- it also redirects
+    `DiarizationPipeline`, which `transcribe.py` constructs per episode and
+    which has nothing to do with speaker identity. Settling that here made an
+    unrelated subsystem's cache root depend on WHERE inside enrolment a
+    failure happened: a missing mount raised before this function was reached
+    and left HF_HOME unset, while a failed download raised after this line had
+    already run, and both reported the same "enrolment unavailable".
+
+    So the GPU entrypoints in `transcribe.py` now set HF_HOME explicitly and
+    early, as a deliberate container-wide choice, and `setdefault` is what
+    guarantees this call cannot overwrite it. It remains a real fallback for
+    `speaker_embed.py`, which mounts its own model path and sets nothing.
+    Pinned by `tests/test_load_embedder_env.py`; turning it into a plain
+    assignment fails that test.
 
     `model_home` is a parameter rather than a module constant because both
     calling apps mount the same volume but own their own mount path.

@@ -506,6 +506,29 @@ def process_episodes(
     from corpus.identity import IDENTITY_VERSION
     from corpus.store import episode_where, paged_get
 
+    # WHERE HUGGING FACE CACHES ITS WEIGHTS, decided ONCE and here.
+    #
+    # This used to happen as a side effect: `corpus/voice.py`'s
+    # `load_embedder` sets HF_HOME as its first statement, so loading the
+    # VOICE embedder silently redirected `DiarizationPipeline` too --
+    # unrelated, pre-existing code, constructed per episode further down.
+    #
+    # That was not merely untidy, because the setdefault runs BEFORE the
+    # pyannote import and before anything that can raise. A missing
+    # enrolment mount raised before `load_embedder` was reached and left
+    # HF_HOME unset; a failed model download raised after it had already
+    # run. Both print the same ENROLMENT UNAVAILABLE line, so diarisation's
+    # cache root depended on WHERE inside an unrelated subsystem a failure
+    # happened, with nothing in the log distinguishing the two.
+    #
+    # /models is the persistent model_cache volume, so this is the wanted
+    # behaviour -- weights survive cold starts. It just has to be a
+    # deliberate container-wide choice rather than a consequence of
+    # whether enrolment happened to get far enough. `load_embedder` keeps
+    # its setdefault, which now cannot override this and still serves
+    # `speaker_embed.py`, which mounts its own path.
+    os.environ["HF_HOME"] = MODEL_PATH
+
     hf_token = os.environ["HF_TOKEN"]
     device = "cuda"
     compute_type = "float16"
@@ -855,6 +878,15 @@ def repair_identity(show_name: str, to_identify: list[dict]) -> list[str]:
     from corpus.identify import identify_clusters, plan_repair_updates
     from corpus.identity import IDENTITY_VERSION
     from corpus.store import batched
+
+    failures: list[str] = []
+
+    # Set here for the same reason as in `process_episodes`: this
+    # container also calls `_load_enrolment`, so without it the cache root
+    # would again be settled by a side effect rather than by a choice.
+    # This function constructs no DiarizationPipeline, but the point is
+    # that the two GPU entrypoints agree.
+    os.environ["HF_HOME"] = MODEL_PATH
 
     failures: list[str] = []
 
