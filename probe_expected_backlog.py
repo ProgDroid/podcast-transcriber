@@ -49,6 +49,7 @@ import datetime
 import email.utils
 import json
 
+from corpus.exclusions import is_excluded
 from stamp_identity_version import episode_triples
 from transcribe import parse_all_episodes
 
@@ -155,10 +156,32 @@ def main() -> None:
 
         # Archive episodes the feed still emits. These are the certain term:
         # stamped-but-unreachable episodes can never be classified.
-        reachable = len(at_or_before)
+        #
+        # MINUS the deliberate exclusions. This is the term the probe missed
+        # on 2026-09-07: it predicted 432 where the planner reported 428, and
+        # the four-episode gap was `corpus/exclusions.py` in full. An excluded
+        # episode is emitted BY THE FEED and present IN `assignments.json`, so
+        # it survives the reachability filter and the archive count both --
+        # and `decide_action` checks EXCLUDE first, so it can never reach
+        # IDENTIFY_ONLY. The feed roll-off was subtracted and this was not.
+        excluded_before = [e for e in at_or_before if _excluded(show, e)]
+        reachable = len(at_or_before) - len(excluded_before)
+        if excluded_before:
+            print(
+                f"  EXCLUDE (deliberate cross-posts, never IDENTIFY_ONLY) = "
+                f"{len(excluded_before)}"
+            )
+            for episode in excluded_before:
+                print(f"    ep {episode['episode_number']} ({episode['date']})")
 
         counted_post = []
         for episode in after:
+            if _excluded(show, episode):
+                print(
+                    f"    post-boundary: {episode['date']} ep "
+                    f"{episode['episode_number']} -> EXCLUDED, adds 0"
+                )
+                continue
             when = published_utc(
                 next(
                     (
@@ -197,13 +220,42 @@ def main() -> None:
     print(f"stamp set (store-based, unaffected by the feed) = {total_archive}")
     print(f"EXPECTED IDENTIFY_ONLY total                    = {total_expected}")
     print(
+        "\nThese two are DIFFERENT NUMBERS and neither is a typo for the other.\n"
+        "The stamp set is every episode `assignments.json` records a run over,\n"
+        "selected by triple against the STORE. The backlog is what the planner\n"
+        "can reach FROM THE FEED and has not excluded. They differ by the\n"
+        "rolled-off episodes plus the deliberate exclusions -- 433 vs 428 on\n"
+        "2026-09-08. Carrying one into a check expecting the other is the\n"
+        "mistake this block exists to prevent."
+    )
+    print(
         "\nA count BELOW this is not automatically a broken planner -- check the\n"
         "decomposition above for a newly rolled-off episode first. A count near\n"
-        "zero, with the control passing, is the planner failing to read the key."
+        "zero, with the control passing, is the planner failing to read the key.\n"
+        "\nTHIS PREDICTION ASSUMES NOTHING CARRIES identity_version YET. It models\n"
+        "an UNSTAMPED store and has no way to read one, so it keeps printing the\n"
+        "pre-stamp number forever. The stamp pass ran 2026-09-08; from that night\n"
+        "on the planner should report 0 and a near-zero count is the SUCCESS\n"
+        "case, not the key-not-read case above. Use this probe before a stamp,\n"
+        "or after a RULES_VERSION bump re-opens the backlog -- not to grade a\n"
+        "night that follows one."
     )
 
 
 _FEED_CACHE: dict = {}
+
+
+def _excluded(show: str, episode: dict) -> bool:
+    """`decide_action`'s EXCLUDE arm, mirrored rather than re-derived.
+
+    The guid is passed because `parse_all_episodes` already carries one and
+    `is_excluded` documents that a caller holding one must supply it -- the
+    triple is not durable across an `episode_number` backfill, which is the
+    exact scenario the guid arm exists for.
+    """
+    return is_excluded(
+        show, episode["episode_number"], episode["date"], episode.get("guid")
+    )
 
 
 def _entries(feed_url: str):

@@ -210,9 +210,23 @@ repaired 25, verified current 25
 1. **Deploy with `IDENTITY_REPAIR_CAP = 0`** (its committed value). The
    planner classifies and reports and acts on nothing. One night of real
    classification against production with no bandwidth spent.
-   - Expected on that night: `IDENTIFY_ONLY` near 439 minus exclusions —
-     essentially every episode, because nothing carries the key yet. **A small
-     number here means the planner is not reading it.**
+   - Expected on that night: `IDENTIFY_ONLY` for essentially every episode,
+     because nothing carries the key yet. **A small number here means the
+     planner is not reading it.**
+   - **MEASURED 2026-09-08 09:00 UTC: 428, as 345 / 76 / 7** — three backlog
+     lines, one per show, because `scheduled_job` calls `transcribe.remote`
+     once per show. The archive is 433 episodes (350 / 76 / 7) and the
+     shortfall is JSP's alone, decomposing exactly:
+
+     > 350 archive − 1 (ep 7, 2022-05-30, has rolled off the feed) − 4
+     > (`corpus/exclusions.py` cross-posts: 271, 273, and the two unnumbered
+     > 2026-07-29 / 2026-07-31) = **345**
+
+     The JSP block prints all three classes and they sum to the feed:
+     `4 EXCLUDE + 345 IDENTIFY_ONLY + 1 TRANSCRIBE = 350`. Subtracting the
+     feed roll-off but forgetting the exclusion list is what produced an
+     earlier prediction of 349, so check the `EXCLUDE` count before treating
+     a four-episode gap as a fault.
 2. **Run the stamp pass:**
    ```bash
    uv run modal run stamp_identity_version.py                      # dry run
@@ -220,12 +234,49 @@ repaired 25, verified current 25
    ```
    Expected: **433** episodes across **3** shows (350 / 76 / 7). It verifies by
    reading back and refuses to report success on a partial stamp.
-3. **Confirm the next night's plan.** Expected `IDENTIFY_ONLY` is the episodes
-   published since each show's archive boundary — 2026-08-31, 2026-08-22,
-   2026-06-19 — **enumerated from the feeds before the run**. Not zero, and
-   not the six aged-off Jacob Shapiro episodes, which contribute 0 because
-   `parse_all_episodes` never emits them.
-   - **A first-night `IDENTIFY_ONLY` of 433 means the stamp did not land.**
+
+   **`N` is the CHUNK-update count the dry run prints, not the episode count.**
+   The two numbers sit four lines apart in the same output and 433 is the
+   wrong one. Measured 2026-09-08: 433 episodes, **`--expect 28644`**.
+
+   **RUN 2026-09-08: `wrote 28644; read back 28644/28644 records carrying the
+   version`, then `STAMP COMPLETE`.** `written` equalled `planned` (the gate
+   saw no drift between the two calls) and `total` equalled `planned` (no
+   non-episode rows inside the stamp set).
+
+   The stamp set is built from `assignments.json` and does **not** filter
+   `corpus/exclusions.py`, which is harmless: `plan_stamp_updates` selects by
+   triple against the STORE, so JSP 271 and 273 — whose records were deleted
+   by hand on 2026-09-01 — contribute zero chunk ids, and `verify_stamped`
+   only counts records that exist. No refusal, no partial-stamp alarm.
+
+   Reconciling the dry run: 29321 records held, 28644 planned, **677 not
+   planned**. 161 of those are the two 2026-09-07 episodes (Cousins 77 at 115
+   chunks, JSP 354 at 46), ingested under v7 and already stamped, so correctly
+   outside a stamp set built from a 2026-09-04 assignments file — the same 161
+   by which `records=29160` at the top of this file has grown. The remaining
+   516 are records the planner never reaches, because it enumerates from the
+   FEED and every feed episode already carries a classification line (see step
+   1). Bounded rather than decomposed: they cannot enter the stamp and cannot
+   enter the backlog. **Step 3 is the independent read on that** — if the next
+   night is not 0, this residual is the first suspect.
+3. **Confirm the next night's plan. Expect `0`, on all three shows.**
+   - This corrects the wording that stood here before 2026-09-08, which said
+     to expect "the episodes published since each show's archive boundary".
+     That predated the v7 deploy. v7 went live 2026-09-07 18:21 UTC, **before**
+     the only two post-boundary episodes were ingested, so Cousins 77 and JSP
+     354 were stamped on the TRANSCRIBE path at ingest and never enter the
+     backlog. Nothing else was published between the archive boundaries
+     (2026-08-31, 2026-08-22, 2026-06-19) and 2026-09-07 — verified against
+     all three live feeds on 2026-09-08.
+   - **`428` here means the stamp did not land.** (Not 433: four of the
+     archive's JSP episodes are `EXCLUDE` and one has rolled off the feed, so
+     433 is a number the planner cannot print. See step 1.)
+   - Aged-off episodes contribute 0 because `parse_all_episodes` never emits
+     them. **That is exactly one episode, not six** — JSP ep 7 (2022-05-30);
+     the feed's oldest entry is ep 8 (2022-06-03), measured 2026-09-08. The
+     "six" was the `volume=439 feed=433` gap at the top of this file, which is
+     a different quantity and does not belong to this step.
 4. **Only then raise `IDENTITY_REPAIR_CAP` to 25**, as a one-line commit. It is
    a constant and not an env var on purpose: a bandwidth bound changeable in
    the Modal dashboard with no code diff is the shape `resolve_collection_name`
