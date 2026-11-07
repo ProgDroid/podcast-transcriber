@@ -1,0 +1,18 @@
+{
+	admin off
+	auto_https off
+}
+
+# Fly terminates TLS at its edge and forwards plain HTTP to internal_port 8080.
+:8080 {
+	# Unauthenticated liveness only, for Fly's health check. It reveals nothing.
+	handle /api/v2/heartbeat {
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	handle {
+		@unauthorized not header Authorization "Bearer {$CHROMA_TOKEN}"
+		respond @unauthorized 401
+		reverse_proxy 127.0.0.1:8001
+	}
+}

@@ -1,0 +1,5 @@
+# Files baked into Linux images: a CRLF checkout breaks them (start.sh dies
+# with a carriage-return 'command not found'). core.autocrlf is true on the
+# dev machine.
+deploy/** text eol=lf
+*.sh text eol=lf

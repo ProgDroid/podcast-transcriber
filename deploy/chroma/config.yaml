@@ -1,0 +1,3 @@
+persist_path: "/data"
+listen_address: "127.0.0.1"
+port: 8001

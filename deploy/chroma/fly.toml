@@ -1,0 +1,36 @@
+# Self-hosted Chroma for the podcast corpus. See docs/self-hosted-chroma-behaviour.md.
+#
+# Sizing: 1 GB for the one-off migration bulk load, then
+#   fly scale memory 512 -a <app>
+# Steady state measured at ~160-180 MiB for the 30k-record corpus.
+#
+# Cost: auto-stop keeps it billed only while serving (nightly ingest, the
+# brief's query, ad-hoc searches); the volume and stopped rootfs bill always.
+# No `app =` line on purpose: the repo is public and the app name is the
+# server's hostname. Pass `-a <app>` to every flyctl command.
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[mounts]]
+  source = "chroma_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    method = "GET"
+    path = "/api/v2/heartbeat"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
