@@ -31,7 +31,6 @@ Run:  modal run probe_verify_backfill.py
 
 from __future__ import annotations
 
-import os
 
 import modal
 
@@ -56,18 +55,17 @@ EXPECTED_RECORDS = 29160
 
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
     timeout=1800,
 )
 def verify() -> dict:
     from corpus.store import paged_get_ids
     from transcribe import get_chroma_collection
 
-    collection = get_chroma_collection(
-        os.environ["CHROMA_API_KEY"],
-        os.environ["CHROMA_TENANT"],
-        os.environ["CHROMA_DATABASE"],
-    )
+    collection = get_chroma_collection()
 
     total_records = collection.count()
     print(f"collection holds {total_records} records (expect {EXPECTED_RECORDS})")

@@ -28,7 +28,6 @@ Run:  modal run probe_nightly_identity.py
 
 from __future__ import annotations
 
-import os
 
 import modal
 
@@ -48,7 +47,10 @@ BACKFILL_RECORDS = 29160
 
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
     timeout=1800,
 )
 def check() -> dict:
@@ -57,11 +59,7 @@ def check() -> dict:
     from corpus.store import paged_get
     from transcribe import get_chroma_collection
 
-    collection = get_chroma_collection(
-        os.environ["CHROMA_API_KEY"],
-        os.environ["CHROMA_TENANT"],
-        os.environ["CHROMA_DATABASE"],
-    )
+    collection = get_chroma_collection()
     total = collection.count()
     print(f"collection holds {total} records (was {BACKFILL_RECORDS} at backfill)")
 

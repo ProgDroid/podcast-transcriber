@@ -39,13 +39,17 @@ app = modal.App("podcast-mcp-server", image=image)
 
 @app.cls(
     gpu="T4",
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
 )
 class PodcastSearch:
     @modal.enter()
     def load(self):
         from sentence_transformers import SentenceTransformer
-        import chromadb
+
+        from corpus.chroma_client import make_client
 
         print("Loading BGE model...")
         self.embedding_model = SentenceTransformer(
@@ -54,11 +58,7 @@ class PodcastSearch:
         )
 
         print("Connecting to ChromaDB...")
-        self.chroma_client = chromadb.CloudClient(
-            tenant=os.environ["CHROMA_TENANT"],
-            database=os.environ["CHROMA_DATABASE"],
-            api_key=os.environ["CHROMA_API_KEY"],
-        )
+        self.chroma_client = make_client()
         # CHROMA_COLLECTION is read from the podcast-secrets Modal secret, the
         # same one transcribe.py's get_chroma_collection reads. That is
         # deliberate: sharing one variable makes writer/reader divergence

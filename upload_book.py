@@ -15,9 +15,8 @@ import re
 # --- Configuration ---
 BOOK_TITLE = "Geopolitical Alpha"
 BOOK_AUTHOR = "Marko Papic"
-CHROMA_TENANT = os.environ["CHROMA_TENANT"]
-CHROMA_DATABASE = os.environ["CHROMA_DATABASE"]
-CHROMA_API_KEY = os.environ["CHROMA_API_KEY"]
+# The Chroma server comes from CHROMA_URL and CHROMA_TOKEN in the environment
+# (corpus/chroma_client.py); run from the repo root so `corpus` imports.
 
 MAX_CHUNK_WORDS = 400
 CHUNK_OVERLAP_WORDS = 50
@@ -142,8 +141,7 @@ def main():
         print(f"File not found: {pdf_path}")
         sys.exit(1)
 
-    import chromadb
-
+    from corpus.chroma_client import make_client
     from corpus.store import resolve_collection_name
 
     # Resolved from the same podcast-secrets CHROMA_COLLECTION as
@@ -158,11 +156,7 @@ def main():
     print(f"Writing to collection: {name}")
 
     print("Connecting to ChromaDB...")
-    client = chromadb.CloudClient(
-        tenant=CHROMA_TENANT,
-        database=CHROMA_DATABASE,
-        api_key=CHROMA_API_KEY,
-    )
+    client = make_client()
     collection = client.get_or_create_collection(
         name=name,
         metadata={"hnsw:space": "cosine"},

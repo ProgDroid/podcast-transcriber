@@ -58,7 +58,6 @@ than reusing this number; that is what it is for.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import modal
@@ -211,17 +210,16 @@ app = modal.App("identity-version-stamp")
 
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
     timeout=1800,
 )
 def run_stamp(assignments: list[dict], apply: bool, expect: int = -1) -> dict:
     from transcribe import get_chroma_collection
 
-    collection = get_chroma_collection(
-        os.environ["CHROMA_API_KEY"],
-        os.environ["CHROMA_TENANT"],
-        os.environ["CHROMA_DATABASE"],
-    )
+    collection = get_chroma_collection()
     print(f"collection holds {collection.count()} records")
 
     triples = episode_triples(assignments)

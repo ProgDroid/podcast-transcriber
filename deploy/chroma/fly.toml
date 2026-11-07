@@ -1,8 +1,10 @@
 # Self-hosted Chroma for the podcast corpus. See docs/self-hosted-chroma-behaviour.md.
 #
-# Sizing: 1 GB for the one-off migration bulk load, then
-#   flyctl scale memory 512 -a <app>
-# Steady state measured at ~160-180 MiB for the 30k-record corpus.
+# Sizing: 512 MB. Steady state measured at ~160-180 MiB for the 30k-record
+# corpus; a local bulk load peaked at 398 MiB. The one-off migration ran on
+# 1 GB (2026-11-07); scale up the same way for another bulk load:
+#   flyctl scale memory 1024 -a <app>
+# and set it back here afterwards, or the next deploy reverts it.
 #
 # Cost: auto-stop keeps it billed only while serving (nightly ingest, the
 # brief's query, ad-hoc searches); the volume and stopped rootfs bill always.
@@ -33,4 +35,4 @@ primary_region = "iad"
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "1gb"
+  memory = "512mb"

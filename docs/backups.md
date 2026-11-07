@@ -68,7 +68,12 @@ files over one another into a single file, leaving only the last.
   metadata exactly. 30 perturbed queries had top-10 recall 1.000 against exact
   numpy cosine search, with reported distances within 5e-7 of `1 - cos`.
 
-## Still to do
+## Since the cutover
 
-- Point `backup.py` at the self-hosted Chroma at the cutover.
-- Schedule it weekly, then (`modal.Cron`, outside the 09:00 UTC ingest window).
+`backup.py` reads the self-hosted server through `corpus/chroma_client.py`
+(secret `chroma-selfhosted`). Once deployed (`modal deploy backup.py`) it runs
+every Sunday at 10:00 UTC, an hour after the nightly ingest, and keeps the
+newest 4 complete exports. Manifests record `source.backend`:
+`chroma-cloud` for exports up to 2026-11-07, `chroma-selfhosted` after.
+
+Still to do: the first scheduled export, then a restore drill from it.

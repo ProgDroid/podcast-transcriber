@@ -69,18 +69,28 @@ model can reason about whether a view is current or stale.
 
 ## Setup
 
-Create the Modal secret the apps expect. It is named `podcast-secrets` and every
-value is read from the environment, so nothing sensitive is ever in the source:
+The corpus lives on a self-hosted Chroma server behind a bearer-token proxy
+(`deploy/chroma/`, on Fly; see `docs/self-hosted-chroma-behaviour.md`). Chroma
+Cloud was retired in November 2026.
+
+The apps expect two Modal secrets. Every value is read from the environment, so
+nothing sensitive is ever in the source:
 
 ```bash
+modal secret create chroma-selfhosted \
+  CHROMA_URL=https://<your chroma host> \
+  CHROMA_TOKEN=<the proxy's bearer token>
+
 modal secret create podcast-secrets \
-  CHROMA_API_KEY=<your chroma api key> \
-  CHROMA_TENANT=<your chroma tenant uuid> \
-  CHROMA_DATABASE=<your chroma database name> \
   CHROMA_COLLECTION=<your collection name> \
   HF_TOKEN=<your huggingface token> \
   MCP_ALLOWED_HOST=<filled in after the first deploy, see below>
 ```
+
+Every Chroma client is built by `corpus/chroma_client.py` from `CHROMA_URL` and
+`CHROMA_TOKEN`. It refuses plain http to a non-local host, and there is no
+fallback to Chroma Cloud. `upload_book.py` runs locally and reads the same two
+variables from your shell.
 
 `CHROMA_COLLECTION` names the collection both apps use — the writer in
 `transcribe.py` and the reader in `mcp_server.py`. It is a **shared** variable
@@ -109,17 +119,18 @@ Then deploy:
 ```bash
 modal deploy transcribe.py
 modal deploy mcp_server.py
+modal deploy backup.py      # weekly export to the chroma-backups volume
 ```
 
 `modal deploy mcp_server.py` prints the endpoint URL. Note it down; that is what
 clients connect to.
 
-### Region note
+### Moving the corpus between servers
 
-`chromadb.CloudClient` defaults to `aws-us-east-1`. The region is selected purely
-by the presence or absence of a `cloud_host` argument, so to target a different
-region you pass `cloud_host=<region host>` explicitly. There is no in-place
-region change in Chroma Cloud; see `migration/` if you need to move one.
+`migration/` copies and validates a whole database between any two Chroma
+servers, Cloud or self-hosted (`migrate.py`, `validate.py`, and `modal_run.py`
+to run them on Modal). It was used for EU to US Cloud in July 2026 and for
+Cloud to Fly in November 2026.
 
 ### Cutover
 

@@ -155,9 +155,8 @@ def embed_and_store(
     print(f"  Stored {result['written']} chunks, pruned {result['pruned']}.")
 
 
-def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
-    import chromadb
-
+def get_chroma_collection():
+    from corpus.chroma_client import make_client
     from corpus.store import resolve_collection_name
 
     # Resolved and validated BEFORE the client is constructed: a bad secret
@@ -172,11 +171,11 @@ def get_chroma_collection(chroma_api_key, chroma_tenant, chroma_database):
     )
     print(f"Writing to collection: {name}")
 
-    client = chromadb.CloudClient(
-        api_key=chroma_api_key,
-        tenant=chroma_tenant,
-        database=chroma_database,
-    )
+    # Self-hosted Chroma on Fly since 2026-11 (corpus/chroma_client.py). On an
+    # existing collection get_or_create ignores `metadata` entirely, even a
+    # conflicting space (measured on 1.5.9), so the line below only matters
+    # for a brand-new collection, where it makes the space cosine, not l2.
+    client = make_client()
     # mcp_server.py (the reader) now calls get_collection (fail if absent),
     # not get_or_create_collection -- it IS the "must not create" reader this
     # comment used to say a later task would produce. The load-bearing fact:
@@ -334,7 +333,10 @@ def _carry_identity_forward(
 @app.function(
     timeout=7200,
     volumes={VOLUME_PATH: volume},
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
 )
 def transcribe(feed_url: str, show_name: str):
     """Plan a show on CPU, then hand only the real work to a GPU.
@@ -365,11 +367,7 @@ def transcribe(feed_url: str, show_name: str):
     # had also written it.
     volume.reload()
 
-    collection = get_chroma_collection(
-        os.environ["CHROMA_API_KEY"],
-        os.environ["CHROMA_TENANT"],
-        os.environ["CHROMA_DATABASE"],
-    )
+    collection = get_chroma_collection()
 
     episodes = parse_all_episodes(feed_url)
     print(f"Found {len(episodes)} episodes in feed.")
@@ -476,7 +474,10 @@ def transcribe(feed_url: str, show_name: str):
         VOLUME_PATH: volume,
         MODEL_PATH: model_cache,
     },
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
 )
 def process_episodes(
     show_name: str,
@@ -533,11 +534,7 @@ def process_episodes(
     device = "cuda"
     compute_type = "float16"
 
-    collection = get_chroma_collection(
-        os.environ["CHROMA_API_KEY"],
-        os.environ["CHROMA_TENANT"],
-        os.environ["CHROMA_DATABASE"],
-    )
+    collection = get_chroma_collection()
 
     print("Loading BGE embedding model...")
     embedding_model = SentenceTransformer(
@@ -845,7 +842,10 @@ def process_episodes(
         VOLUME_PATH: volume,
         MODEL_PATH: model_cache,
     },
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
 )
 def repair_identity(show_name: str, to_identify: list[dict]) -> list[str]:
     """Re-earn identity for episodes stored without it. Metadata only.
@@ -894,11 +894,7 @@ def repair_identity(show_name: str, to_identify: list[dict]) -> list[str]:
     # function reads transcripts written by an earlier one.
     volume.reload()
 
-    collection = get_chroma_collection(
-        os.environ["CHROMA_API_KEY"],
-        os.environ["CHROMA_TENANT"],
-        os.environ["CHROMA_DATABASE"],
-    )
+    collection = get_chroma_collection()
 
     enrolment, embedder, load_failures = _load_enrolment(
         os.environ["HF_TOKEN"], show_name
@@ -994,7 +990,10 @@ def repair_identity(show_name: str, to_identify: list[dict]) -> list[str]:
         VOLUME_PATH: volume,
         MODEL_PATH: model_cache,
     },
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
 )
 def bulk_embed(show_name: str):
     """
@@ -1005,11 +1004,7 @@ def bulk_embed(show_name: str):
 
     device = "cuda"
 
-    collection = get_chroma_collection(
-        os.environ["CHROMA_API_KEY"],
-        os.environ["CHROMA_TENANT"],
-        os.environ["CHROMA_DATABASE"],
-    )
+    collection = get_chroma_collection()
 
     print("Loading BGE embedding model...")
     embedding_model = SentenceTransformer(

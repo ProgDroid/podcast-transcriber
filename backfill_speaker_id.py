@@ -44,7 +44,6 @@ is unambiguous as "the operator didn't pass --expect".
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import modal
@@ -150,10 +149,10 @@ def apply_updates(collection, updates: list[tuple[str, dict]], *, expected: int)
 
 
 # Runs ON MODAL, not locally. The Chroma credentials live in the
-# `podcast-secrets` Modal secret and are not on the developer's machine, and
-# `mcp_server.py` exposes no importable collection helper -- it builds a
-# CloudClient inside its Modal class's load(). The importable one is
-# transcribe.py:137, which takes three arguments.
+# `podcast-secrets` and `chroma-selfhosted` Modal secrets and are not on the
+# developer's machine, and `mcp_server.py` exposes no importable collection
+# helper -- it builds its client inside its Modal class's load(). The
+# importable one is transcribe.py::get_chroma_collection.
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install("chromadb==1.5.9")
@@ -172,17 +171,16 @@ app = modal.App("speaker-backfill")
 
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("podcast-secrets")],
+    secrets=[
+        modal.Secret.from_name("podcast-secrets"),
+        modal.Secret.from_name("chroma-selfhosted"),
+    ],
     timeout=1800,
 )
 def run_backfill(assignments: list[dict], apply: bool, expect: int = -1) -> dict:
     from transcribe import get_chroma_collection
 
-    collection = get_chroma_collection(
-        os.environ["CHROMA_API_KEY"],
-        os.environ["CHROMA_TENANT"],
-        os.environ["CHROMA_DATABASE"],
-    )
+    collection = get_chroma_collection()
     print(f"collection holds {collection.count()} records")
 
     updates = plan_updates(collection, assignments)
