@@ -156,8 +156,28 @@ def _self_query_ok(expected_id, hit_ids, id_map=None):
     return mapped in hit_ids
 
 
+def schema_space(schema_json):
+    """The distance space recorded in a serialized collection schema, or None.
+
+    Both Chroma Cloud (SPANN) and a self-hosted server (HNSW) keep it at the
+    same path. Mirrors corpus/backup.py::distance_space, kept separate because
+    these scripts run from this directory without the repo on sys.path.
+    """
+    try:
+        return schema_json["keys"]["#embedding"]["float_list"]["vector_index"][
+            "config"
+        ].get("space")
+    except (KeyError, TypeError, AttributeError):
+        return None
+
+
 def validate_collection(
-    src_col, dst_col, atol=1e-4, id_map=None, allowed_new_keys=frozenset()
+    src_col,
+    dst_col,
+    atol=1e-4,
+    id_map=None,
+    allowed_new_keys=frozenset(),
+    schema_policy="exact",
 ):
     """
     Full validation gate. Returns a list of problem strings (empty == clean).
@@ -172,7 +192,15 @@ def validate_collection(
     `allowed_new_keys` are metadata keys the destination may carry that the
     source does not. Every other key must match exactly, and a key present in
     both must have the same value.
+
+    `schema_policy` is "exact" (serialized schemas must be identical: right
+    for Cloud to Cloud) or "space" (only the distance space must match: right
+    across backends, where Cloud's SPANN index becomes HNSW on a self-hosted
+    server). Under "space" an unreadable space is a problem, never a pass: the
+    self-query below cannot tell l2 from cosine.
     """
+    if schema_policy not in ("exact", "space"):
+        raise ValueError(f"unknown schema_policy: {schema_policy!r}")
     problems = []
 
     s_total = src_col.count()
@@ -184,10 +212,18 @@ def validate_collection(
     try:
         s_schema = src_col.schema.serialize_to_json()
         d_schema = dst_col.schema.serialize_to_json()
-        if s_schema != d_schema:
+        if s_schema == d_schema:
+            print("  schema: identical")
+        elif schema_policy == "exact":
             problems.append("schema mismatch (serialized schemas differ)")
         else:
-            print("  schema: identical")
+            s_space, d_space = schema_space(s_schema), schema_space(d_schema)
+            if s_space is None or s_space != d_space:
+                problems.append(f"distance space mismatch: src={s_space} dst={d_space}")
+            else:
+                print(
+                    f"  schema: differs by backend; distance space matches ({s_space})"
+                )
     except Exception as e:  # noqa: BLE001
         print(f"  schema: comparison skipped ({type(e).__name__}: {e})")
 

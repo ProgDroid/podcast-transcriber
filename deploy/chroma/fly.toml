@@ -1,7 +1,7 @@
 # Self-hosted Chroma for the podcast corpus. See docs/self-hosted-chroma-behaviour.md.
 #
 # Sizing: 1 GB for the one-off migration bulk load, then
-#   fly scale memory 512 -a <app>
+#   flyctl scale memory 512 -a <app>
 # Steady state measured at ~160-180 MiB for the 30k-record corpus.
 #
 # Cost: auto-stop keeps it billed only while serving (nightly ingest, the

@@ -132,3 +132,59 @@ def test_create_dest_collection_dest_name_does_a_same_database_re_id(tmp_path):
     assert dst_col.name == "dst-col"
     assert dst_col.count() == 0
     assert src_col.count() == 1
+
+
+def _schema(space, index="spann"):
+    return {
+        "keys": {
+            "#embedding": {
+                "float_list": {
+                    "vector_index": {
+                        "enabled": True,
+                        "config": {"space": space, index: {}},
+                    }
+                }
+            }
+        }
+    }
+
+
+class _Schema:
+    def __init__(self, js):
+        self._js = js
+
+    def serialize_to_json(self):
+        return self._js
+
+
+def _pair(src_schema, dst_schema):
+    src, dst = FakeCollection(), FakeCollection()
+    src.schema, dst.schema = _Schema(src_schema), _Schema(dst_schema)
+    _seed(src, ["S-ep1-0"])
+    _seed(dst, ["S-ep1-0"])
+    return src, dst
+
+
+def test_exact_policy_flags_a_backend_index_difference():
+    # Cloud's SPANN schema becomes HNSW on a self-hosted server: exact sees it.
+    src, dst = _pair(_schema("cosine", "spann"), _schema("cosine", "hnsw"))
+    assert any("schema mismatch" in p for p in validate_collection(src, dst))
+
+
+def test_space_policy_accepts_a_backend_index_difference():
+    src, dst = _pair(_schema("cosine", "spann"), _schema("cosine", "hnsw"))
+    assert validate_collection(src, dst, schema_policy="space") == []
+
+
+def test_space_policy_rejects_a_different_distance_space():
+    # The failure that matters: an l2 destination answers a self-query
+    # perfectly and ranks every real query wrongly.
+    src, dst = _pair(_schema("cosine", "spann"), _schema("l2", "hnsw"))
+    problems = validate_collection(src, dst, schema_policy="space")
+    assert any("distance space" in p for p in problems)
+
+
+def test_space_policy_rejects_an_unreadable_space():
+    src, dst = _pair(_schema("cosine", "spann"), {"keys": {}})
+    problems = validate_collection(src, dst, schema_policy="space")
+    assert any("distance space" in p for p in problems)

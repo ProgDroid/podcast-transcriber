@@ -77,3 +77,24 @@ nightly ingest fits 512 MB comfortably.
 
 The real corpus (30,483 records) restored from the first export into a local
 1.5.9 server reproduces exact cosine search; see [backups.md](backups.md).
+
+## The Fly deployment and the copy from Cloud (2026-11-07)
+
+`deploy/chroma/` is live on Fly (1 GB machine, auto-stop, `iad`).
+
+Measured against the live app:
+- heartbeat 200 without a token
+- no token, a wrong token, or an empty `Bearer ` all get 401; the right token gets 200
+- plain http redirects 301 to https
+- addresses: one shared IPv4 and the free IPv6, no dedicated IPv4
+- the machine was stopped between requests, so auto-stop engaged
+- `/api/v2/version` returns `"1.0.0"`. The same pinned 1.5.9 image does that locally too: it is the API version, not the image tag.
+
+The copy ran on Modal (`migration/modal_run.py`), because the only live Cloud key is in `podcast-secrets`:
+- smoke: source `podcast_transcripts_v2` had 30,483 records; the destination was empty
+- copy: 122 batches, 30,483/30,483; the source count was unchanged at the end, so the freeze held
+- validate: PASS with 0 problems over 30,483 records (document, metadata, embedding at atol 1e-4)
+  - the schema differs by backend (SPANN becomes HNSW), but the distance space matches: cosine on both
+  - the self-query recovered its record
+
+Between backends `validate.py` uses `schema_policy="space"`: only the distance space has to match, and a space it cannot read counts as a failure. The self-query alone cannot tell l2 from cosine.

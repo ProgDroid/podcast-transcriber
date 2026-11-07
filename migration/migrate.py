@@ -1,10 +1,14 @@
 """
-Copy every collection from the EU source Chroma Cloud DB to the US dest DB.
+Copy every collection from a source Chroma DB to a destination Chroma DB.
 
-Credentials come ONLY from environment variables (never hard-coded/printed):
+Credentials come ONLY from environment variables (never hard-coded/printed).
+Each side is either Chroma Cloud or a self-hosted server behind a bearer token:
 
-  SRC_KEY, SRC_TENANT, SRC_DB, SRC_HOST   (EU source; SRC_HOST is the region host)
-  DST_KEY, DST_TENANT, DST_DB[, DST_HOST] (US dest; omit DST_HOST for aws-us-east-1)
+  Cloud:        <P>_KEY, <P>_TENANT, <P>_DB[, <P>_HOST]  (omit _HOST for aws-us-east-1)
+  Self-hosted:  <P>_URL, <P>_TOKEN   (e.g. DST_URL=https://<your-app>.fly.dev)
+
+where <P> is SRC or DST. Setting <P>_URL selects self-hosted for that side.
+Used 2026-07-09 for EU Cloud -> US Cloud, and 2026-11 for Cloud -> Fly.
 
 Optional:
   ALLOW_NONEMPTY_DST=1   proceed even if the destination already has records
@@ -16,6 +20,7 @@ Usage:
 
 import os
 import sys
+from urllib.parse import urlparse
 
 import chromadb
 
@@ -25,6 +30,30 @@ from chroma_migrate import (
     get_collection_readonly,
     list_summary,
 )
+
+
+def is_self_hosted(prefix):
+    return bool(os.environ.get(f"{prefix}_URL"))
+
+
+def make_client(prefix):
+    if is_self_hosted(prefix):
+        return make_http(prefix)
+    return make_cloud(prefix)
+
+
+def make_http(prefix):
+    url = urlparse(os.environ[f"{prefix}_URL"])
+    token = os.environ[f"{prefix}_TOKEN"]
+    if url.scheme not in ("http", "https") or not url.hostname:
+        sys.exit(f"ABORT: {prefix}_URL must be an http(s) URL with a host.")
+    ssl = url.scheme == "https"
+    return chromadb.HttpClient(
+        host=url.hostname,
+        port=url.port or (443 if ssl else 80),
+        ssl=ssl,
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
 
 def make_cloud(prefix):
@@ -39,14 +68,14 @@ def make_cloud(prefix):
 
 
 def main():
-    src = make_cloud("SRC")
-    dst = make_cloud("DST")
+    src = make_client("SRC")
+    dst = make_client("DST")
 
     print("== Smoke test ==")
     src_summary = list_summary(src)
     dst_summary = list_summary(dst)
-    print(f"  SRC (EU) collections: {src_summary}")
-    print(f"  DST (US) collections: {dst_summary}")
+    print(f"  SRC collections: {src_summary}")
+    print(f"  DST collections: {dst_summary}")
 
     dst_total = sum(n for _, n in dst_summary)
     if dst_total and os.environ.get("ALLOW_NONEMPTY_DST") != "1":

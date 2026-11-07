@@ -1,5 +1,5 @@
 """
-Validate the US destination against the EU source. Cutover gate.
+Validate the destination against the source. Cutover gate.
 
 Reads the same SRC_* / DST_* environment variables as migrate.py.
 Exits non-zero on ANY mismatch. Do NOT cut over unless this exits clean.
@@ -10,13 +10,17 @@ Usage:
 
 import sys
 
-from migrate import make_cloud
+from migrate import is_self_hosted, make_client
 from chroma_migrate import get_collection_readonly, validate_collection
 
 
 def main():
-    src = make_cloud("SRC")
-    dst = make_cloud("DST")
+    src = make_client("SRC")
+    dst = make_client("DST")
+    # Across backends the index type changes (Cloud SPANN -> self-hosted HNSW),
+    # so only the distance space can be required to match.
+    policy = "space" if is_self_hosted("SRC") != is_self_hosted("DST") else "exact"
+    print(f"schema policy: {policy}")
 
     src_names = {c.name for c in src.list_collections()}
     dst_names = {c.name for c in dst.list_collections()}
@@ -34,7 +38,7 @@ def main():
         print(f"\n== Validating '{name}' ==")
         src_col = get_collection_readonly(src, name)
         dst_col = get_collection_readonly(dst, name)
-        problems = validate_collection(src_col, dst_col)
+        problems = validate_collection(src_col, dst_col, schema_policy=policy)
         for p in problems:
             print(f"  PROBLEM: {p}")
         all_problems.extend(problems)
