@@ -98,3 +98,9 @@ The copy ran on Modal (`migration/modal_run.py`), because the only live Cloud ke
   - the self-query recovered its record
 
 Between backends `validate.py` uses `schema_policy="space"`: only the distance space has to match, and a space it cannot read counts as a failure. The self-query alone cannot tell l2 from cosine.
+
+## Cutover facts (measured 2026-11-07)
+
+- On an existing collection, `get_or_create_collection(name, metadata=...)` ignores `metadata` entirely. It does not raise, and the schema and space are unchanged, even when the metadata says `l2` against a cosine collection. Measured on a local 1.5.9 server with a collection built from the Fly collection's real schema. So the writers' `metadata={"hnsw:space": "cosine"}` matters only when the collection is brand new, where it prevents l2.
+- Auto-stop: Fly's proxy stopped the machine about 6.5 minutes after the last request (start at 20:20:17, stop at 20:26:51, from machine events). A cold start plus a count took 4.3 s from a local client.
+- **Refused requests also wake the machine**, because the token check runs inside it (Caddy). Only a request at least every ~6 minutes around the clock would keep it always on (~$3.69/mo at 512 MB). That is why the app's name is kept out of this public repo: `fly.toml` has no `app =` line.

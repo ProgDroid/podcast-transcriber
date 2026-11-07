@@ -1,6 +1,7 @@
 ---
 name: probe-cheap-before-scoping
 description: "He takes the cheapest disambiguating probe first and the thorough option second — offer the measurement as its own choice, not as step one of a plan"
+promoted_to: core
 metadata: 
   node_type: memory
   type: feedback

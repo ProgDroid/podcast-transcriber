@@ -5,6 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: d5442bb9-4860-4afe-86c0-a2c2303e6860
+  modified: 2026-11-07T18:04:31.311Z
 ---
 
 Reusable Chroma Cloud DB→DB migration tooling lives in `G:\audio-transcription\via-modal\migration\`:
@@ -26,4 +27,12 @@ Non-obvious gotchas hit and worth remembering (validated against `chromadb==1.5.
 - **`modal app stop <app> --yes`** is required in non-interactive shells (this session's PowerShell/Bash tools);
   without `--yes` it aborts on the confirm prompt.
 
+- **`modal volume get <vol> <dir> <local>` into a local path that does not exist yet** wrote every file to that
+  one path, each overwriting the last, so only the final file survived. It exited 0 and printed "Finished
+  downloading". Fetch each file to its own name (measured 2026-11-07, see `docs/backups.md`).
+- **Self-hosted Chroma 1.5.9 differs from Cloud**: it has no request cap, no built-in auth, a `None` metadata
+  value deletes the key, and a collection created with no config is **l2**. Cloud keeps the space in the schema,
+  not in metadata. See `docs/self-hosted-chroma-behaviour.md`; `corpus/backup.py::distance_space` reads it.
+
 Used 2026-07-09 for the EU→US move — see [[chroma-us-region-migration]].
+- **`migrate.py`/`validate.py` take either end as self-hosted** (`<P>_URL` + `<P>_TOKEN`); `modal_run.py` runs them on Modal against the live Cloud key. Across backends, validate uses `schema_policy="space"`, because Cloud's SPANN becomes HNSW and the exact schemas never match. On 1.5.9, `get_or_create_collection` on an EXISTING collection ignores `metadata`, even a conflicting space (measured 2026-11-07, `docs/self-hosted-chroma-behaviour.md`).
