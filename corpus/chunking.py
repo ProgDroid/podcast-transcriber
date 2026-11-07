@@ -75,9 +75,12 @@ def build_chunks(
             ),
             "rules_version": rules_version,
         }
-        # Chroma rejects a None metadata value, so an absent guid means an
-        # absent KEY, never a null. 6 of 438 episodes have aged off their feed
-        # and can never be assigned one.
+        # An absent guid means an absent KEY, never a null. A None value is
+        # not rejected: on self-hosted Chroma 1.5.9 an upsert carrying None
+        # DELETES the key (docs/self-hosted-chroma-behaviour.md), which would
+        # erase a guid the migration stamped. Omitting the key merges, keeping
+        # it. 6 of 438 episodes have aged off their feed and can never be
+        # assigned one.
         if episode_guid is not None:
             metadata["episode_guid"] = episode_guid
         chunks.append(

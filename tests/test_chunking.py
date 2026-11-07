@@ -62,7 +62,8 @@ def test_metadata_carries_identity_and_versions():
 
 
 def test_guid_is_omitted_rather_than_null_when_absent():
-    # Chroma rejects a None metadata value; the key must simply not be there.
+    # The key must simply not be there: a None value on upsert DELETES a
+    # stored guid (self-hosted Chroma 1.5.9), where an absent key merges.
     chunks = build_chunks_from_text(
         TRANSCRIPT, "Geopolitical Cousins", "1", "t", "2025-03-14"
     )
