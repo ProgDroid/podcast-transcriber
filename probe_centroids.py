@@ -1,8 +1,7 @@
 import json, math, statistics
 from pathlib import Path
 from collections import defaultdict, Counter
-from corpus.enrolment import build_centroids, score, assign
-from corpus.embedding import weighted_centroid
+from corpus.enrolment import build_centroids, score
 
 def unit(v):
     n=math.sqrt(sum(x*x for x in v)); return [x/n for x in v]
@@ -33,7 +32,7 @@ for cid, l in sorted(voice.items()):
     Cl = build_centroids(rest, cv)
     for person, s in score(cv[cid], Cl):
         rows[p][person].append(s)
-hdr = "  %-16s " % "clips of \ vs" + " ".join("%-16s" % q for q in people)
+hdr = "  %-16s " % r"clips of \ vs" + " ".join("%-16s" % q for q in people)
 print(hdr)
 for p in people:
     cells = []

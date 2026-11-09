@@ -1,9 +1,8 @@
-import json, math
+import json
 from pathlib import Path
 from collections import Counter, defaultdict
 from corpus.enrolment import build_centroids, assign, co_membership_conflicts
 from corpus.embedding import weighted_centroid
-from corpus.identity import parse_transcript_filename
 TH,MG=0.516,0.074
 lab=json.loads(Path("speakers/labels.json").read_text(encoding="utf-8"))
 cv=json.loads(Path("speakers/clip_vectors_speaker-diarization-community-1.json").read_text(encoding="utf-8"))

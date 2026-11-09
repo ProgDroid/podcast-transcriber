@@ -1,4 +1,4 @@
-import json, math, random
+import json, math
 from pathlib import Path
 
 rec = json.loads(Path("speakers/archive_vectors.json").read_text(encoding="utf-8"))

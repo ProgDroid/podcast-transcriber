@@ -130,8 +130,7 @@ def embed_every_clip(paths, embedder) -> dict[str, list[float]]:
         raise RuntimeError(
             f"{len(failures)} of {len(paths)} clips failed to embed. "
             f"Refusing to return a partial enrolment basis -- the nightly "
-            f"ingest derives its centroids from this file. "
-            + "; ".join(head)
+            f"ingest derives its centroids from this file. " + "; ".join(head)
         )
     return out
 
@@ -175,7 +174,9 @@ def embed_episode(job: dict) -> list[dict]:
 
     import requests
 
-    embedder = load_embedder(job["embedder"], os.environ["HF_TOKEN"], model_home=MODEL_PATH)
+    embedder = load_embedder(
+        job["embedder"], os.environ["HF_TOKEN"], model_home=MODEL_PATH
+    )
     out: list[dict] = []
 
     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as handle:

@@ -29,7 +29,6 @@ from corpus.enrolment import (
 from corpus.identity import parse_transcript_filename
 
 
-
 def centroids_by_cluster(records: list[dict]) -> dict[tuple[str, str], list[float]]:
     """One centroid per (episode, cluster), from that cluster's crops.
 

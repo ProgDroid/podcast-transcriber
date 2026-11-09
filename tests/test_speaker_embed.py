@@ -275,7 +275,6 @@ def test_every_clip_embedding_returns_them_all():
 def test_one_failed_clip_raises_rather_than_returning_a_partial_basis():
     """The whole point: 2 of 3 must not come back looking like a result."""
     import pytest
-
     from speaker_embed import embed_every_clip
 
     with pytest.raises(RuntimeError, match="1 of 3 clips failed"):
@@ -285,7 +284,6 @@ def test_one_failed_clip_raises_rather_than_returning_a_partial_basis():
 def test_the_failing_clip_is_named():
     """A count alone does not tell an operator which file to look at."""
     import pytest
-
     from speaker_embed import embed_every_clip
 
     with pytest.raises(RuntimeError, match="b: OSError"):
@@ -295,7 +293,6 @@ def test_the_failing_clip_is_named():
 def test_an_empty_clips_mount_raises():
     """clips=0 is a broken image, not an empty evaluation set."""
     import pytest
-
     from speaker_embed import embed_every_clip
 
     with pytest.raises(RuntimeError, match="broken image"):

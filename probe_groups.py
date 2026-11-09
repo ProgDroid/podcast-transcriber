@@ -1,4 +1,4 @@
-import json, math
+import json
 from pathlib import Path
 from collections import defaultdict, Counter
 from corpus.enrolment import build_centroids, assign

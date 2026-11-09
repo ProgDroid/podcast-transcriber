@@ -27,7 +27,7 @@ the second is the expected state for 27% of clusters. The caller decides.
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import NamedTuple, TypeGuard
 
 from corpus.embedding import cluster_crop_plan, weighted_centroid
 from corpus.enrolment import assign
@@ -202,7 +202,7 @@ def stamp_chunks(
     return stamped
 
 
-def _is_cluster(label) -> bool:
+def _is_cluster(label: object) -> TypeGuard[str]:
     """Is this label a diarisation cluster, as opposed to `UNKNOWN`?
 
     `corpus/chunking.py` substitutes the literal `UNKNOWN` for a segment

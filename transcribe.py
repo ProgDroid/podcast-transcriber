@@ -879,8 +879,6 @@ def repair_identity(show_name: str, to_identify: list[dict]) -> list[str]:
     from corpus.identity import IDENTITY_VERSION
     from corpus.store import batched
 
-    failures: list[str] = []
-
     # Set here for the same reason as in `process_episodes`: this
     # container also calls `_load_enrolment`, so without it the cache root
     # would again be settled by a side effect rather than by a choice.

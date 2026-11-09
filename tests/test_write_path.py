@@ -372,9 +372,12 @@ def test_a_stale_speaker_id_survives_a_re_transcribe(collection):
     """CONFIRMS the exposure. This is documentation of real behaviour."""
     from corpus.writing import upsert_then_prune
 
-    args = dict(
-        show="A Show", episode_number="1", date_str="2026-01-01", episode_guid=None
-    )
+    args = {
+        "show": "A Show",
+        "episode_number": "1",
+        "date_str": "2026-01-01",
+        "episode_guid": None,
+    }
 
     first = [
         {

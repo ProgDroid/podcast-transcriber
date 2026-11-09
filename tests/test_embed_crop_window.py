@@ -40,7 +40,7 @@ class _FakeWaveform:
     def __init__(self, channels: int, frames: int) -> None:
         self.shape = (channels, frames)
 
-    def mean(self, dim: int, keepdim: bool) -> "_FakeWaveform":  # noqa: ARG002
+    def mean(self, dim: int, keepdim: bool) -> _FakeWaveform:  # noqa: ARG002
         return _FakeWaveform(1, self.shape[-1])
 
 

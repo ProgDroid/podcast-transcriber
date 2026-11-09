@@ -57,6 +57,18 @@ extend-exclude = [
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "C4", "UP"]
 
+[tool.ruff.lint.per-file-ignores]
+# probe_*.py are one-shot measurement scripts, committed as the record of
+# what was measured and how. They are written terse on purpose (semicolons,
+# %-formatting), and restyling them would rewrite evidence for no gain. They
+# keep pyflakes (F) and warnings (W) -- undefined names, unused imports and
+# invalid escapes are bugs in any script -- and drop the style families.
+"probe_*.py" = ["E", "I", "B", "C4", "UP"]
+
+[tool.ruff.format]
+# Same reason as the per-file-ignores above.
+exclude = ["probe_*.py"]
+
 [tool.ruff.lint.isort]
 # Without this, isort can't tell `corpus` apart from a third-party package
 # and merges it into the same import group as `pytest`.

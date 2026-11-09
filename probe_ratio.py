@@ -15,7 +15,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from corpus.embedding import weighted_centroid
-from corpus.speakers import CLIP_MIN_TURN_S, GAP_CAP_S
+from corpus.speakers import GAP_CAP_S
 from corpus.transcripts import load_episodes
 
 

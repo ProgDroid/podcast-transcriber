@@ -145,6 +145,5 @@ def test_a_large_query_cannot_buy_its_way_past_the_threshold():
     # is named confidently and wrongly -- the precision violation this module
     # exists to prevent.
     assert (
-        assign([3.0, 4.0, 0.0], {"Jacob Shapiro": A}, threshold=0.8, margin=0.0)
-        is None
+        assign([3.0, 4.0, 0.0], {"Jacob Shapiro": A}, threshold=0.8, margin=0.0) is None
     )
