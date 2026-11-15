@@ -2,7 +2,7 @@ import pytest
 
 from corpus.exclusions import EXCLUDED_EPISODES, is_excluded
 from corpus.identity import IDENTITY_VERSION
-from corpus.planning import Action, cap_work, decide_action
+from corpus.planning import Action, cap_work, decide_action, guard_transcribe
 
 
 def _decide(**overrides):
@@ -244,3 +244,44 @@ def test_cap_work_does_not_alias_the_caller_list():
     todo, _ = cap_work(episodes, 25)
     todo.append({"episode_number": "injected"})
     assert len(episodes) == 30
+
+
+# --- guard_transcribe -------------------------------------------------------
+#
+# 2026-11-15: the JSP feed shifted every <itunes:episode> by +72, so 301
+# archive episodes looked untranscribed and the night spent its whole 2h
+# timeout re-transcribing them, starving the show after it. A normal night
+# plans 0-2 TRANSCRIBEs per show; a plan far above that is a feed-shape
+# change, and the guard refuses it rather than acting on it.
+
+
+def test_guard_transcribe_at_the_threshold_acts_on_everything():
+    todo, refusal = guard_transcribe(_eps(10), threshold=10)
+    assert len(todo) == 10
+    assert refusal is None
+
+
+def test_guard_transcribe_above_the_threshold_acts_on_nothing():
+    # All or nothing, not a cap: a capped drain of a renumbered feed would
+    # still re-transcribe the whole archive, just more slowly.
+    todo, refusal = guard_transcribe(_eps(11), threshold=10)
+    assert todo == []
+    assert refusal is not None
+
+
+def test_guard_transcribe_refusal_names_the_count_and_the_threshold():
+    _, refusal = guard_transcribe(_eps(314), threshold=10)
+    assert "314" in refusal
+    assert "10" in refusal
+
+
+def test_guard_transcribe_default_passes_a_normal_night_and_refuses_the_renumber():
+    assert guard_transcribe(_eps(2))[1] is None
+    assert guard_transcribe(_eps(314))[1] is not None
+
+
+def test_guard_transcribe_does_not_alias_the_caller_list():
+    episodes = _eps(3)
+    todo, _ = guard_transcribe(episodes, threshold=10)
+    todo.append({"episode_number": "injected"})
+    assert len(episodes) == 3

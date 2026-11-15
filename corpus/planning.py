@@ -20,6 +20,18 @@ from corpus.identity import IDENTITY_VERSION, RULES_VERSION
 # pre-registration.
 IDENTITY_REPAIR_CAP = 0
 
+# Above this many TRANSCRIBEs in one show's plan, the plan is refused.
+#
+# A normal night plans 0-2 per show. On 2026-11-15 the JSP feed had shifted
+# every <itunes:episode> by +72, the filename-keyed transcript check missed all
+# 301 archive episodes, and the run spent its whole 2h timeout re-transcribing
+# them -- starving the show scheduled after it. A plan this large is a feed-
+# shape change (renumbering, a date shift), not new episodes, and a human has
+# to look before any GPU time goes on it. The guard sits inside `transcribe`,
+# so a hand-run is refused too: a deliberate bulk ingest (adding a show)
+# raises this in the commit that adds the show, and lowers it after.
+TRANSCRIBE_ANOMALY_THRESHOLD = 10
+
 
 class Action(StrEnum):
     TRANSCRIBE = "TRANSCRIBE"
@@ -91,3 +103,23 @@ def cap_work(episodes: list[dict], cap: int) -> tuple[list[dict], int]:
     if cap <= 0:
         return [], len(episodes)
     return list(episodes[:cap]), max(0, len(episodes) - cap)
+
+
+def guard_transcribe(
+    episodes: list[dict], threshold: int = TRANSCRIBE_ANOMALY_THRESHOLD
+) -> tuple[list[dict], str | None]:
+    """The TRANSCRIBE work to act on, and a refusal if the plan is anomalous.
+
+    All or nothing, unlike `cap_work`: capping a renumbered feed would still
+    re-transcribe the whole archive, just across more nights. The refusal is
+    returned rather than raised so the caller can still do the show's embed
+    and identity work and let the other shows run.
+    """
+    if len(episodes) <= threshold:
+        return list(episodes), None
+    return [], (
+        f"{len(episodes)} episodes planned for TRANSCRIBE, above the anomaly "
+        f"threshold of {threshold}; refused. A plan this large usually means "
+        f"the feed changed shape (renumbered or re-dated episodes), so its "
+        f"archive no longer matches the transcript filenames on the volume."
+    )

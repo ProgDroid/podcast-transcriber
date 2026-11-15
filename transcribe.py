@@ -356,7 +356,12 @@ def transcribe(feed_url: str, show_name: str):
     stale plan costs a redundant re-embed rather than a wrong corpus.
     """
     from corpus.completeness import plan_episode
-    from corpus.planning import IDENTITY_REPAIR_CAP, Action, cap_work
+    from corpus.planning import (
+        IDENTITY_REPAIR_CAP,
+        Action,
+        cap_work,
+        guard_transcribe,
+    )
     from corpus.showplan import plan_show
 
     # A warm CPU container carries the volume view it started with. Without
@@ -406,16 +411,24 @@ def transcribe(feed_url: str, show_name: str):
 
     failures = list(plan.failures)
 
+    # Refused, not capped, and reported as a failure so the run is loud --
+    # but the show's embed and identity work still runs, and so do the shows
+    # after this one, which a 2h re-transcription used to starve.
+    to_transcribe, transcribe_refusal = guard_transcribe(plan.to_transcribe)
+    if transcribe_refusal:
+        print(f"TRANSCRIBE REFUSED: {transcribe_refusal}")
+        failures.append(f"{show_name}: {transcribe_refusal}")
+
     # Gated on the CAPPED lists, not on plan.has_work. With the cap at 0
     # the plan has work and nothing may act on it, and has_work would
     # start a GPU container to do nothing -- which is the whole cost the
     # plan/act split exists to avoid.
-    if plan.to_transcribe or plan.to_embed:
+    if to_transcribe or plan.to_embed:
         failures.extend(
             process_episodes.remote(
                 show_name,
                 plan.to_embed,
-                plan.to_transcribe,
+                to_transcribe,
             )
         )
     elif not to_identify:
