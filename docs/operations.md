@@ -70,6 +70,35 @@ The plan output names an action per episode:
 | `EXCLUDE` | on the human exclusion list |
 | `UNPARSEABLE` | transcript exists but yields no chunks — terminal |
 
+### `TRANSCRIBE REFUSED`: the feed changed shape
+
+A show whose plan holds more than `TRANSCRIBE_ANOMALY_THRESHOLD` (10)
+`TRANSCRIBE`s gets none of them acted on (`corpus/planning.py`). The run still
+does that show's embed and identity work, the other shows still run, and the
+night fails loudly. A normal night plans 0-2 per show, so a large count means
+the feed renumbered or re-dated its archive and the filename-keyed transcript
+check no longer matches, not that new episodes arrived.
+
+**2026-11-15, the case that produced it:** the JSP feed shifted every
+`<itunes:episode>` by +72 (three by +73). 301 archive episodes looked
+untranscribed. Two nights each spent the full 2h timeout re-transcribing them
+until the nested `scheduled_job` → `transcribe` → `process_episodes` chain was
+cancelled, and Observing Japan, scheduled last, never ran. The corpus was not
+duplicated, because the GUID survived and `upsert_then_prune`'s GUID arm
+removed the old-number records.
+
+**The fix, without a GPU:** `migration/renumber.py` matches each feed entry to
+its stored triple by GUID, re-keys the records (stored embeddings copied),
+renames the transcript, and moves old files to `/renumbered/` on the volume.
+Dry run first; apply only with `--expect-renames` / `--expect-orphans` from
+the dry run. Take a `modal run backup.py` export before applying. Measured on
+the 2026-11-15 apply: 299 renamed (15,313 records), 46 orphans archived,
+count 30,550 before and after, JSP re-plan `0 to transcribe, 0 to re-embed`.
+Its `FEEDS` holds only JSP; add the show the refusal names.
+
+**Adding a show deliberately** (a bulk ingest) is refused too. Raise the
+threshold in the commit that adds the show, and lower it afterwards.
+
 ## Cutting over to a new collection
 
 Both apps read `CHROMA_COLLECTION` from the `podcast-secrets` Modal secret. It
