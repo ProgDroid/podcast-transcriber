@@ -21,7 +21,8 @@ may not reproduce, which is what the text check is for.
 
 Usage, with the volume downloaded (`modal volume get podcast-transcripts / D`):
   py migration/remap_assignments.py D            # dry run
-  py migration/remap_assignments.py D --apply --expect-renamed 299 --expect-dropped 35
+  py migration/remap_assignments.py D --apply --expect-renamed N --expect-dropped M
+with N and M copied from the dry run (2026-11-15: 334 and 0).
 """
 
 from __future__ import annotations

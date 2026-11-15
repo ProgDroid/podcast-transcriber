@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 51c8f7e3-2a7b-4afb-b12e-b856aad7cc42
-  modified: 2026-09-07T19:03:10.850Z
+  modified: 2026-11-15T14:05:52.100Z
 ---
 
 **Nothing in the obvious place tells you what code is currently serving.**
@@ -32,6 +32,13 @@ one asked.
    `MCP_ALLOWED_HOST`, because the 421 host check runs **inside** the
    container, past the edge, and the probe never reached one. Only a real
    authenticated call exercises it.
+
+4. **`modal app logs` keeps about one day (measured 2026-11-15, CLI 1.5.5).**
+   On Nov 15, windows on Nov 8–14 came back empty while a no-search Nov 15
+   window returned lines, so an empty window older than a day is UNKNOWN,
+   never "it didn't log". A failure email cannot be investigated from logs
+   the next day: check a nightly's logs (`--since/--until/--search`) the same
+   day, and fall back to volume and Chroma state for anything older.
 
 **The one probe that does answer it:** call the deployed thing and read a
 field where old and new code DISAGREE. Verified v18 by first checking that
