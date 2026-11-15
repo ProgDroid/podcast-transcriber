@@ -13,3 +13,4 @@
 - [What is actually deployed](what-is-actually-deployed.md) — `modal app list` shows CREATION not last deploy (use `app history`); MCP clients cache the tool schema until reconnect; a 401 never proves `MCP_ALLOWED_HOST`
 - [Chroma Cloud retirement](chroma-cloud-retirement.md) — CUT OVER to self-hosted Chroma on Fly 2026-11-07 (3bfe827 deployed, verified live); follow-ups: first nightly + first weekly backup + restore drill, Fly uptime check on/after 2026-11-14; CLI `flyctl`, org alias `personal`
 - [Hosting boundaries](hosting-boundaries.md) — never expose his DIY server to the internet; confirm a paid host's price against his current bill first
+- [JSP feed renumbered](jsp-feed-renumbered.md) — +72 itunes:episode shift ~2026-11-12 caused nightly 2h timeouts; corpus not duplicated (guid prune); guard then GUID rename migration chosen 2026-11-15
