@@ -162,8 +162,8 @@ podcast-mcp-server`) and redeploy rather than assuming traffic has drained.
 
 The MCP endpoint is protected with **Modal proxy auth**, so unauthenticated
 requests are rejected at Modal's edge before a container starts. That matters
-here beyond security: the search app holds a GPU, so an unauthenticated endpoint
-would let anyone trigger a paid cold start.
+here beyond security: every request that reaches a container can trigger a paid
+cold start of the search class.
 
 Create a token pair. **Which route you take depends on your client version**, and
 the two halves of this feature shipped separately: `requires_proxy_auth` has been
@@ -240,8 +240,9 @@ Edit the feed list there to follow your own shows.
 
 ## Cost
 
-Both apps scale to zero. You pay for GPU seconds during transcription and during
-search cold starts, plus Chroma Cloud storage. Transcription is the expensive
+Both apps scale to zero. You pay for GPU seconds during transcription and for a
+few CPU seconds per search cold start (search embeds the query on CPU, not a
+GPU), plus the Chroma host. Transcription is the expensive
 part and it is the part that runs on a schedule rather than on demand, so the
 steady-state cost of *querying* is small. The proxy auth above is part of keeping
 it that way.

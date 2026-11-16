@@ -141,8 +141,8 @@ Three things worth knowing:
 If a future migration needs a probe readable from a response without stopping
 production, **design one deliberately** — a small status tool returning the
 collection name and count — rather than inheriting whatever field the new
-schema happens to carry. Note it would cold-start a T4, since the search class
-holds a GPU.
+schema happens to carry. Note it would cold-start the search class (CPU since
+2026-11-16; it held a T4 before).
 
 **`modal secret create --force` replaces the secret wholesale**, so re-supply
 every key or you will silently drop one. Losing `MCP_ALLOWED_HOST` returns the

@@ -37,8 +37,16 @@ image = (
 app = modal.App("podcast-mcp-server", image=image)
 
 
+# CPU, not a GPU. Embedding ONE query is ~225 ms on 1-2 cores, and the CPU and
+# T4 embeddings of the same query have cosine 1.000000 (probe_cpu_embed.py,
+# 2026-11-16), so retrieval is unchanged. The GPU bought ~200 ms per query and
+# cost a scheduling dependency: on 2026-11-16 Modal took 6 min 13 s to allocate
+# a T4, the web function hit its 300 s timeout, and the tool call failed. CPU
+# containers do not wait on GPU capacity. The image keeps the cu128 torch wheel
+# because swapping it would force a rebuild; it runs fine on CPU.
 @app.cls(
-    gpu="T4",
+    cpu=2.0,
+    memory=4096,
     secrets=[
         modal.Secret.from_name("podcast-secrets"),
         modal.Secret.from_name("chroma-selfhosted"),
@@ -54,7 +62,7 @@ class PodcastSearch:
         print("Loading BGE model...")
         self.embedding_model = SentenceTransformer(
             "BAAI/bge-large-en-v1.5",
-            device="cuda",
+            device="cpu",
         )
 
         print("Connecting to ChromaDB...")
@@ -170,7 +178,7 @@ class PodcastSearch:
 @modal.concurrent(max_inputs=10)
 # requires_proxy_auth gates the endpoint at Modal's edge, before a container is
 # even started, so unauthenticated traffic never reaches this code and never
-# costs a GPU cold start. Callers must send Modal-Key / Modal-Secret headers
+# costs a cold start. Callers must send Modal-Key / Modal-Secret headers
 # from a proxy auth token.
 # Minting the token depends on client version: `modal workspace proxy-tokens
 # create` on >=1.5, or the dashboard on 1.4.x where `modal workspace` does not
@@ -207,8 +215,14 @@ def mcp_server():
     )
     searcher = PodcastSearch()
 
+    # Both tools are `async` and await `.remote.aio()`. A sync tool calling the
+    # blocking `.remote()` runs ON the event loop (Modal logs an
+    # AsyncUsageWarning for it), which freezes this container for the whole
+    # search: the other concurrent requests it accepts stall, and it cannot
+    # honour a cancellation, so Modal kills it 30 s later. Measured 2026-11-16:
+    # a retry sent during a hung search was trapped and returned 408.
     @mcp.tool()
-    def search_podcasts(
+    async def search_podcasts(
         query: str,
         n_results: int = 10,
         show: str = None,
@@ -246,7 +260,7 @@ def mcp_server():
             return problem
 
         try:
-            results = searcher.search.remote(
+            results = await searcher.search.remote.aio(
                 query=query,
                 n_results=n_results,
                 show=show,
@@ -263,7 +277,7 @@ def mcp_server():
         return format_results(results, names=NAMES)
 
     @mcp.tool()
-    def latest_on_topic(topic: str, n_results: int = 5) -> str:
+    async def latest_on_topic(topic: str, n_results: int = 5) -> str:
         """
         Find the most recent things said about a topic across all podcasts.
         Use this when the user wants the current or latest view on something,
@@ -274,7 +288,7 @@ def mcp_server():
             n_results: Number of results to return (default 5)
         """
         try:
-            results = searcher.search.remote(query=topic, n_results=n_results)
+            results = await searcher.search.remote.aio(query=topic, n_results=n_results)
         except Exception as e:
             raise Exception(f"Search failed: {e}")
 
