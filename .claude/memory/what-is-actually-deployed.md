@@ -40,6 +40,10 @@ one asked.
    the next day: check a nightly's logs (`--since/--until/--search`) the same
    day, and fall back to volume and Chroma state for anything older.
 
+5. **A function call's STATE outlives its logs and is the real verdict (measured 2026-11-16).** Logs show only bytes (`All done.` printed does not prove the call returned). Get fc ids from `modal app logs <app> --show-function-call-id`, then `modal.FunctionCall.from_id(fc).get_call_graph()` walks up to the root (e.g. scheduled_job) with each node's `InputStatus` (installed SDK `modal.types`: PENDING 0, SUCCESS 1, FAILURE 2, TERMINATED 3, TIMEOUT 4, INIT_FAILURE 5); `.get(timeout=0)` on the root returns its result. Child `.get()` gave NotFoundError while the graph still worked. Use this before believing a failure email names today's run.
+
+6. **Modal ids are ULIDs: the first 10 chars encode their CREATION time (measured 2026-11-16).** Decode `fc-`/`ta-`/`in-` ids (Crockford base32, ms since epoch) to get when a call or container was born; logs only show when it first PRINTED. This separated "T4 never allocated for 6 min 13 s" from "our startup hung" in the 2026-11-16 search_podcasts timeout. That incident moved PodcastSearch to CPU (cosine 1.000000 vs T4, ~225 ms/query) and made the tools async; a sync `.remote()` in the MCP tool froze the web container's event loop.
+
 **The one probe that does answer it:** call the deployed thing and read a
 field where old and new code DISAGREE. Verified v18 by first checking that
 v17's `rendering.py:41` rendered `result.get("speaker")` — the raw cluster
